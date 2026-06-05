@@ -1,8 +1,20 @@
-# PreCheck Dashboard 화면 정의서 v1.3
+# PreCheck Dashboard 화면 정의서 v1.4
 
-> 작성일: 2026-05-29 / 수정일: 2026-06-02  
+> 작성일: 2026-05-29 / 수정일: 2026-06-05  
 > 참조 문서: 프로그램 명세서, 로그포맷정의서, 로그수집DB정의서, 로그분석DB정의서  
 > 사용 기술: Spring Boot 3.x / Thymeleaf / AdminLTE 4.x / Chart.js / Bootstrap 5
+
+> 📌 **v1.4 변경 이력 (검토 의견 반영)**
+> 1. [이슈5] 6번 리소스 도넛차트 — 데이터 없음 텍스트 `"수집 없음"` → `"분석 없음"` 으로 통일
+> 2. [이슈6] 4-6 입력타입 배지 클래스 — Bootstrap 4(`badge-*`) → Bootstrap 5(`text-bg-*`) 로 수정
+> 3. [이슈7] 7-2 서버 상태 아이콘 — Font Awesome(`fa-circle`) → Bootstrap Icons(`bi-circle-fill`) 로 수정
+> 4. [이슈8] 4-9 NOTIFY_YN — 정상/정보/미분석 탭은 통보 대상 아님을 명확화
+> 5. [이슈9] 1-3 카운트다운 — `5:00` → `05:00` 으로 통일
+> 6. [이슈11] 2-3 수집/분석 현황 collectTotal — conf 파일에서 읽은 값임을 명시
+> 7. [이슈12] 4-2-1 자동갱신 페이징 — 1페이지 초기화 → **현재 페이지 유지** 로 변경
+> 8. [이슈13] 9-2/9-3 API — 히스토리/리소스 API 파라미터 추가
+> 9. [이슈14] 4-3/4-8 — LOG_VALUE 컬럼 및 SELECT 항목 추가
+> 10. [이슈15] 11번 개발 순서 — 히스토리 그래프 Phase 3에 명확히 추가
 
 > 📌 **v1.3 변경 이력**
 > 1. 2번 요약 섹션 UI 개편 — **가로 스트립(Horizontal Strip)** 1개 카드로 통합
@@ -110,7 +122,7 @@
 | 서버 목록 | TB_ANALYZE_HISTORY에서 ANALYZE_DATE=오늘 DISTINCT SERVER_ID (코드 고정 아님) |
 | 표시 조건 | 해당 서버에 오늘 `DISK_HOME` LOG_ID 데이터가 존재하면 도넛차트 표시 |
 | 복수 건 처리 | 오늘 `DISK_HOME` 이 여러 건이면 `LOG_TIMESTAMP` 기준 **가장 최신 1건** 사용 |
-| 데이터 없음 | `DISK_HOME` 데이터가 없는 서버는 "분석 없음" 표시 |
+| 데이터 없음 | `DISK_HOME` 데이터가 없는 서버는 "분석없음" 표시 |
 | 표시 LOG_ID | `DISK_HOME` 고정 (모든 서버 통일) |
 | 수치 단위 | % (0~100) 고정 |
 
@@ -151,7 +163,7 @@
 
 ### 1-3. 카운트다운 동작
 ```
-5분(300초) → 5:00 → ... → 0:00 → AJAX 갱신 실행 → 다시 5:00 시작
+5분(300초) → 05:00 → 04:59 → ... → 00:00 → AJAX 갱신 실행 → 다시 05:00 시작
 ```
 
 ### 1-4. AdminLTE 4.x HTML 구조 (Bootstrap 5 기준)
@@ -242,11 +254,17 @@
 
 | 칸 | 내용 | 색상 | 아이콘 | 데이터 출처 |
 |---|---|---|---|---|
-| 수집 현황 | 완료N/전체N + 진행률 바 | `#0dcaf0` (하늘) | `bi-download` | TB_COLLECT_HISTORY |
-| 분석 현황 | 완료N/전체N + 진행률 바 | `#198754` (초록) | `bi-bar-chart-line` | TB_ANALYZE_HISTORY |
+| 수집 현황 | 완료N/전체N + 진행률 바 | `#0dcaf0` (하늘) | `bi-download` | 완료: TB_COLLECT_HISTORY / 전체: `PreCheck_CollectLogs_Schedule.conf` 파싱값 |
+| 분석 현황 | 완료N/전체N + 진행률 바 | `#198754` (초록) | `bi-bar-chart-line` | 완료: TB_ANALYZE_HISTORY / 전체: `PreCheck_AnalyzeLogs_Schedule.conf` 파싱값 |
 | 수집 실패(FAIL) | N건 또는 이상없음 | `#dc3545` / 초록 | `bi-exclamation-circle` | TB_COLLECT_HISTORY |
 | 수집 제외(SKIP) | N건 또는 이상없음 | `#6c757d` / 초록 | `bi-slash-circle` | TB_COLLECT_HISTORY |
 | 분석 실패 | N건 또는 이상없음 | `#ffc107` / 초록 | `bi-exclamation-triangle` | TB_ANALYZE_HISTORY |
+
+> ℹ️ **전체 서버수(collectTotal / analyzeTotal) 출처**
+> - `수집 전체 서버수` = `PreCheck_CollectLogs_Schedule.conf` 에서 `#` 제외 + 유효 라인 기준 서버구분 DISTINCT count
+> - `분석 전체 서버수` = `PreCheck_AnalyzeLogs_Schedule.conf` 에서 `#` 제외 + 유효 라인 기준 서버구분 DISTINCT count
+> - conf 파일 위치는 `application.yml` 에서 설정 (`precheck.collect-schedule-path`, `precheck.analyze-schedule-path`)
+> - Spring Boot 기동 시 1회 파싱 후 메모리에 캐싱, Dashboard 요약 API 호출 시 캐싱값 반환
 
 > ℹ️ **FAIL vs SKIP 차이**
 > - `FAIL`: 수집 시도했으나 실패 (재시도 3회 모두 실패) → 운영자 즉시 확인 필요
@@ -625,20 +643,26 @@ FROM (
 
 ```sql
 -- ============================================================
--- 오늘 특정 서버+LOG_ID 최신값 조회 (Altibase/PostgreSQL 공통 호환)
+-- 오늘 특정 서버+LOG_ID 최신값 조회 (DB별 LIMIT 문법 분기)
 -- LOG_TIMESTAMP 기준 최신 1건
 -- ============================================================
+-- [Altibase]
 SELECT LOG_VALUE, LOG_CONTENT, LOG_TIMESTAMP
-FROM (
-    SELECT LOG_VALUE, LOG_CONTENT, LOG_TIMESTAMP
-    FROM TB_ANALYZE_RESULT
-    WHERE ANALYZE_DATE = #{today}
-      AND SERVER_ID    = #{serverId}
-      AND LOG_ID       = #{logId}
-    ORDER BY LOG_TIMESTAMP DESC
-)
-WHERE ROWNUM = 1;
--- ※ PostgreSQL: ORDER BY LOG_TIMESTAMP DESC LIMIT 1 사용 가능
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE = #{today}
+  AND SERVER_ID    = #{serverId}
+  AND LOG_ID       = #{logId}
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT 1;
+
+-- [PostgreSQL]
+SELECT LOG_VALUE, LOG_CONTENT, LOG_TIMESTAMP
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE = #{today}
+  AND SERVER_ID    = #{serverId}
+  AND LOG_ID       = #{logId}
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT 1;
 
 -- ============================================================
 -- 수집 시각 표시 로직 (Java/Thymeleaf 처리)
@@ -667,12 +691,17 @@ WHERE ROWNUM = 1;
 | 항목 | 내용 |
 |---|---|
 | 페이지당 표시 건수 | 10건 고정 |
-| 페이지 표시 방식 | AdminLTE `pagination` 컴포넌트 사용 |
+| 페이지 표시 방식 | Bootstrap 5 `pagination` 컴포넌트 사용 |
 | 페이지 번호 표시 | 이전(«) · 1 · 2 · 3 · ... · 다음(») |
 | 총 건수 표시 | 테이블 상단 우측에 "총 N건 (N페이지 중 M페이지)" 표시 |
 | 서버 필터 변경 시 | 1페이지로 초기화 |
 | 탭 전환 시 | 1페이지로 초기화 |
-| 자동 갱신(AJAX) 시 | 1페이지로 초기화 |
+| 자동 갱신(AJAX) 시 | **현재 페이지 유지** — 운영자가 보던 페이지 그대로 유지하여 UX 보호 |
+
+> ℹ️ 자동갱신 시 현재 페이지 유지 구현 방법
+> - JS 변수 `currentPage`에 현재 페이지 번호 유지
+> - AJAX 갱신 시 `currentPage` 값을 API 파라미터로 전달
+> - 단, 갱신 후 총 건수가 줄어 현재 페이지가 없어진 경우 마지막 페이지로 자동 이동
 
 ### 4-3. 테이블 컬럼 정의
 
@@ -682,10 +711,11 @@ WHERE ROWNUM = 1;
 | 서버 | SERVER_ID | 텍스트 (굵게) | SERVER_IP를 바로 아래 소문자 회색으로 표시 |
 | 서버 IP | SERVER_IP | 소문자 회색 텍스트 | 서버 컬럼 셀 내 2행 표시 (별도 컬럼 아님) |
 | LOG_ID | LOG_ID | `<code>` 태그 | 클릭 시 accordion |
-| 입력타입 | LOG_TYPE | 배지(badge) | 색상 구분 |
-| 레벨 | ANALYZE_LEVEL | 배지(badge) | 색상 구분 |
+| 입력타입 | LOG_TYPE | 배지(badge) | 색상 구분 (4-6 참고) |
+| 레벨 | ANALYZE_LEVEL | 배지(badge) | 색상 구분 (0-5 참고) |
 | 분석 메시지 | ANALYZE_MESSAGE | 텍스트 | |
 | 임계치 정보 | THRESHOLD_VALUE + THRESHOLD_OPERATOR | 수치형만 표시 | |
+| **수집값** | **LOG_VALUE** | **숫자 (수치형) / 미표시 (비수치형)** | **수치형 타입만 표시, accordion 상세에도 사용** |
 | 원본 로그 | COLLECT_LOG_ID | `[보기]` 버튼 | 클릭 시 TB_COLLECT_LOG 원본 내용 모달 팝업 표시 |
 
 > 서버 컬럼 표시 형식 예시:
@@ -852,13 +882,24 @@ WHERE COLLECT_LOG_ID = #{collectLogId};
 
 ### 4-6. 입력타입별 배지 색상
 
-| 입력타입 | AdminLTE 클래스 |
-|---|---|
-| 수치 | `badge-primary` (파랑) |
-| 문구 | `badge-success` (초록) |
-| 존재 | `badge-danger` (빨강) |
-| 날짜 | `badge-warning` (노랑) |
-| 정보 | `badge-info` (하늘) |
+> ℹ️ Bootstrap 5 기준 — `badge-*` → `text-bg-*` 로 변경됨
+
+| 입력타입 | Bootstrap 5 클래스 | 색상 |
+|---|---|---|
+| 수치 | `text-bg-primary` | 파랑 |
+| 문구 | `text-bg-success` | 초록 |
+| 존재 | `text-bg-danger` | 빨강 |
+| 날짜 | `text-bg-warning` | 노랑 |
+| 정보 | `text-bg-info` | 하늘 |
+
+```html
+<!-- 사용 예시 -->
+<span class="badge text-bg-primary">수치</span>
+<span class="badge text-bg-success">문구</span>
+<span class="badge text-bg-danger">존재</span>
+<span class="badge text-bg-warning">날짜</span>
+<span class="badge text-bg-info">정보</span>
+```
 
 ### 4-7. 입력타입(LOG_TYPE) 정의 및 표시 규칙
 
@@ -902,7 +943,66 @@ WHERE COLLECT_LOG_ID = #{collectLogId};
 ```sql
 -- 파라미터: #{startRow} = (pageNo-1)*10 + 1, #{endRow} = pageNo*10
 
--- 에러/경고 목록 (페이징 포함 - Altibase/PostgreSQL 공통 호환 ROWNUM 방식)
+-- 에러/경고 목록 (페이징 - DB별 LIMIT 문법 분기)
+
+-- [Altibase]
+-- OFFSET/LIMIT 대신 LIMIT row_offset, row_count 형태 사용
+-- row_offset = (pageNo-1)*10
+-- row_count  = 10
+SELECT
+    ANALYZE_RESULT_ID,
+    SERVER_ID,
+    SERVER_IP,
+    LOG_ID,
+    LOG_TYPE,
+    LOG_TIMESTAMP,
+    LOG_VALUE,
+    ANALYZE_LEVEL,
+    ANALYZE_MESSAGE,
+    THRESHOLD_VALUE,
+    THRESHOLD_OPERATOR,
+    WARNING_RATIO,
+    NOTIFY_YN,
+    COLLECT_LOG_ID
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE  = #{today}
+  AND ANALYZE_LEVEL IN ('에러', '경고')
+  AND SERVER_ID     = #{serverId}   -- '전체' 선택 시 조건 제거
+ORDER BY
+    CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
+    LOG_TIMESTAMP DESC
+LIMIT #{offset}, #{pageSize};
+
+-- [PostgreSQL]
+-- OFFSET = (pageNo-1)*10
+-- LIMIT  = 10
+SELECT
+    ANALYZE_RESULT_ID,
+    SERVER_ID,
+    SERVER_IP,
+    LOG_ID,
+    LOG_TYPE,
+    LOG_TIMESTAMP,
+    LOG_VALUE,
+    ANALYZE_LEVEL,
+    ANALYZE_MESSAGE,
+    THRESHOLD_VALUE,
+    THRESHOLD_OPERATOR,
+    WARNING_RATIO,
+    NOTIFY_YN,
+    COLLECT_LOG_ID
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE  = #{today}
+  AND ANALYZE_LEVEL IN ('에러', '경고')
+  AND SERVER_ID     = #{serverId}   -- '전체' 선택 시 조건 제거
+ORDER BY
+    CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
+    LOG_TIMESTAMP DESC
+LIMIT #{pageSize} OFFSET #{offset};
+
+-- ============================================================
+-- 아래 ROWNUM 페이징 예시는 삭제하고 DB별 LIMIT 분기 방식으로 통일
+-- ============================================================
 SELECT *
 FROM (
     SELECT ROWNUM AS RN, T.*
@@ -914,6 +1014,7 @@ FROM (
             LOG_ID,
             LOG_TYPE,
             LOG_TIMESTAMP,
+            LOG_VALUE,
             ANALYZE_LEVEL,
             ANALYZE_MESSAGE,
             THRESHOLD_VALUE,
@@ -940,7 +1041,57 @@ WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('에러', '경고')
   AND SERVER_ID     = #{serverId};
 
--- 정상/정보/미분석 목록 (페이징 포함 - Altibase/PostgreSQL 공통 호환 ROWNUM 방식)
+-- 정상/정보/미분석 목록 (페이징 - DB별 LIMIT 문법 분기)
+
+-- [Altibase]
+SELECT
+    ANALYZE_RESULT_ID,
+    SERVER_ID,
+    SERVER_IP,
+    LOG_ID,
+    LOG_TYPE,
+    LOG_TIMESTAMP,
+    LOG_VALUE,
+    ANALYZE_LEVEL,
+    ANALYZE_MESSAGE,
+    THRESHOLD_VALUE,
+    THRESHOLD_OPERATOR,
+    WARNING_RATIO,
+    NOTIFY_YN,
+    COLLECT_LOG_ID
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE  = #{today}
+  AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
+  AND SERVER_ID     = #{serverId}
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT #{offset}, #{pageSize};
+
+-- [PostgreSQL]
+SELECT
+    ANALYZE_RESULT_ID,
+    SERVER_ID,
+    SERVER_IP,
+    LOG_ID,
+    LOG_TYPE,
+    LOG_TIMESTAMP,
+    LOG_VALUE,
+    ANALYZE_LEVEL,
+    ANALYZE_MESSAGE,
+    THRESHOLD_VALUE,
+    THRESHOLD_OPERATOR,
+    WARNING_RATIO,
+    NOTIFY_YN,
+    COLLECT_LOG_ID
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE  = #{today}
+  AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
+  AND SERVER_ID     = #{serverId}
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT #{pageSize} OFFSET #{offset};
+
+-- ============================================================
+-- 아래 ROWNUM 페이징 예시는 삭제하고 DB별 LIMIT 분기 방식으로 통일
+-- ============================================================
 SELECT *
 FROM (
     SELECT ROWNUM AS RN, T.*
@@ -952,6 +1103,7 @@ FROM (
             LOG_ID,
             LOG_TYPE,
             LOG_TIMESTAMP,
+            LOG_VALUE,
             ANALYZE_LEVEL,
             ANALYZE_MESSAGE,
             THRESHOLD_VALUE,
@@ -980,34 +1132,47 @@ WHERE ANALYZE_DATE  = #{today}
 ### 4-9. NOTIFY_YN 통보 상태 시각화
 
 #### 표시 위치
-- 레벨 탭이 [에러/경고]일 때만 표시 (통보 대상은 에러/경고만 해당)
+- **레벨 탭이 [에러/경고]일 때만 표시**
+- 이유: 통보 대상은 에러/경고만 해당, 정상/정보/미분석은 통보 대상이 아님
 - `레벨` 배지 옆에 아이콘으로 표시
 
 #### 표시 규칙
 
-| NOTIFY_YN | 표시 아이콘 | 색상 | 툴팁 |
-|---|---|---|---|
-| N (미통보) | `fa-bell` (종 아이콘) | `text-danger` (빨강) | "SMS 미통보" |
-| Y (통보완료) | `fa-check-circle` | `text-muted` (회색) | "SMS 통보완료" |
+| NOTIFY_YN | 표시 아이콘 | Bootstrap 5 클래스 | 색상 | 툴팁 |
+|---|---|---|---|---|
+| N (미통보) | `bi-bell-fill` | `text-danger` | 빨강 | "SMS 미통보" |
+| Y (통보완료) | `bi-check-circle` | `text-body-secondary` | 회색 | "SMS 통보완료" |
+
+> ℹ️ **탭별 NOTIFY_YN 표시 규칙**
+> - [에러/경고] 탭: NOTIFY_YN 아이콘 **표시**
+> - [정상/정보/미분석] 탭: NOTIFY_YN 아이콘 **미표시** (통보 대상 아님, DB 분석정책 상 에러/경고만 통보)
 
 #### 화면 예시
 
 ```
-[레벨 탭: 에러/경고]
+[레벨 탭: 에러/경고]  → NOTIFY_YN 아이콘 표시
 ─────────────────────────────────────────────────────────────────────
-시각     | 서버           | LOG_ID    | 타입 | 레벨          | 분석 메시지       | 임계치 | 원본
+시각     | 서버           | LOG_ID    | 타입 | 레벨              | 분석 메시지        | 임계치 | 원본
 ─────────────────────────────────────────────────────────────────────
-09:10:01 | dlprem01-테스트개발 | DISK_HOME | 수치 | [에러] 🔔     | home디스크 95 < 80 | 80 <  | [보기]
-         | 192.168.210.121   |            |      |               |                    |       |
-09:15:22 | pwwfep01-운영      | SVC_STATUS | 문구 | [에러] ✔(회색)| connection fail    |       | [보기]
-         | 192.168.210.201   |            |      |               |                    |       |
+09:10:01 | dlprem01-테스트개발 | DISK_HOME | 수치 | [에러] 🔔(빨강)   | home디스크 95 < 80 | 80 <  | [보기]
+         | 192.168.210.121   |            |      |                   |                    |       |
+09:15:22 | pwwfep01-운영      | SVC_STATUS | 문구 | [에러] ✔(회색)   | connection fail    |       | [보기]
+         | 192.168.210.201   |            |      |                   |                    |       |
 ─────────────────────────────────────────────────────────────────────
-🔔 = NOTIFY_YN='N' (미통보, 빨간색)    ✔ = NOTIFY_YN='Y' (통보완료, 회색)
+🔔(bi-bell-fill, text-danger)   = NOTIFY_YN='N' (미통보)
+✔(bi-check-circle, text-body-secondary) = NOTIFY_YN='Y' (통보완료)
+
+[레벨 탭: 정상/정보/미분석]  → NOTIFY_YN 아이콘 미표시 (통보 대상 아님)
+─────────────────────────────────────────────────────────────────────
+시각     | 서버           | LOG_ID    | 타입 | 레벨   | 분석 메시지       | 임계치 | 원본
+─────────────────────────────────────────────────────────────────────
+09:30:11 | dlprem01       | DISK_HOME | 수치 | [정상] | home디스크 62 < 90| 90 <  | [보기]
+─────────────────────────────────────────────────────────────────────
 ```
 
 #### 조회 시 NOTIFY_YN 포함 처리
 - `SELECT` 시 `NOTIFY_YN` 컬럼 반드시 포함 (4-8 SQL에 포함됨)
-- 레벨 탭이 [정상/정보]이면 NOTIFY_YN 아이콘 미표시
+- 레벨 탭이 [정상/정보/미분석]이면 NOTIFY_YN 아이콘 **미표시** (통보 대상 아님)
 
 ---
 
@@ -1093,7 +1258,7 @@ ORDER BY LOG_TIMESTAMP ASC;
 ① TB_ANALYZE_HISTORY에서 오늘 분석된 DISTINCT SERVER_ID 목록 조회
 ② 각 서버별로 오늘 DISK_HOME LOG_ID 데이터 존재 여부 확인
 ③ 데이터 있으면 → 도넛차트 표시
-   데이터 없으면 → "분석 없음" 텍스트 표시
+   데이터 없으면 → "분석없음" 텍스트 표시
 ```
 
 ### 6-3. 도넛 차트 표시 규칙
@@ -1108,7 +1273,7 @@ ORDER BY LOG_TIMESTAMP ASC;
 - 정상(ANALYZE_LEVEL='정상') : #198754 (초록)
 - 경고(ANALYZE_LEVEL='경고') : #ffc107 (노랑)
 - 에러(ANALYZE_LEVEL='에러') : #dc3545 (빨강)
-- 데이터 없음                : 회색 점선 원 + "분석 없음" 텍스트
+- 데이터 없음                : 회색 점선 원 + "분석없음" 텍스트
 ```
 
 ### 6-4. 표시 형식
@@ -1131,7 +1296,7 @@ ORDER BY LOG_TIMESTAMP ASC;
 │  newserver-신규     │
 │   ┌─────────┐     │
 │   │  - - -  │     │  ← 회색 점선
-│   │ 분석없음│     │
+│   │분석없음 │     │
 │   └─────────┘     │
 │  DISK_HOME         │
 └────────────────────┘
@@ -1153,21 +1318,29 @@ ORDER BY SERVER_ID;
 -- LOG_ID = 'DISK_HOME' 고정
 -- LOG_TYPE = '수치' (DISK_HOME은 반드시 수치형으로 수집)
 -- ANALYZE_DATE = 오늘 기준 최신 1건
--- Altibase/PostgreSQL 공통 호환 - ROWNUM 방식
+-- DB별 LIMIT 문법 분기
 -- ============================================================
+-- [Altibase]
 SELECT LOG_VALUE, ANALYZE_LEVEL, THRESHOLD_VALUE, LOG_TIMESTAMP
-FROM (
-    SELECT LOG_VALUE, ANALYZE_LEVEL, THRESHOLD_VALUE, LOG_TIMESTAMP
-    FROM TB_ANALYZE_RESULT
-    WHERE ANALYZE_DATE = #{today}
-      AND SERVER_ID    = #{serverId}
-      AND LOG_ID       = 'DISK_HOME'
-      AND LOG_TYPE     = '수치'
-    ORDER BY LOG_TIMESTAMP DESC
-)
-WHERE ROWNUM = 1;
--- ※ PostgreSQL에서는: ORDER BY LOG_TIMESTAMP DESC LIMIT 1 사용 가능
--- ※ 결과 없으면(NULL) → 해당 서버는 "분석 없음" 표시
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE = #{today}
+  AND SERVER_ID    = #{serverId}
+  AND LOG_ID       = 'DISK_HOME'
+  AND LOG_TYPE     = '수치'
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT 1;
+
+-- [PostgreSQL]
+SELECT LOG_VALUE, ANALYZE_LEVEL, THRESHOLD_VALUE, LOG_TIMESTAMP
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE = #{today}
+  AND SERVER_ID    = #{serverId}
+  AND LOG_ID       = 'DISK_HOME'
+  AND LOG_TYPE     = '수치'
+ORDER BY LOG_TIMESTAMP DESC
+LIMIT 1;
+
+-- ※ 결과 없으면(NULL) → 해당 서버는 "분석없음" 표시
 ```
 
 ---
@@ -1180,15 +1353,25 @@ WHERE ROWNUM = 1;
 
 ### 7-2. 서버 상태 정의
 
-| 상태 | 조건 | 색상 | 아이콘 | AdminLTE 클래스 |
+> ℹ️ Bootstrap Icons 기준 — Font Awesome(`fa-*`) 미사용, `bi-*` 클래스 사용
+
+| 상태 | 조건 | 색상 | 아이콘 | Bootstrap 5 클래스 |
 |---|---|---|---|---|
-| 정상 | 수집+분석 완료, ANALYZE_LEVEL 에러/경고 없음 | 초록 | `fa-circle` | `text-success` |
-| 경고 | 수집+분석 완료, ANALYZE_LEVEL 경고 있음 | 노랑 | `fa-circle` | `text-warning` |
-| 에러 | 수집 실패(FAIL) 또는 ANALYZE_LEVEL 에러 있음 | 빨강 | `fa-circle` | `text-danger` |
-| 수집미완료 | 오늘 TB_COLLECT_HISTORY에 해당 서버 없음 | 진회색 | `fa-circle` | `text-muted` |
+| 정상 | 수집+분석 완료, ANALYZE_LEVEL 에러/경고 없음 | 초록 | `bi-circle-fill` | `text-success` |
+| 경고 | 수집+분석 완료, ANALYZE_LEVEL 경고 있음 | 노랑 | `bi-circle-fill` | `text-warning` |
+| 에러 | 수집 실패(FAIL) 또는 ANALYZE_LEVEL 에러 있음 | 빨강 | `bi-circle-fill` | `text-danger` |
+| 수집미완료 | 오늘 TB_COLLECT_HISTORY에 해당 서버 없음 | 진회색 | `bi-circle` | `text-body-secondary` |
 
 > ⚠️ 상태 우선순위: 에러 > 경고 > 정상 > 수집미완료  
 > ℹ️ 미분석 건수는 서버 상태 판별에 영향을 주지 않음 (2번 요약 카드에서만 별도 표시)
+
+```html
+<!-- 사용 예시 -->
+<i class="bi bi-circle-fill text-success"></i>  <!-- 정상 -->
+<i class="bi bi-circle-fill text-warning"></i>  <!-- 경고 -->
+<i class="bi bi-circle-fill text-danger"></i>   <!-- 에러 -->
+<i class="bi bi-circle text-body-secondary"></i> <!-- 수집미완료 -->
+```
 
 ### 7-3. 리스트 항목 구성
 
@@ -1325,18 +1508,29 @@ ORDER BY
 | `/dashboard/api/info-data` | GET | 정보성 중요 데이터 (13개 항목) | JSON |
 | `/dashboard/api/error-list` | GET | 에러/경고 목록 (페이징) | JSON |
 | `/dashboard/api/normal-list` | GET | 정상/정보/미분석 목록 (페이징) | JSON |
-| `/dashboard/api/history` | GET | 히스토리 그래프 데이터 | JSON |
-| `/dashboard/api/resource` | GET | 리소스 도넛차트 (서버 동적 조회) | JSON |
+| `/dashboard/api/history` | GET | 히스토리 그래프 데이터 (logId 필수) | JSON |
+| `/dashboard/api/resource` | GET | 리소스 도넛차트 — 전체 서버 일괄 반환 | JSON |
 | `/dashboard/api/server-list` | GET | 서버 리스트 상태 | JSON |
 | `/dashboard/api/raw-log/{collectLogId}` | GET | 원본 로그 모달 조회 | JSON |
 
 ### 9-3. API 공통 파라미터
 
-| 파라미터 | 설명 | 기본값 | 예시 |
-|---|---|---|---|
-| `date` | 조회 날짜 | 오늘 (서버 기준) | `20260602` |
-| `serverId` | 서버 필터 | 전체 (조건 없음) | `dlprem01-테스트개발` |
-| `page` | 페이지 번호 | 1 | `2` |
+| 파라미터 | 설명 | 기본값 | 적용 API | 예시 |
+|---|---|---|---|---|
+| `date` | 조회 날짜 | 오늘 (서버 기준) | 전체 | `20260602` |
+| `serverId` | 서버 필터 | 전체 (조건 없음) | error-list, normal-list | `dlprem01-테스트개발` |
+| `page` | 페이지 번호 | 1 | error-list, normal-list | `2` |
+| `logId` | 조회할 LOG_ID | 없음 (필수값) | history | `MBSOSI_COUNT` |
+| `groupType` | 그래프 그룹 구분 | `stock` | history | `stock` (종목수), `conn` (접속자수) |
+
+> ℹ️ **history API 동작 방식**
+> - `groupType=stock`: 종목수 그룹(MBSOSI_COUNT~OPT_MAX_COUNT) 전체 데이터를 한 번에 반환
+> - `groupType=conn`: 접속자수 그룹(MAX_CONN_PREV~MTS_MAX_CONN) 전체 데이터를 한 번에 반환
+> - 응답 JSON에 LOG_ID별 데이터 배열 포함 → 프론트에서 Chart.js 다중 라인으로 렌더링
+>
+> ℹ️ **resource API 동작 방식**
+> - 서버별 파라미터 없이 전체 서버 목록을 한 번에 반환 (서버당 DISK_HOME 최신값)
+> - 응답 JSON 구조: `[{serverId, logValue, analyzeLevel, thresholdValue, logTimestamp}, ...]`
 
 ### 9-4. Bootstrap 5 Thymeleaf 적용 시 유의사항
 
@@ -1396,20 +1590,35 @@ form-control-file → form-control
 Phase 1: 기반 구성
   ① Spring Boot 프로젝트 생성 + DB 연결 확인
   ② AdminLTE HTML 정적 파일 복사 및 기본 레이아웃 구성
-  ③ 1번 상단 NavBar (정적 HTML + JS 시계/카운트다운)
+  ③ 1번 상단 NavBar (정적 HTML + JS 시계/카운트다운 05:00 형식)
 
 Phase 2: 핵심 데이터
   ④ 2번 요약카드 (MyBatis SQL + Thymeleaf)
-  ⑤ 4번 에러/경고 목록 테이블 + Accordion
+     - conf 파일 파싱으로 전체 서버수 조회
+     - TB_COLLECT_HISTORY/TB_ANALYZE_HISTORY로 완료 서버수 조회
+  ⑤ 4번 에러/경고 목록 테이블 + Accordion + 페이징 (현재 페이지 유지)
+     - LOG_VALUE 포함하여 SELECT
+     - Bootstrap 5 text-bg-* 배지 클래스 사용
   ⑥ 7번 서버 리스트
+     - Bootstrap Icons bi-circle-fill 아이콘 사용
 
 Phase 3: 시각화
   ⑦ 6번 리소스 도넛차트
+     - TB_ANALYZE_HISTORY 기준 서버 목록 조회
+     - LOG_TYPE='수치', LOG_ID='DISK_HOME' 조건으로 최신 1건 조회
+     - 분석없음 서버: "분석없음" 텍스트 + 회색 점선 원 표시
   ⑧ 5번 히스토리 그래프 (Line Chart)
-  ⑨ 3번 정보성 데이터 카드
+     - LOG_TYPE='수치' 조건으로 조회 (정보형 데이터가 수치값을 갖는 구조)
+     - groupType=stock: MBSOSI_COUNT~OPT_MAX_COUNT 6개 라인
+     - groupType=conn: MAX_CONN_PREV~MTS_MAX_CONN 3개 라인
+     - X축: LOG_TIMESTAMP 전체 포인트 (집계 없음), 형식: MM/DD HH:mm
+     - 탭 전환 시 Chart.js 데이터셋 교체 방식 구현
+  ⑨ 3번 정보성 데이터 카드 (그룹별 리스트)
+     - 서버+LOG_ID 매핑표 기준 각 항목 최신값 조회
+     - 값 없으면 "-" 표시
 
 Phase 4: 완성
-  ⑩ 전체 AJAX 자동 갱신 적용
-  ⑪ 서버+LOG_ID 매핑표 실제 값으로 확정 및 적용
+  ⑩ 전체 AJAX 자동 갱신 적용 (5분 주기, 카운트다운 05:00)
+  ⑪ 서버+LOG_ID 매핑표 실제 운영 값으로 확정 및 적용
   ⑫ 테스트 및 UI 세부 조정
 ```

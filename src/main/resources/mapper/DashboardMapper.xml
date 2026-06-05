@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sks.precheck.dashboard.mapper.DashboardMapper">
+
+    <select id="selectSummary" parameterType="string" resultType="com.sks.precheck.dashboard.dto.SummaryDto">
+        SELECT
+            COALESCE(AR.ERROR_CNT, 0) AS ERROR_CNT,
+            COALESCE(AR.WARN_CNT, 0) AS WARN_CNT,
+            COALESCE(AR.NORMAL_CNT, 0) AS NORMAL_CNT,
+            COALESCE(AR.INFO_CNT, 0) AS INFO_CNT,
+            COALESCE(AR.UNKNOWN_CNT, 0) AS UNKNOWN_CNT,
+            COALESCE(AR.ERROR_RATIO, 0) AS ERROR_RATIO,
+            COALESCE(AR.WARN_RATIO, 0) AS WARN_RATIO,
+            COALESCE(AR.NORMAL_RATIO, 0) AS NORMAL_RATIO,
+            COALESCE(AR.INFO_RATIO, 0) AS INFO_RATIO,
+            COALESCE(AR.UNKNOWN_RATIO, 0) AS UNKNOWN_RATIO,
+            COALESCE(CH.COLLECT_SUCCESS, 0) AS COLLECT_SUCCESS,
+            COALESCE(CH.COLLECT_TOTAL, 0) AS COLLECT_TOTAL,
+            COALESCE(CH.COLLECT_FAIL, 0) AS COLLECT_FAIL,
+            COALESCE(CH.COLLECT_SKIP, 0) AS COLLECT_SKIP,
+            COALESCE(AH.ANALYZE_SUCCESS, 0) AS ANALYZE_SUCCESS,
+            COALESCE(AH.ANALYZE_TOTAL, 0) AS ANALYZE_TOTAL,
+            COALESCE(AH.ANALYZE_FAIL, 0) AS ANALYZE_FAIL,
+            COALESCE(CH.COLLECT_RATIO, 0) AS COLLECT_RATIO,
+            COALESCE(AH.ANALYZE_RATIO, 0) AS ANALYZE_RATIO
+        FROM
+            (
+                SELECT
+                    SUM(CASE WHEN ANALYZE_LEVEL = '에러' THEN 1 ELSE 0 END) AS ERROR_CNT,
+                    SUM(CASE WHEN ANALYZE_LEVEL = '경고' THEN 1 ELSE 0 END) AS WARN_CNT,
+                    SUM(CASE WHEN ANALYZE_LEVEL = '정상' THEN 1 ELSE 0 END) AS NORMAL_CNT,
+                    SUM(CASE WHEN ANALYZE_LEVEL = '정보' THEN 1 ELSE 0 END) AS INFO_CNT,
+                    SUM(CASE WHEN ANALYZE_LEVEL = '미분석' THEN 1 ELSE 0 END) AS UNKNOWN_CNT,
+                    CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '에러' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS ERROR_RATIO,
+                    CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '경고' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS WARN_RATIO,
+                    CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '정상' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS NORMAL_RATIO,
+                    CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '정보' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS INFO_RATIO,
+                    CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '미분석' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS UNKNOWN_RATIO
+                FROM TB_ANALYZE_RESULT
+                WHERE ANALYZE_DATE = #{today}
+            ) AR
+            CROSS JOIN
+            (
+                SELECT
+                    COUNT(DISTINCT SERVER_ID) AS COLLECT_TOTAL,
+                    COUNT(DISTINCT CASE WHEN COLLECT_STATUS = 'SUCCESS' THEN SERVER_ID END) AS COLLECT_SUCCESS,
+                    COUNT(DISTINCT CASE WHEN COLLECT_STATUS = 'FAIL' THEN SERVER_ID END) AS COLLECT_FAIL,
+                    COUNT(DISTINCT CASE WHEN COLLECT_STATUS = 'SKIP' THEN SERVER_ID END) AS COLLECT_SKIP,
+                    CASE WHEN COUNT(DISTINCT SERVER_ID) = 0 THEN 0
+                         ELSE ROUND(COUNT(DISTINCT CASE WHEN COLLECT_STATUS = 'SUCCESS' THEN SERVER_ID END) * 100.0 / COUNT(DISTINCT SERVER_ID), 2)
+                    END AS COLLECT_RATIO
+                FROM TB_COLLECT_HISTORY
+                WHERE COLLECT_DATE = #{today}
+            ) CH
+            CROSS JOIN
+            (
+                SELECT
+                    COUNT(DISTINCT SERVER_ID) AS ANALYZE_TOTAL,
+                    COUNT(DISTINCT CASE WHEN ANALYZE_STATUS = 'SUCCESS' THEN SERVER_ID END) AS ANALYZE_SUCCESS,
+                    COUNT(DISTINCT CASE WHEN ANALYZE_STATUS = 'FAIL' THEN SERVER_ID END) AS ANALYZE_FAIL,
+                    CASE WHEN COUNT(DISTINCT SERVER_ID) = 0 THEN 0
+                         ELSE ROUND(COUNT(DISTINCT CASE WHEN ANALYZE_STATUS = 'SUCCESS' THEN SERVER_ID END) * 100.0 / COUNT(DISTINCT SERVER_ID), 2)
+                    END AS ANALYZE_RATIO
+                FROM TB_ANALYZE_HISTORY
+                WHERE ANALYZE_DATE = #{today}
+            ) AH
+    </select>
+
+    <sql id="serverFilter">
+        <if test="serverId != null and serverId != '' and serverId != '전체'">
+            AND SERVER_ID = #{serverId}
+        </if>
+    </sql>
+
+    <select id="selectErrorWarningList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="postgresql">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('에러', '경고')
+        <include refid="serverFilter"/>
+        ORDER BY
+            CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
+            LOG_TIMESTAMP DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectErrorWarningList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="altibase">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('에러', '경고')
+        <include refid="serverFilter"/>
+        ORDER BY
+            CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
+            LOG_TIMESTAMP DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countErrorWarning" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('에러', '경고')
+        <include refid="serverFilter"/>
+    </select>
+
+    <select id="selectNormalInfoList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="postgresql">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
+        <include refid="serverFilter"/>
+        ORDER BY LOG_TIMESTAMP DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="selectNormalInfoList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="altibase">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
+        <include refid="serverFilter"/>
+        ORDER BY LOG_TIMESTAMP DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countNormalInfo" resultType="int">
+        SELECT COUNT(*)
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
+        <include refid="serverFilter"/>
+    </select>
+
+    <select id="selectServerList" resultType="map">
+        SELECT DISTINCT SERVER_ID AS serverId
+        FROM TB_ANALYZE_HISTORY
+        WHERE ANALYZE_DATE = #{today}
+        ORDER BY SERVER_ID
+    </select>
+
+    <select id="selectHistoryData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE BETWEEN #{startDate} AND #{endDate}
+          AND SERVER_ID = #{serverId}
+          AND LOG_ID = #{logId}
+        ORDER BY LOG_TIMESTAMP ASC
+    </select>
+
+    <select id="selectResourceData" resultType="map">
+        SELECT
+            AR.SERVER_ID AS serverId,
+            AR.LOG_VALUE AS logValue,
+            AR.ANALYZE_LEVEL AS analyzeLevel,
+            AR.THRESHOLD_VALUE AS thresholdValue,
+            AR.LOG_TIMESTAMP AS logTimestamp
+        FROM TB_ANALYZE_RESULT AR
+        JOIN (
+            SELECT SERVER_ID, MAX(LOG_TIMESTAMP) AS MAX_TS
+            FROM TB_ANALYZE_RESULT
+            WHERE ANALYZE_DATE = #{today}
+              AND LOG_ID = 'DISK_HOME'
+              AND LOG_TYPE = '수치'
+            GROUP BY SERVER_ID
+        ) T
+          ON AR.SERVER_ID = T.SERVER_ID
+         AND AR.LOG_TIMESTAMP = T.MAX_TS
+        WHERE AR.ANALYZE_DATE = #{today}
+          AND AR.LOG_ID = 'DISK_HOME'
+          AND AR.LOG_TYPE = '수치'
+        ORDER BY AR.SERVER_ID
+    </select>
+
+    <select id="selectInfoData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
+        SELECT
+            AR.ANALYZE_RESULT_ID,
+            AR.COLLECT_LOG_ID,
+            AR.SERVER_ID,
+            AR.SERVER_IP,
+            AR.LOG_TYPE,
+            AR.LOG_ID,
+            AR.LOG_TIMESTAMP,
+            AR.LOG_CONTENT,
+            AR.LOG_VALUE,
+            AR.ANALYZE_LEVEL,
+            AR.ANALYZE_MESSAGE,
+            AR.THRESHOLD_VALUE,
+            AR.THRESHOLD_OPERATOR,
+            AR.WARNING_RATIO,
+            AR.NOTIFY_YN,
+            AR.NOTIFY_AT,
+            AR.ANALYZE_DATE,
+            AR.ANALYZE_DATETIME,
+            AR.COLLECT_DATE,
+            AR.CREATED_AT
+        FROM TB_ANALYZE_RESULT AR
+        JOIN (
+            SELECT MAX(LOG_TIMESTAMP) AS MAX_TS
+            FROM TB_ANALYZE_RESULT
+            WHERE ANALYZE_DATE = #{today}
+              AND SERVER_ID = #{serverId}
+              AND LOG_ID = #{logId}
+        ) T
+          ON AR.LOG_TIMESTAMP = T.MAX_TS
+        WHERE AR.ANALYZE_DATE = #{today}
+          AND AR.SERVER_ID = #{serverId}
+          AND AR.LOG_ID = #{logId}
+    </select>
+
+    <select id="selectRawLog" resultType="com.sks.precheck.dashboard.dto.CollectLogDto">
+        SELECT
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            RAW_LOG,
+            SOURCE_FILE_PATH,
+            COLLECT_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_COLLECT_LOG
+        WHERE COLLECT_LOG_ID = #{collectLogId}
+    </select>
+
+</mapper>
