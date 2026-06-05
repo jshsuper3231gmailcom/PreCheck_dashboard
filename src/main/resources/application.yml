@@ -1,0 +1,78 @@
+# ==============================================
+# PreCheck Dashboard 설정 파일
+# ==============================================
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# ==============================================
+# Spring 설정
+# ==============================================
+spring:
+
+  # --------------------------------------------
+  # 프로파일 설정
+  # 실행 시 -Dspring.profiles.active=test 또는 prod
+  # 기본값은 test (로컬 개발 환경)
+  # --------------------------------------------
+  profiles:
+    active: test
+
+  # --------------------------------------------
+  # Thymeleaf 설정
+  # --------------------------------------------
+  thymeleaf:
+    cache: false          # 개발 중 캐시 끄기 (운영 시 true로 변경)
+    encoding: UTF-8
+    prefix: classpath:/templates/
+    suffix: .html
+
+  # --------------------------------------------
+  # 공통 메시지 설정 (한글 인코딩)
+  # --------------------------------------------
+  messages:
+    encoding: UTF-8
+
+# ==============================================
+# MyBatis 설정
+# ==============================================
+mybatis:
+  # mapper XML 파일 위치
+  mapper-locations: classpath:mapper/*.xml
+
+  # DTO 패키지 경로 (XML에서 전체 경로 대신 클래스명만 써도 됨)
+  type-aliases-package: com.precheck.dashboard.dto
+
+  configuration:
+    # DB 컬럼명 자동 변환
+    # ANALYZE_LEVEL → analyzeLevel 자동 매핑
+    map-underscore-to-camel-case: true
+
+    # NULL 값 처리 (파라미터가 null이어도 에러 안남)
+    jdbc-type-for-null: NULL
+
+    # 로그에서 SQL 쿼리 출력 여부
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ==============================================
+# 로깅 설정
+# ==============================================
+logging:
+  level:
+    # 우리 패키지 로그
+    com.precheck: DEBUG
+
+    # MyBatis SQL 로그
+    org.mybatis: DEBUG
+
+    # Spring 웹 로그
+    org.springframework.web: INFO
+
+  # 로그 파일 출력 (선택사항)
+  # file:
+  #   name: logs/dashboard.log

@@ -1,0 +1,20 @@
+# ==============================================
+# 테스트 환경 설정 (로컬 PostgreSQL)
+# 실행: -Dspring.profiles.active=test
+# ==============================================
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: dnwls098!@#
+
+    # 커넥션 풀 설정 (HikariCP - Spring Boot 기본 내장)
+    hikari:
+      maximum-pool-size: 5        # 최대 커넥션 수 (소규모라 5면 충분)
+      minimum-idle: 2             # 최소 유지 커넥션 수
+      connection-timeout: 30000   # 커넥션 획득 대기시간 (30초)
+      idle-timeout: 600000        # 유휴 커넥션 유지시간 (10분)
+      max-lifetime: 1800000       # 커넥션 최대 수명 (30분)
+      pool-name: PreCheckPool-Test
