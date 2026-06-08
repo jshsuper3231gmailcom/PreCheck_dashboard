@@ -32,9 +32,20 @@
         .header-info {
             font-size: 1rem;
             color: rgba(255, 255, 255, .85);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, .55);
         }
         .header-info .header-info-label {
             color: rgba(255, 255, 255, .65);
+        }
+        .precheck-header {
+            background-image: url('/images/DashBoard_상단배경.png');
+            background-size: cover;
+            background-position: left center;
+            background-repeat: no-repeat;
+            background-color: transparent;
+            height: 70px;
+            min-height: 70px;
+            position: relative;
         }
         #countdown.countdown-warning {
             color: #ff8a8a;
@@ -61,13 +72,9 @@
 </head>
 <body>
 <div class="wrapper">
-    <nav class="app-header navbar navbar-expand navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <i class="bi bi-server"></i>
-                <span>채널 서버 점검 Dashboard</span>
-            </a>
-            <div class="ms-auto d-flex align-items-center gap-3">
+    <nav class="app-header navbar navbar-expand navbar-dark precheck-header">
+        <div class="container-fluid d-flex align-items-center justify-content-end">
+            <div class="d-flex align-items-center gap-3">
                 <div class="header-info">
                     <span id="currentTime">-</span>
                 </div>
@@ -454,6 +461,45 @@
         return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }
 
+    function formatTimestampFull(ts) {
+        if (!ts) return '-';
+        const d = new Date(ts);
+        return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    const thresholdMarkerPlugin = {
+        id: 'thresholdMarker',
+        afterDatasetsDraw(chart, args, pluginOptions) {
+            const threshold = Number(pluginOptions && pluginOptions.threshold);
+            if (!Number.isFinite(threshold)) return;
+
+            const meta = chart.getDatasetMeta(0);
+            if (!meta || !meta.data || meta.data.length === 0) return;
+
+            const arc = meta.data[0];
+            if (!arc) return;
+
+            const startAngle = arc.startAngle;
+            const x = arc.x;
+            const y = arc.y;
+            const innerRadius = arc.innerRadius;
+            const outerRadius = arc.outerRadius;
+
+            const clamped = Math.max(0, Math.min(100, threshold));
+            const angle = startAngle + (Math.PI * 2) * (clamped / 100);
+
+            const ctx = chart.ctx;
+            ctx.save();
+            ctx.strokeStyle = pluginOptions && pluginOptions.color ? pluginOptions.color : '#dc3545';
+            ctx.lineWidth = pluginOptions && pluginOptions.lineWidth ? pluginOptions.lineWidth : 2;
+            ctx.beginPath();
+            ctx.moveTo(x + Math.cos(angle) * innerRadius, y + Math.sin(angle) * innerRadius);
+            ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius);
+            ctx.stroke();
+            ctx.restore();
+        }
+    };
+
     async function fetchApi(url) {
         const res = await fetch(url, {headers: {'Accept': 'application/json'}});
         const json = await res.json();
@@ -775,11 +821,20 @@
             const analyzeLevel = row.analyzeLevel ?? '';
             const thresholdValue = row.thresholdValue ?? '-';
             const logTimestamp = row.logTimestamp;
+            const thresholdNum = Number(thresholdValue);
+
+            const valueNum = Number(logValue);
+            const percentRaw = Number.isFinite(valueNum) ? valueNum : 0;
+            const percent = Math.max(0, Math.min(100, percentRaw));
+            const hasThreshold = Number.isFinite(thresholdNum);
+            const threshold = hasThreshold ? Math.max(0, Math.min(100, thresholdNum)) : NaN;
+            const overThreshold = Number.isFinite(threshold) && percent >= threshold;
+            const badgeClass = overThreshold ? 'text-bg-danger' : badgeForLevel(analyzeLevel);
 
             const header = `
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="fw-bold">${serverId}</div>
-                    <span class="badge ${badgeForLevel(analyzeLevel)}">${analyzeLevel || '-'}</span>
+                    <span class="badge ${badgeClass}">${analyzeLevel || '-'}</span>
                 </div>
             `;
 
@@ -791,7 +846,7 @@
                             <div class="donut-empty">분석없음</div>
                         </div>
                         <div class="text-body-secondary small">
-                            DISK_HOME - / 임계치 ${thresholdValue} / ${formatTimestamp(logTimestamp)}
+                            ${formatTimestampFull(logTimestamp)}
                         </div>
                     </div>
                 `;
@@ -809,27 +864,33 @@
                         </div>
                     </div>
                     <div class="text-body-secondary small">
-                        DISK_HOME ${logValue}% / 임계치 ${thresholdValue} / ${formatTimestamp(logTimestamp)}
+                        ${formatTimestampFull(logTimestamp)}
                     </div>
                 </div>
             `;
             grid.appendChild(col);
 
-            const valueNum = Number(logValue);
-            const percent = Number.isFinite(valueNum) ? valueNum : 0;
             const rest = Math.max(0, 100 - percent);
             const ctx = document.getElementById(canvasId).getContext('2d');
 
-            const color = analyzeLevel === '에러' ? '#dc3545' : (analyzeLevel === '경고' ? '#ffc107' : '#198754');
+            const safe = Number.isFinite(threshold) ? Math.min(percent, threshold) : percent;
+            const over = Number.isFinite(threshold) ? Math.max(0, percent - threshold) : 0;
+
+            const safeColor = '#198754';
+            const overColor = '#dc3545';
             const bg = '#e9ecef';
+
+            const data = over > 0 ? [safe, over, rest] : [percent, rest];
+            const colors = over > 0 ? [safeColor, overColor, bg] : [safeColor, bg];
 
             const chart = new Chart(ctx, {
                 type: 'doughnut',
+                plugins: [thresholdMarkerPlugin],
                 data: {
-                    labels: ['사용', '잔여'],
+                    labels: over > 0 ? ['임계치 이하', '임계치 초과', '잔여'] : ['사용', '잔여'],
                     datasets: [{
-                        data: [percent, rest],
-                        backgroundColor: [color, bg],
+                        data,
+                        backgroundColor: colors,
                         borderWidth: 0
                     }]
                 },
@@ -838,14 +899,22 @@
                     cutout: '70%',
                     plugins: {
                         legend: {display: false},
-                        tooltip: {enabled: false}
+                        tooltip: {enabled: false},
+                        thresholdMarker: {
+                            threshold: threshold,
+                            color: '#dc3545',
+                            lineWidth: 2
+                        }
                     }
                 }
             });
 
             const centerText = document.createElement('div');
-            centerText.className = 'position-absolute top-50 start-50 translate-middle fw-bold';
-            centerText.textContent = `${percent}%`;
+            centerText.className = 'position-absolute top-50 start-50 translate-middle text-center';
+            centerText.innerHTML = `
+                <div class="fw-bold ${overThreshold ? 'text-danger' : ''}">${percent}%</div>
+                <div class="text-body-secondary small">임계치 ${Number.isFinite(threshold) ? threshold : '-'}</div>
+            `;
             col.querySelector('.position-relative').appendChild(centerText);
             col.dataset.chart = chart;
         }
@@ -872,47 +941,44 @@
         };
 
         const safeSeries = Array.isArray(series) ? series : [];
-        const allLabels = new Set();
-        for (const s of safeSeries) {
-            const data = Array.isArray(s.data) ? s.data : [];
-            for (const p of data) {
-                if (p && p.logTimestamp) {
-                    allLabels.add(new Date(p.logTimestamp).getTime());
-                }
-            }
-        }
-        const labelTimes = Array.from(allLabels).sort((a, b) => a - b);
-        const labels = labelTimes.map(t => {
-            const d = new Date(t);
-            return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-        });
-
         const datasets = safeSeries.map(s => {
             const logId = s.logId;
-            const points = new Map();
             const data = Array.isArray(s.data) ? s.data : [];
-            for (const p of data) {
-                if (!p || !p.logTimestamp) continue;
-                points.set(new Date(p.logTimestamp).getTime(), p.logValue);
-            }
-            const values = labelTimes.map(t => points.has(t) ? Number(points.get(t)) : null);
+            const points = data
+                .filter(p => p && p.logTimestamp)
+                .map(p => ({
+                    x: new Date(p.logTimestamp).getTime(),
+                    y: p.logValue == null ? null : Number(p.logValue)
+                }))
+                .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y))
+                .sort((a, b) => a.x - b.x);
+
             return {
                 label: logId,
-                data: values,
+                data: points,
                 borderColor: palette[logId] ?? '#6c757d',
                 backgroundColor: 'transparent',
-                tension: 0.2,
-                spanGaps: true
+                tension: 0.2
             };
         });
 
         historyChart = new Chart(ctx, {
             type: 'line',
-            data: {labels, datasets},
+            data: {datasets},
             options: {
                 responsive: true,
                 plugins: {legend: {display: true}},
                 scales: {
+                    x: {
+                        type: 'linear',
+                        ticks: {
+                            callback: (value) => {
+                                const d = new Date(Number(value));
+                                if (Number.isNaN(d.getTime())) return '';
+                                return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+                            }
+                        }
+                    },
                     y: {beginAtZero: false}
                 }
             }
