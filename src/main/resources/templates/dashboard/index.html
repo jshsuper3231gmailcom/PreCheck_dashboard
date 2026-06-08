@@ -2,18 +2,19 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PreCheck Dashboard</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .summary-strip-item { min-width: 0; }
-        .summary-number { font-size: 1.75rem; line-height: 1.1; }
+        .summary-number { font-size: clamp(16px, 4vw, 24px); line-height: 1.1; }
         .summary-label { font-size: .85rem; }
         .donut-empty {
-            width: 140px;
-            height: 140px;
+            width: 100%;
+            max-width: 140px;
+            aspect-ratio: 1 / 1;
             border: 3px dashed var(--bs-secondary);
             border-radius: 50%;
             display: flex;
@@ -21,6 +22,15 @@
             justify-content: center;
             color: var(--bs-secondary);
             font-size: .9rem;
+        }
+        .donut-box {
+            width: 100%;
+            max-width: 140px;
+            aspect-ratio: 1 / 1;
+        }
+        .donut-box canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
         .dot {
             width: 8px;
@@ -105,49 +115,60 @@
 
             <div class="card mb-3">
                 <div class="card-body p-0">
-                    <div class="d-flex">
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                    <div class="row g-0">
+                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="badge text-bg-danger">에러</span>
                                 <span class="text-body-secondary small" id="errRatio">0%</span>
                             </div>
                             <div class="summary-number text-danger fw-bold" id="errCnt">0</div>
+                            </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="badge text-bg-warning">경고</span>
                                 <span class="text-body-secondary small" id="warnRatio">0%</span>
                             </div>
                             <div class="summary-number fw-bold" style="color:#856404" id="warnCnt">0</div>
+                            </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="badge text-bg-success">정상</span>
                                 <span class="text-body-secondary small" id="normRatio">0%</span>
                             </div>
                             <div class="summary-number text-success fw-bold" id="normCnt">0</div>
+                            </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-6 col-md col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="badge text-bg-info">정보</span>
                                 <span class="text-body-secondary small" id="infoRatio">0%</span>
                             </div>
                             <div class="summary-number fw-bold" style="color:#055160" id="infoCnt">0</div>
+                            </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3">
+                        <div class="col-12 col-md col-lg border-lg-end-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center justify-content-between">
                                 <span class="badge text-bg-secondary">미분석</span>
                                 <span class="text-body-secondary small" id="unknRatio">0%</span>
                             </div>
                             <div class="summary-number text-secondary fw-bold" id="unknCnt">0</div>
                             <div id="unknownPolicyWarning" class="text-danger small d-none">정책 파일 업데이트 필요</div>
+                            </div>
                         </div>
                     </div>
 
                     <hr class="my-0">
 
-                    <div class="d-flex">
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                    <div class="row g-0">
+                        <div class="col-6 col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-download text-info"></i>
                                 <span class="summary-label">수집 현황</span>
@@ -158,8 +179,10 @@
                             <div class="progress" style="height:3px;">
                                 <div id="colRatio" class="progress-bar bg-info" style="width:0%"></div>
                             </div>
+                            </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-6 col-lg border-end border-bottom border-lg-bottom-0">
+                            <div class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-bar-chart-line text-success"></i>
                                 <span class="summary-label">분석 현황</span>
@@ -170,34 +193,41 @@
                             <div class="progress" style="height:3px;">
                                 <div id="anRatio" class="progress-bar bg-success" style="width:0%"></div>
                             </div>
+                            </div>
                         </div>
-                        <div id="failTooltip" class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-4 col-lg border-end">
+                            <div id="failTooltip" class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="failIcon" class="bi bi-exclamation-circle text-danger"></i>
                                 <span class="summary-label">수집실패</span>
                             </div>
                             <div class="fw-bold"><span id="failCnt">0</span>건</div>
+                            </div>
                         </div>
-                        <div id="skipTooltip" class="summary-strip-item flex-fill p-3 border-end">
+                        <div class="col-4 col-lg border-end">
+                            <div id="skipTooltip" class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="skipIcon" class="bi bi-slash-circle text-secondary"></i>
                                 <span class="summary-label">수집제외 SKIP</span>
                             </div>
                             <div class="fw-bold"><span id="skipCnt">0</span>건</div>
+                            </div>
                         </div>
-                        <div id="anFailTooltip" class="summary-strip-item flex-fill p-3">
+                        <div class="col-4 col-lg border-lg-end-0">
+                            <div id="anFailTooltip" class="summary-strip-item p-3 h-100">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="anFailIcon" class="bi bi-exclamation-triangle text-danger"></i>
                                 <span class="summary-label">분석실패</span>
                             </div>
                             <div class="fw-bold"><span id="anFailCnt">0</span>건</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-lg-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">종목 현황</div>
                         <div class="card-body p-0">
@@ -209,7 +239,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MBSOSI_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MBSOSI_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-MBSOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MBSOSI_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -219,7 +249,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MBFOSI_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MBFOSI_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-MBFOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MBFOSI_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -229,7 +259,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MBCOSI_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MBCOSI_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-MBCOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MBCOSI_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -239,7 +269,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MBJISU_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MBJISU_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-MBJISU_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MBJISU_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -249,7 +279,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-NXT_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-NXT_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-NXT_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-NXT_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -259,7 +289,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OPT_MAX_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OPT_MAX_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OPT_MAX_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OPT_MAX_COUNT">-</span>
                                     </div>
                                 </li>
                             </ul>
@@ -267,7 +297,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">해외 종목 현황</div>
                         <div class="card-body p-0">
@@ -279,7 +309,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OS_BA_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OS_BA_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OS_BA_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OS_BA_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -289,7 +319,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OS_NB_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OS_NB_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OS_NB_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OS_NB_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -299,7 +329,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OS_HK_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OS_HK_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OS_HK_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OS_HK_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -309,7 +339,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OS_SH_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OS_SH_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OS_SH_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OS_SH_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -319,7 +349,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-OS_SZ_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-OS_SZ_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-OS_SZ_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-OS_SZ_COUNT">-</span>
                                     </div>
                                 </li>
                             </ul>
@@ -327,7 +357,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">서비스 현황</div>
                         <div class="card-body p-0">
@@ -339,7 +369,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-AUTO_ORDER_ACNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-AUTO_ORDER_ACNT"></span>
-                                        <span class="text-body-secondary small" id="t-AUTO_ORDER_ACNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-AUTO_ORDER_ACNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -349,7 +379,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-CAP_REG_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-CAP_REG_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-CAP_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-CAP_REG_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -359,7 +389,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-CAP2_REG_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-CAP2_REG_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-CAP2_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-CAP2_REG_COUNT">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -369,7 +399,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-FREQ_CLUB_COUNT">-</span>
                                         <span class="text-body-secondary small d-none" id="th-FREQ_CLUB_COUNT"></span>
-                                        <span class="text-body-secondary small" id="t-FREQ_CLUB_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-FREQ_CLUB_COUNT">-</span>
                                     </div>
                                 </li>
                             </ul>
@@ -377,7 +407,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-3">
+                <div class="col-12 col-md-6 col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold d-flex align-items-baseline justify-content-between">
                             <span>접속자 현황</span>
@@ -392,7 +422,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MAX_CONN_PREV">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MAX_CONN_PREV"></span>
-                                        <span class="text-body-secondary small" id="t-MAX_CONN_PREV">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MAX_CONN_PREV">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -402,7 +432,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-HTS_MAX_CONN">-</span>
                                         <span class="text-body-secondary small d-none" id="th-HTS_MAX_CONN"></span>
-                                        <span class="text-body-secondary small" id="t-HTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-HTS_MAX_CONN">-</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex align-items-center justify-content-between">
@@ -412,7 +442,7 @@
                                     <div class="d-flex flex-column align-items-end lh-sm">
                                         <span class="fw-semibold info-value text-dark" id="v-MTS_MAX_CONN">-</span>
                                         <span class="text-body-secondary small d-none" id="th-MTS_MAX_CONN"></span>
-                                        <span class="text-body-secondary small" id="t-MTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small d-none d-md-block" id="t-MTS_MAX_CONN">-</span>
                                     </div>
                                 </li>
                             </ul>
@@ -441,12 +471,13 @@
                             <tr>
                                 <th>시각</th>
                                 <th>서버</th>
+                                <th class="d-none d-md-table-cell">서버 IP</th>
                                 <th>LOG_ID</th>
                                 <th>타입</th>
                                 <th>레벨</th>
                                 <th>분석 메시지</th>
-                                <th>임계치</th>
-                                <th>원본</th>
+                                <th class="d-none d-lg-table-cell">임계치</th>
+                                <th class="d-none d-md-table-cell">원본</th>
                             </tr>
                             </thead>
                             <tbody id="resultTbody"></tbody>
@@ -482,7 +513,7 @@
             <div class="card mb-3">
                 <div class="card-header fw-bold">수집대상 서버 리스트</div>
                 <div class="card-body">
-                    <div class="d-flex flex-wrap gap-2" id="serverList"></div>
+                    <div class="list-group list-group-flush" id="serverList"></div>
                 </div>
             </div>
 
@@ -881,6 +912,7 @@
             tr.innerHTML = `
                 <td class="text-body-secondary small">${formatTimestamp(row.logTimestamp)}</td>
                 <td>${row.serverId ?? '-'}</td>
+                <td class="d-none d-md-table-cell text-body-secondary small">${row.serverIp ?? '-'}</td>
                 <td class="text-body-secondary">${row.logId ?? '-'}</td>
                 <td><span class="badge text-bg-light">${row.logType ?? '-'}</span></td>
                 <td>
@@ -891,8 +923,8 @@
                     }
                 </td>
                 <td class="text-truncate" style="max-width: 420px;">${row.analyzeMessage ?? '-'}</td>
-                <td class="text-body-secondary small">${row.thresholdValue ?? '-'}</td>
-                <td>
+                <td class="d-none d-lg-table-cell text-body-secondary small">${row.thresholdValue ?? '-'}</td>
+                <td class="d-none d-md-table-cell">
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}">보기</button>
                 </td>
             `;
@@ -901,7 +933,7 @@
             detailTr.className = 'collapse';
             detailTr.id = detailId;
             const td = document.createElement('td');
-            td.colSpan = 8;
+            td.colSpan = 9;
             td.className = 'bg-body-tertiary';
             td.innerHTML = `<div class="p-2">${buildDetailHtml(row)}</div>`;
             detailTr.appendChild(td);
@@ -982,7 +1014,7 @@
 
         for (const row of safeRows) {
             const col = document.createElement('div');
-            col.className = 'col-6 col-md-4 col-lg-3';
+            col.className = 'col-6 col-sm-4 col-md-3 col-lg-2';
             const serverId = row.serverId ?? '-';
             const logValue = row.logValue;
             const analyzeLevel = row.analyzeLevel ?? '';
@@ -1026,8 +1058,8 @@
                 <div class="border rounded p-2 h-100">
                     ${header}
                     <div class="d-flex justify-content-center my-2 position-relative">
-                        <div style="width:140px;height:140px;">
-                            <canvas id="${canvasId}" width="140" height="140"></canvas>
+                        <div class="donut-box">
+                            <canvas id="${canvasId}"></canvas>
                         </div>
                     </div>
                     <div class="text-body-secondary small">
@@ -1062,7 +1094,8 @@
                     }]
                 },
                 options: {
-                    responsive: false,
+                    responsive: true,
+                    maintainAspectRatio: true,
                     cutout: '70%',
                     plugins: {
                         legend: {display: false},
@@ -1204,10 +1237,45 @@
         const rows = Array.isArray(list) ? list : [];
         for (const row of rows) {
             const serverId = row.serverId;
-            const chip = document.createElement('div');
-            chip.className = 'server-chip';
-            chip.innerHTML = `<i class="bi bi-circle-fill text-body-secondary"></i><span>${serverId ?? '-'}</span>`;
-            el.appendChild(chip);
+            const errorCnt = Number(row.errorCnt ?? 0);
+            const warningCnt = Number(row.warningCnt ?? 0);
+            const collectAt = row.collectAt ?? null;
+            const analyzeAt = row.analyzeAt ?? null;
+
+            let dotClass = 'text-body-secondary';
+            if (errorCnt > 0) {
+                dotClass = 'text-danger';
+            } else if (warningCnt > 0) {
+                dotClass = 'text-warning';
+            } else {
+                dotClass = 'text-success';
+            }
+
+            const collectText = formatTimestamp(collectAt);
+            const analyzeText = formatTimestamp(analyzeAt);
+
+            const item = document.createElement('div');
+            item.className = 'list-group-item';
+            item.innerHTML = `
+                <div class="d-flex align-items-start gap-2 py-2">
+                    <i class="bi bi-circle-fill ${dotClass}"></i>
+                    <div class="flex-fill">
+                        <div class="fw-bold">${serverId ?? '-'}</div>
+                        <div class="text-body-secondary small d-md-none">
+                            수집 ${collectText} /
+                            <span class="badge text-bg-danger">에러 ${formatNumber(errorCnt)}</span>
+                            <span class="badge text-bg-warning ms-1">경고 ${formatNumber(warningCnt)}</span>
+                        </div>
+                        <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
+                            <span>수집: ${collectText}</span>
+                            <span>분석: ${analyzeText}</span>
+                            <span>에러: ${formatNumber(errorCnt)}</span>
+                            <span>경고: ${formatNumber(warningCnt)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            el.appendChild(item);
         }
     }
 

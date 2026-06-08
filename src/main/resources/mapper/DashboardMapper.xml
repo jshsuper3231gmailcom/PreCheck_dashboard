@@ -235,10 +235,42 @@
     </select>
 
     <select id="selectServerList" resultType="map">
-        SELECT DISTINCT SERVER_ID AS "serverId"
-        FROM TB_ANALYZE_HISTORY
-        WHERE ANALYZE_DATE = #{today}
-        ORDER BY SERVER_ID
+        SELECT
+            S.SERVER_ID AS "serverId",
+            (
+                SELECT MAX(COLLECT_END_AT)
+                FROM TB_COLLECT_HISTORY CH
+                WHERE CH.COLLECT_DATE = #{today}
+                  AND CH.SERVER_ID = S.SERVER_ID
+                  AND CH.COLLECT_STATUS = 'SUCCESS'
+            ) AS "collectAt",
+            (
+                SELECT MAX(ANALYZE_END_AT)
+                FROM TB_ANALYZE_HISTORY AH
+                WHERE AH.ANALYZE_DATE = #{today}
+                  AND AH.SERVER_ID = S.SERVER_ID
+                  AND AH.ANALYZE_STATUS = 'SUCCESS'
+            ) AS "analyzeAt",
+            (
+                SELECT COUNT(*)
+                FROM TB_ANALYZE_RESULT AR
+                WHERE AR.ANALYZE_DATE = #{today}
+                  AND AR.SERVER_ID = S.SERVER_ID
+                  AND AR.ANALYZE_LEVEL = '에러'
+            ) AS "errorCnt",
+            (
+                SELECT COUNT(*)
+                FROM TB_ANALYZE_RESULT AR
+                WHERE AR.ANALYZE_DATE = #{today}
+                  AND AR.SERVER_ID = S.SERVER_ID
+                  AND AR.ANALYZE_LEVEL = '경고'
+            ) AS "warningCnt"
+        FROM (
+            SELECT DISTINCT SERVER_ID
+            FROM TB_ANALYZE_HISTORY
+            WHERE ANALYZE_DATE = #{today}
+        ) S
+        ORDER BY S.SERVER_ID
     </select>
 
     <select id="selectHistoryData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
