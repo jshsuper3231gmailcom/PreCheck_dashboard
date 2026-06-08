@@ -213,7 +213,7 @@
     </select>
 
     <select id="selectServerList" resultType="map">
-        SELECT DISTINCT SERVER_ID AS serverId
+        SELECT DISTINCT SERVER_ID AS "serverId"
         FROM TB_ANALYZE_HISTORY
         WHERE ANALYZE_DATE = #{today}
         ORDER BY SERVER_ID
@@ -250,26 +250,30 @@
 
     <select id="selectResourceData" resultType="map">
         SELECT
-            AR.SERVER_ID AS serverId,
-            AR.LOG_VALUE AS logValue,
-            AR.ANALYZE_LEVEL AS analyzeLevel,
-            AR.THRESHOLD_VALUE AS thresholdValue,
-            AR.LOG_TIMESTAMP AS logTimestamp
-        FROM TB_ANALYZE_RESULT AR
-        JOIN (
-            SELECT SERVER_ID, MAX(LOG_TIMESTAMP) AS MAX_TS
+            S.SERVER_ID AS "serverId",
+            AR.LOG_VALUE AS "logValue",
+            AR.ANALYZE_LEVEL AS "analyzeLevel",
+            AR.THRESHOLD_VALUE AS "thresholdValue",
+            AR.LOG_TIMESTAMP AS "logTimestamp"
+        FROM (
+            SELECT DISTINCT SERVER_ID
+            FROM TB_ANALYZE_HISTORY
+            WHERE ANALYZE_DATE = #{today}
+        ) S
+        LEFT JOIN TB_ANALYZE_RESULT AR
+          ON AR.ANALYZE_DATE = #{today}
+         AND AR.SERVER_ID = S.SERVER_ID
+         AND AR.LOG_ID = 'DISK_HOME'
+         AND AR.LOG_TYPE = '수치'
+         AND AR.LOG_TIMESTAMP = (
+            SELECT MAX(LOG_TIMESTAMP)
             FROM TB_ANALYZE_RESULT
             WHERE ANALYZE_DATE = #{today}
+              AND SERVER_ID = S.SERVER_ID
               AND LOG_ID = 'DISK_HOME'
               AND LOG_TYPE = '수치'
-            GROUP BY SERVER_ID
-        ) T
-          ON AR.SERVER_ID = T.SERVER_ID
-         AND AR.LOG_TIMESTAMP = T.MAX_TS
-        WHERE AR.ANALYZE_DATE = #{today}
-          AND AR.LOG_ID = 'DISK_HOME'
-          AND AR.LOG_TYPE = '수치'
-        ORDER BY AR.SERVER_ID
+         )
+        ORDER BY S.SERVER_ID
     </select>
 
     <select id="selectInfoData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">

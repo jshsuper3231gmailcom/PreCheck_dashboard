@@ -6,9 +6,9 @@
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/precheck
+    url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
-    password: postgres
+    password: dnwls098!@#
 
     # 커넥션 풀 설정 (HikariCP - Spring Boot 기본 내장)
     hikari:

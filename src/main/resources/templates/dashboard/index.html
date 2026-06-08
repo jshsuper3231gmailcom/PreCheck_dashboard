@@ -1,11 +1,1021 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PreCheck Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreCheck Dashboard</title>
+    <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .summary-strip-item { min-width: 0; }
+        .summary-number { font-size: 1.75rem; line-height: 1.1; }
+        .summary-label { font-size: .85rem; }
+        .donut-empty {
+            width: 140px;
+            height: 140px;
+            border: 3px dashed var(--bs-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--bs-secondary);
+            font-size: .9rem;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: .5rem;
+        }
+        .header-info {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, .85);
+        }
+        .header-info .header-info-label {
+            color: rgba(255, 255, 255, .65);
+        }
+        #countdown.countdown-warning {
+            color: #ff8a8a;
+            font-weight: 700;
+        }
+        body {
+            background-color: #eaf4fc;
+        }
+        .server-chip {
+            font-size: .78rem;
+            padding: .3rem .55rem;
+            border: 1px solid var(--bs-border-color);
+            border-radius: .375rem;
+            background-color: var(--bs-body-bg);
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            white-space: nowrap;
+        }
+        .server-chip i {
+            font-size: .5rem;
+        }
+    </style>
 </head>
 <body>
-  PreCheck Dashboard 기동 확인
+<div class="wrapper">
+    <nav class="app-header navbar navbar-expand navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                <i class="bi bi-server"></i>
+                <span>채널 서버 점검 Dashboard</span>
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-3">
+                <div class="header-info">
+                    <span id="currentTime">-</span>
+                </div>
+                <div class="header-info">
+                    <span class="header-info-label">마지막 갱신:</span> <span id="lastUpdated">-</span>
+                </div>
+                <div class="header-info">
+                    <span class="header-info-label">자동갱신:</span> <span id="countdown">05:00</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content-wrapper p-3">
+        <div class="container-fluid">
+
+            <div class="card mb-3">
+                <div class="card-body p-0">
+                    <div class="d-flex">
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-danger">에러</span>
+                                <span class="text-body-secondary small" id="errRatio">0%</span>
+                            </div>
+                            <div class="summary-number text-danger fw-bold" id="errCnt">0</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-warning">경고</span>
+                                <span class="text-body-secondary small" id="warnRatio">0%</span>
+                            </div>
+                            <div class="summary-number fw-bold" style="color:#856404" id="warnCnt">0</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-success">정상</span>
+                                <span class="text-body-secondary small" id="normRatio">0%</span>
+                            </div>
+                            <div class="summary-number text-success fw-bold" id="normCnt">0</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-info">정보</span>
+                                <span class="text-body-secondary small" id="infoRatio">0%</span>
+                            </div>
+                            <div class="summary-number fw-bold" style="color:#055160" id="infoCnt">0</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-secondary">미분석</span>
+                                <span class="text-body-secondary small" id="unknRatio">0%</span>
+                            </div>
+                            <div class="summary-number text-secondary fw-bold" id="unknCnt">0</div>
+                            <div id="unknownPolicyWarning" class="text-danger small d-none">정책 파일 업데이트 필요</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-0">
+
+                    <div class="d-flex">
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-download text-info"></i>
+                                <span class="summary-label">수집 현황</span>
+                            </div>
+                            <div class="fw-bold">
+                                <span id="colSuccess">0</span>/<span id="colTotal">0</span>
+                            </div>
+                            <div class="progress" style="height:3px;">
+                                <div id="colRatio" class="progress-bar bg-info" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-bar-chart-line text-success"></i>
+                                <span class="summary-label">분석 현황</span>
+                            </div>
+                            <div class="fw-bold">
+                                <span id="anSuccess">0</span>/<span id="anTotal">0</span>
+                            </div>
+                            <div class="progress" style="height:3px;">
+                                <div id="anRatio" class="progress-bar bg-success" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center gap-2">
+                                <i id="failIcon" class="bi bi-exclamation-circle text-danger"></i>
+                                <span class="summary-label">수집실패 FAIL</span>
+                            </div>
+                            <div class="fw-bold"><span id="failCnt">0</span>건</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3 border-end">
+                            <div class="d-flex align-items-center gap-2">
+                                <i id="skipIcon" class="bi bi-slash-circle text-secondary"></i>
+                                <span class="summary-label">수집제외 SKIP</span>
+                            </div>
+                            <div class="fw-bold"><span id="skipCnt">0</span>건</div>
+                        </div>
+                        <div class="summary-strip-item flex-fill p-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i id="anFailIcon" class="bi bi-exclamation-triangle text-danger"></i>
+                                <span class="summary-label">분석실패</span>
+                            </div>
+                            <div class="fw-bold"><span id="anFailCnt">0</span>건</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">종목 현황</div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-primary"></span><span class="text-body-secondary">주식 종목수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MBSOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-MBSOSI_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-warning"></span><span class="text-body-secondary">파생 종목수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MBFOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-MBFOSI_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-success"></span><span class="text-body-secondary">상품 종목수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MBCOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-MBCOSI_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-danger"></span><span class="text-body-secondary">업종 종목수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MBJISU_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-MBJISU_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-secondary"></span><span class="text-body-secondary">NXT 종목수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-NXT_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-NXT_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-info"></span><span class="text-body-secondary">옵션결제월 최대수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-OPT_MAX_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-OPT_MAX_COUNT">-</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">서비스 현황</div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-primary"></span><span class="text-body-secondary">서버자동주문 계좌수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-AUTO_ORDER_ACNT">-</span>
+                                        <span class="text-body-secondary small" id="t-AUTO_ORDER_ACNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-warning"></span><span class="text-body-secondary">시세포착1 등록수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-CAP_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-CAP_REG_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-success"></span><span class="text-body-secondary">시세포착2 등록수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-CAP2_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-CAP2_REG_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-info"></span><span class="text-body-secondary">주파수클럽 사용수</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-FREQ_CLUB_COUNT">-</span>
+                                        <span class="text-body-secondary small" id="t-FREQ_CLUB_COUNT">-</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold d-flex align-items-baseline justify-content-between">
+                            <span>접속자 현황</span>
+                            <span class="text-body-secondary small">전일 기준</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-primary"></span><span class="text-body-secondary">전일 최대동시접속</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MAX_CONN_PREV">-</span>
+                                        <span class="text-body-secondary small" id="t-MAX_CONN_PREV">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-warning"></span><span class="text-body-secondary">HTS 최대동시접속</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-HTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small" id="t-HTS_MAX_CONN">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-success"></span><span class="text-body-secondary">MTS 최대동시접속</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold" id="v-MTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small" id="t-MTS_MAX_CONN">-</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <select class="form-select form-select-sm" id="serverFilter" style="min-width: 220px;">
+                            <option value="">전체</option>
+                        </select>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active" id="tabError">에러/경고</button>
+                            <button type="button" class="btn btn-outline-secondary" id="tabNormal">정상/정보/미분석</button>
+                        </div>
+                    </div>
+                    <div class="text-body-secondary small" id="pageInfo">총 -건 (-/- 페이지)</div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>시각</th>
+                                <th>서버</th>
+                                <th>LOG_ID</th>
+                                <th>타입</th>
+                                <th>레벨</th>
+                                <th>분석 메시지</th>
+                                <th>임계치</th>
+                                <th>원본</th>
+                            </tr>
+                            </thead>
+                            <tbody id="resultTbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="card mb-3" id="resourceSection">
+                <div class="card-body">
+                    <div class="row g-3" id="resourceGrid"></div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="tabStock">종목수 현황</button>
+                        <button type="button" class="btn btn-outline-secondary" id="tabConn">접속자수 현황</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header fw-bold">수집대상 서버 리스트</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2" id="serverList"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rawLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">원본 로그</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-2">
+                    <div class="col-md-4 text-body-secondary small">수집 로그 ID: <span id="mCollectLogId">-</span></div>
+                    <div class="col-md-8 text-body-secondary small">수집 일시: <span id="mCollectDatetime">-</span></div>
+                    <div class="col-md-6 text-body-secondary small">로그 시각: <span id="mLogTimestamp">-</span></div>
+                    <div class="col-md-6 text-body-secondary small">수집 파일: <span id="mSourceFilePath">-</span></div>
+                </div>
+                <pre class="bg-body-tertiary p-2 rounded small mb-0" id="mRawLog">-</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/adminlte.min.js}"></script>
+
+<script>
+    let currentPage = 1;
+    let currentTab = 'error';
+    let currentServerId = '';
+    let historyChart = null;
+    let currentGroupType = 'stock';
+    let countdown = 300;
+
+    function pad2(v) {
+        return String(v).padStart(2, '0');
+    }
+
+    function formatNow() {
+        const d = new Date();
+        return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
+    function formatTimeMMSS(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${pad2(m)}:${pad2(s)}`;
+    }
+
+    function formatTimestamp(ts) {
+        if (!ts) return '-';
+        const d = new Date(ts);
+        const now = new Date();
+        const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        if (isToday) {
+            return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+        return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    async function fetchApi(url) {
+        const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+        const json = await res.json();
+        if (!json || json.success !== true) {
+            throw new Error(json && json.message ? json.message : 'ERROR');
+        }
+        return json.data;
+    }
+
+    function startClock() {
+        const el = document.getElementById('currentTime');
+        el.textContent = formatNow();
+        setInterval(() => {
+            el.textContent = formatNow();
+        }, 1000);
+    }
+
+    function startCountdown() {
+        const el = document.getElementById('countdown');
+        const render = () => {
+            el.textContent = formatTimeMMSS(countdown);
+            el.classList.toggle('countdown-warning', countdown <= 10);
+        };
+        render();
+        setInterval(() => {
+            countdown = Math.max(0, countdown - 1);
+            render();
+            if (countdown === 0) {
+                refreshAll();
+                countdown = 300;
+            }
+        }, 1000);
+    }
+
+    async function refreshAll() {
+        const nowStr = formatNow();
+        const lastUpdatedEl = document.getElementById('lastUpdated');
+
+        const listUrl = currentTab === 'error'
+            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`
+            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`;
+
+        try {
+            const [summary, infoData, tableData, resourceData, historyData, serverList] = await Promise.all([
+                fetchApi('/dashboard/api/summary'),
+                fetchApi('/dashboard/api/info-data'),
+                fetchApi(listUrl),
+                fetchApi('/dashboard/api/resource'),
+                fetchApi(`/dashboard/api/history?groupType=${encodeURIComponent(currentGroupType)}`),
+                fetchApi('/dashboard/api/server-list')
+            ]);
+
+            updateSummary(summary);
+            updateInfoData(infoData);
+            updateTable(tableData);
+            updateResource(resourceData);
+            updateHistory(historyData);
+            updateServerDropdown(serverList);
+            updateServerList(serverList);
+            lastUpdatedEl.textContent = nowStr;
+        } catch (e) {
+            lastUpdatedEl.textContent = nowStr;
+        }
+    }
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+    }
+
+    function formatNumber(value) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n.toLocaleString('ko-KR') : value;
+    }
+
+    function setProgress(id, ratio) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const r = Number.isFinite(ratio) ? ratio : 0;
+        el.style.width = `${Math.max(0, Math.min(100, r))}%`;
+    }
+
+    function updateSummary(data) {
+        setText('errCnt', formatNumber(data.errorCnt ?? 0));
+        setText('warnCnt', formatNumber(data.warnCnt ?? 0));
+        setText('normCnt', formatNumber(data.normalCnt ?? 0));
+        setText('infoCnt', formatNumber(data.infoCnt ?? 0));
+        setText('unknCnt', formatNumber(data.unknownCnt ?? 0));
+
+        setText('errRatio', `${data.errorRatio ?? 0}%`);
+        setText('warnRatio', `${data.warnRatio ?? 0}%`);
+        setText('normRatio', `${data.normalRatio ?? 0}%`);
+        setText('infoRatio', `${data.infoRatio ?? 0}%`);
+        setText('unknRatio', `${data.unknownRatio ?? 0}%`);
+
+        const unknownWarn = document.getElementById('unknownPolicyWarning');
+        if ((data.unknownCnt ?? 0) > 0) {
+            unknownWarn.classList.remove('d-none');
+        } else {
+            unknownWarn.classList.add('d-none');
+        }
+
+        setText('colSuccess', formatNumber(data.collectSuccess ?? 0));
+        setText('colTotal', formatNumber(data.collectTotal ?? 0));
+        setProgress('colRatio', data.collectRatio ?? 0);
+
+        setText('anSuccess', formatNumber(data.analyzeSuccess ?? 0));
+        setText('anTotal', formatNumber(data.analyzeTotal ?? 0));
+        setProgress('anRatio', data.analyzeRatio ?? 0);
+
+        setText('failCnt', formatNumber(data.collectFail ?? 0));
+        setText('skipCnt', formatNumber(data.collectSkip ?? 0));
+        setText('anFailCnt', formatNumber(data.analyzeFail ?? 0));
+
+        const failIcon = document.getElementById('failIcon');
+        if ((data.collectFail ?? 0) === 0) {
+            failIcon.className = 'bi bi-check-circle text-success';
+        } else {
+            failIcon.className = 'bi bi-exclamation-circle text-danger';
+        }
+
+        const skipIcon = document.getElementById('skipIcon');
+        if ((data.collectSkip ?? 0) === 0) {
+            skipIcon.className = 'bi bi-check-circle text-success';
+        } else {
+            skipIcon.className = 'bi bi-slash-circle text-secondary';
+        }
+
+        const anFailIcon = document.getElementById('anFailIcon');
+        if ((data.analyzeFail ?? 0) === 0) {
+            anFailIcon.className = 'bi bi-check-circle text-success';
+        } else {
+            anFailIcon.className = 'bi bi-exclamation-triangle text-danger';
+        }
+    }
+
+    function updateInfoData(data) {
+        if (!data) return;
+        for (const [logId, v] of Object.entries(data)) {
+            const valueEl = document.getElementById(`v-${logId}`);
+            const timeEl = document.getElementById(`t-${logId}`);
+            if (!valueEl || !timeEl) continue;
+            valueEl.textContent = (v && v.logValue != null) ? formatNumber(v.logValue) : '-';
+            timeEl.textContent = formatTimestamp(v ? v.logTimestamp : null);
+        }
+    }
+
+    function badgeForLevel(level) {
+        if (level === '에러') return 'text-bg-danger';
+        if (level === '경고') return 'text-bg-warning';
+        if (level === '정상') return 'text-bg-success';
+        if (level === '정보') return 'text-bg-info';
+        return 'text-bg-secondary';
+    }
+
+    function rowClassForLevel(level) {
+        if (level === '에러') return 'table-danger';
+        if (level === '경고') return 'table-warning';
+        return '';
+    }
+
+    function buildDetailHtml(row) {
+        const logType = row.logType ?? '';
+        const parts = [];
+        if (logType === '수치') {
+            parts.push(`<div class="d-flex flex-wrap gap-3">`);
+            parts.push(`<div>수집값: <span class="fw-bold">${row.logValue ?? '-'}</span></div>`);
+            parts.push(`<div>임계치: <span class="fw-bold">${row.thresholdValue ?? '-'}</span></div>`);
+            parts.push(`<div>연산자: <span class="fw-bold">${row.thresholdOperator ?? '-'}</span></div>`);
+            if ((row.analyzeLevel ?? '') === '경고') {
+                parts.push(`<div>임계치대비%: <span class="fw-bold">${row.warningRatio ?? '-'}</span></div>`);
+            }
+            parts.push(`</div>`);
+        } else if (logType === '문구') {
+            parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+            parts.push(`<div class="text-body-secondary small">분석 메시지: ${row.analyzeMessage ?? '-'}</div>`);
+        } else if (logType === '존재') {
+            parts.push(`<div>로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+        } else if (logType === '날짜') {
+            parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+            parts.push(`<div class="text-body-secondary small">분석 메시지: ${row.analyzeMessage ?? '-'}</div>`);
+        } else {
+            parts.push(`<div>로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+        }
+        if ((row.analyzeLevel ?? '') === '미분석') {
+            parts.push(`<div class="text-danger small mt-2">정책 파일 업데이트 필요</div>`);
+        }
+        return parts.join('');
+    }
+
+    function updateTable(pageResult) {
+        const tbody = document.getElementById('resultTbody');
+        tbody.innerHTML = '';
+        const safeRows = Array.isArray(pageResult?.items) ? pageResult.items : [];
+        const totalCount = pageResult?.totalCount ?? 0;
+        const totalPages = pageResult?.totalPages ?? 0;
+
+        if (totalPages > 0 && currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        for (const row of safeRows) {
+            const tr = document.createElement('tr');
+            const level = row.analyzeLevel ?? '';
+            const notifyYn = row.notifyYn ?? '';
+            const detailId = `detail-${row.analyzeResultId ?? Math.random().toString(36).slice(2)}`;
+            tr.className = rowClassForLevel(level);
+            tr.style.cursor = 'pointer';
+            tr.dataset.bsToggle = 'collapse';
+            tr.dataset.bsTarget = `#${detailId}`;
+            tr.innerHTML = `
+                <td class="text-body-secondary small">${formatTimestamp(row.logTimestamp)}</td>
+                <td>${row.serverId ?? '-'}</td>
+                <td class="text-body-secondary">${row.logId ?? '-'}</td>
+                <td><span class="badge text-bg-light">${row.logType ?? '-'}</span></td>
+                <td>
+                    <span class="badge ${badgeForLevel(level)}">${level || '-'}</span>
+                    ${currentTab === 'error'
+                        ? `<i class="bi ${notifyYn === 'Y' ? 'bi-check-circle text-body-secondary' : 'bi-bell-fill text-danger'} ms-1"></i>`
+                        : ''
+                    }
+                </td>
+                <td class="text-truncate" style="max-width: 420px;">${row.analyzeMessage ?? '-'}</td>
+                <td class="text-body-secondary small">${row.thresholdValue ?? '-'}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}">보기</button>
+                </td>
+            `;
+
+            const detailTr = document.createElement('tr');
+            detailTr.className = 'collapse';
+            detailTr.id = detailId;
+            const td = document.createElement('td');
+            td.colSpan = 8;
+            td.className = 'bg-body-tertiary';
+            td.innerHTML = `<div class="p-2">${buildDetailHtml(row)}</div>`;
+            detailTr.appendChild(td);
+
+            tbody.appendChild(tr);
+            tbody.appendChild(detailTr);
+
+            const btn = tr.querySelector('button[data-collect-log-id]');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openRawLogModal(btn.getAttribute('data-collect-log-id'));
+            });
+        }
+
+        renderPagination(totalPages);
+        document.getElementById('pageInfo').textContent =
+            `총 ${formatNumber(totalCount)}건 (${totalPages > 0 ? currentPage : 0}/${totalPages} 페이지)`;
+    }
+
+    function renderPagination(totalPages) {
+        const ul = document.getElementById('pagination');
+        ul.innerHTML = '';
+
+        const goToPage = (p) => {
+            if (p < 1 || p > totalPages || p === currentPage) return;
+            currentPage = p;
+            refreshTableOnly();
+        };
+
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#">« 이전</a>`;
+        prevLi.addEventListener('click', (e) => {
+            e.preventDefault();
+            goToPage(currentPage - 1);
+        });
+        ul.appendChild(prevLi);
+
+        const startPage = Math.max(1, currentPage - 1);
+        const endPage = Math.min(totalPages, currentPage + 1);
+        for (let p = startPage; p <= endPage; p++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${p === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#">${p}</a>`;
+            li.addEventListener('click', (e) => {
+                e.preventDefault();
+                goToPage(p);
+            });
+            ul.appendChild(li);
+        }
+
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#">다음 »</a>`;
+        nextLi.addEventListener('click', (e) => {
+            e.preventDefault();
+            goToPage(currentPage + 1);
+        });
+        ul.appendChild(nextLi);
+    }
+
+    async function refreshTableOnly() {
+        const listUrl = currentTab === 'error'
+            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`
+            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`;
+        try {
+            const data = await fetchApi(listUrl);
+            updateTable(data);
+        } catch (e) {
+            updateTable(null);
+        }
+    }
+
+    function updateResource(rows) {
+        const grid = document.getElementById('resourceGrid');
+        grid.innerHTML = '';
+        const safeRows = Array.isArray(rows) ? rows : [];
+
+        for (const row of safeRows) {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3';
+            const serverId = row.serverId ?? '-';
+            const logValue = row.logValue;
+            const analyzeLevel = row.analyzeLevel ?? '';
+            const thresholdValue = row.thresholdValue ?? '-';
+            const logTimestamp = row.logTimestamp;
+
+            const header = `
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="fw-bold">${serverId}</div>
+                    <span class="badge ${badgeForLevel(analyzeLevel)}">${analyzeLevel || '-'}</span>
+                </div>
+            `;
+
+            if (logValue == null) {
+                col.innerHTML = `
+                    <div class="border rounded p-2 h-100">
+                        ${header}
+                        <div class="d-flex justify-content-center my-2">
+                            <div class="donut-empty">분석없음</div>
+                        </div>
+                        <div class="text-body-secondary small">
+                            DISK_HOME - / 임계치 ${thresholdValue} / ${formatTimestamp(logTimestamp)}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+                continue;
+            }
+
+            const canvasId = `donut-${serverId.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}-${Math.random().toString(36).slice(2)}`;
+            col.innerHTML = `
+                <div class="border rounded p-2 h-100">
+                    ${header}
+                    <div class="d-flex justify-content-center my-2 position-relative">
+                        <div style="width:140px;height:140px;">
+                            <canvas id="${canvasId}" width="140" height="140"></canvas>
+                        </div>
+                    </div>
+                    <div class="text-body-secondary small">
+                        DISK_HOME ${logValue}% / 임계치 ${thresholdValue} / ${formatTimestamp(logTimestamp)}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(col);
+
+            const valueNum = Number(logValue);
+            const percent = Number.isFinite(valueNum) ? valueNum : 0;
+            const rest = Math.max(0, 100 - percent);
+            const ctx = document.getElementById(canvasId).getContext('2d');
+
+            const color = analyzeLevel === '에러' ? '#dc3545' : (analyzeLevel === '경고' ? '#ffc107' : '#198754');
+            const bg = '#e9ecef';
+
+            const chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['사용', '잔여'],
+                    datasets: [{
+                        data: [percent, rest],
+                        backgroundColor: [color, bg],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {display: false},
+                        tooltip: {enabled: false}
+                    }
+                }
+            });
+
+            const centerText = document.createElement('div');
+            centerText.className = 'position-absolute top-50 start-50 translate-middle fw-bold';
+            centerText.textContent = `${percent}%`;
+            col.querySelector('.position-relative').appendChild(centerText);
+            col.dataset.chart = chart;
+        }
+    }
+
+    function updateHistory(series) {
+        const canvas = document.getElementById('historyChart');
+        const ctx = canvas.getContext('2d');
+        if (historyChart) {
+            historyChart.destroy();
+            historyChart = null;
+        }
+
+        const palette = {
+            MBSOSI_COUNT: '#4472C4',
+            MBFOSI_COUNT: '#ED7D31',
+            MBCOSI_COUNT: '#A9D18E',
+            MBJISU_COUNT: '#FF0000',
+            NXT_COUNT: '#7030A0',
+            OPT_MAX_COUNT: '#00B0F0',
+            MAX_CONN_PREV: '#4472C4',
+            HTS_MAX_CONN: '#ED7D31',
+            MTS_MAX_CONN: '#A9D18E'
+        };
+
+        const safeSeries = Array.isArray(series) ? series : [];
+        const allLabels = new Set();
+        for (const s of safeSeries) {
+            const data = Array.isArray(s.data) ? s.data : [];
+            for (const p of data) {
+                if (p && p.logTimestamp) {
+                    allLabels.add(new Date(p.logTimestamp).getTime());
+                }
+            }
+        }
+        const labelTimes = Array.from(allLabels).sort((a, b) => a - b);
+        const labels = labelTimes.map(t => {
+            const d = new Date(t);
+            return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        });
+
+        const datasets = safeSeries.map(s => {
+            const logId = s.logId;
+            const points = new Map();
+            const data = Array.isArray(s.data) ? s.data : [];
+            for (const p of data) {
+                if (!p || !p.logTimestamp) continue;
+                points.set(new Date(p.logTimestamp).getTime(), p.logValue);
+            }
+            const values = labelTimes.map(t => points.has(t) ? Number(points.get(t)) : null);
+            return {
+                label: logId,
+                data: values,
+                borderColor: palette[logId] ?? '#6c757d',
+                backgroundColor: 'transparent',
+                tension: 0.2,
+                spanGaps: true
+            };
+        });
+
+        historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {labels, datasets},
+            options: {
+                responsive: true,
+                plugins: {legend: {display: true}},
+                scales: {
+                    y: {beginAtZero: false}
+                }
+            }
+        });
+    }
+
+    function updateServerDropdown(list) {
+        const select = document.getElementById('serverFilter');
+        const prev = select.value;
+        select.innerHTML = `<option value="">전체</option>`;
+        const rows = Array.isArray(list) ? list : [];
+        for (const row of rows) {
+            const serverId = row.serverId;
+            if (!serverId) continue;
+            const opt = document.createElement('option');
+            opt.value = serverId;
+            opt.textContent = serverId;
+            select.appendChild(opt);
+        }
+        select.value = prev;
+    }
+
+    function updateServerList(list) {
+        const el = document.getElementById('serverList');
+        el.innerHTML = '';
+        const rows = Array.isArray(list) ? list : [];
+        for (const row of rows) {
+            const serverId = row.serverId;
+            const chip = document.createElement('div');
+            chip.className = 'server-chip';
+            chip.innerHTML = `<i class="bi bi-circle-fill text-body-secondary"></i><span>${serverId ?? '-'}</span>`;
+            el.appendChild(chip);
+        }
+    }
+
+    async function openRawLogModal(collectLogId) {
+        if (!collectLogId) return;
+        try {
+            const data = await fetchApi(`/dashboard/api/raw-log/${encodeURIComponent(collectLogId)}`);
+            setText('mCollectLogId', data.collectLogId ?? '-');
+            setText('mCollectDatetime', data.collectDatetime ?? '-');
+            setText('mLogTimestamp', data.logTimestamp ?? '-');
+            setText('mSourceFilePath', data.sourceFilePath ?? '-');
+            document.getElementById('mRawLog').textContent = data.rawLog ?? '-';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('rawLogModal'));
+            modal.show();
+        } catch (e) {
+        }
+    }
+
+    function bindEvents() {
+        document.getElementById('tabError').addEventListener('click', () => {
+            currentTab = 'error';
+            currentPage = 1;
+            document.getElementById('tabError').classList.add('active');
+            document.getElementById('tabNormal').classList.remove('active');
+            refreshTableOnly();
+        });
+
+        document.getElementById('tabNormal').addEventListener('click', () => {
+            currentTab = 'normal';
+            currentPage = 1;
+            document.getElementById('tabNormal').classList.add('active');
+            document.getElementById('tabError').classList.remove('active');
+            refreshTableOnly();
+        });
+
+        document.getElementById('tabStock').addEventListener('click', () => {
+            currentGroupType = 'stock';
+            document.getElementById('tabStock').classList.add('active');
+            document.getElementById('tabConn').classList.remove('active');
+            refreshHistoryOnly();
+        });
+
+        document.getElementById('tabConn').addEventListener('click', () => {
+            currentGroupType = 'conn';
+            document.getElementById('tabConn').classList.add('active');
+            document.getElementById('tabStock').classList.remove('active');
+            refreshHistoryOnly();
+        });
+
+        document.getElementById('serverFilter').addEventListener('change', (e) => {
+            currentServerId = e.target.value || '';
+            currentPage = 1;
+            refreshTableOnly();
+        });
+    }
+
+    async function refreshHistoryOnly() {
+        try {
+            const data = await fetchApi(`/dashboard/api/history?groupType=${encodeURIComponent(currentGroupType)}`);
+            updateHistory(data);
+        } catch (e) {
+            updateHistory([]);
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        startClock();
+        startCountdown();
+        bindEvents();
+        refreshAll();
+    });
+</script>
 </body>
 </html>

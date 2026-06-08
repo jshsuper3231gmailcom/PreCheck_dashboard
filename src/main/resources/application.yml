@@ -16,7 +16,6 @@ spring:
   messages:
     encoding: UTF-8
 mybatis:
-  config-location: classpath:mybatis-config.xml
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.sks.precheck.dashboard.dto
   configuration:
@@ -28,3 +27,47 @@ logging:
     com.sks.precheck: DEBUG
     org.mybatis: DEBUG
     org.springframework.web: INFO
+
+precheck:
+  collect-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\collect\schedule_sample\PreCheck_CollectLogs_Schedule.conf
+  analyze-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\analyze\schedule_sample\PreCheck_AnalyzeLogs_Schedule.conf
+  info-data:
+    - name: 주식종목수
+      server-id: dlprem01-테스트개발
+      log-id: MBSOSI_COUNT
+    - name: 파생종목수
+      server-id: dlprem01-테스트개발
+      log-id: MBFOSI_COUNT
+    - name: 상품종목수
+      server-id: dlprem01-테스트개발
+      log-id: MBCOSI_COUNT
+    - name: 업종종목수
+      server-id: dlprem01-테스트개발
+      log-id: MBJISU_COUNT
+    - name: NXT종목수
+      server-id: dlprem01-테스트개발
+      log-id: NXT_COUNT
+    - name: 옵션결제월최대수
+      server-id: dlprem01-테스트개발
+      log-id: OPT_MAX_COUNT
+    - name: 서버자동주문계좌수
+      server-id: axistuja-자동주문
+      log-id: AUTO_ORDER_ACNT
+    - name: 시세포착1등록수
+      server-id: pqgetap1-시세포착1
+      log-id: CAP_REG_COUNT
+    - name: 시세포착2등록수
+      server-id: pqgetap2-시세포착2
+      log-id: CAP2_REG_COUNT
+    - name: 주파수클럽사용수
+      server-id: pjpsap01-주파수클럽
+      log-id: FREQ_CLUB_COUNT
+    - name: 전일최대동시접속
+      server-id: pmaster2-마스터
+      log-id: MAX_CONN_PREV
+    - name: HTS최대동시접속
+      server-id: pmaster2-마스터
+      log-id: HTS_MAX_CONN
+    - name: MTS최대동시접속
+      server-id: pmaster2-마스터
+      log-id: MTS_MAX_CONN
