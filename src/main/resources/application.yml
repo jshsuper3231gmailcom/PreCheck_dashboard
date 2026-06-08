@@ -51,7 +51,7 @@ precheck:
       server-id: dlprem01-테스트개발
       log-id: OPT_MAX_COUNT
     - name: 서버자동주문계좌수
-      server-id: axistuja-자동주문
+      server-id: pamoap01-자동주문
       log-id: AUTO_ORDER_ACNT
     - name: 시세포착1등록수
       server-id: pqgetap1-시세포착1
