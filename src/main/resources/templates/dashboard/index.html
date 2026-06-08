@@ -941,17 +941,37 @@
         };
 
         const safeSeries = Array.isArray(series) ? series : [];
+        
+        // 모든 데이터에서 날짜를 수집 (중복 제거)
+        const allDates = new Set();
+        for (const s of safeSeries) {
+            const data = Array.isArray(s.data) ? s.data : [];
+            for (const p of data) {
+                if (p && p.logDate) {
+                    allDates.add(p.logDate);
+                }
+            }
+        }
+        
+        const dateLabels = Array.from(allDates).sort();
+        
         const datasets = safeSeries.map(s => {
             const logId = s.logId;
             const data = Array.isArray(s.data) ? s.data : [];
-            const points = data
-                .filter(p => p && p.logTimestamp)
-                .map(p => ({
-                    x: new Date(p.logTimestamp).getTime(),
-                    y: p.logValue == null ? null : Number(p.logValue)
-                }))
-                .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y))
-                .sort((a, b) => a.x - b.x);
+            
+            // 날짜별 데이터 맵 생성
+            const dataByDate = new Map();
+            for (const p of data) {
+                if (p && p.logDate && p.logValue != null) {
+                    dataByDate.set(p.logDate, Number(p.logValue));
+                }
+            }
+            
+            // 날짜 레이블 순서대로 데이터 배열 구성
+            const points = dateLabels.map(date => {
+                const value = dataByDate.get(date);
+                return value !== undefined ? value : null;
+            });
 
             return {
                 label: logId,
@@ -964,19 +984,24 @@
 
         historyChart = new Chart(ctx, {
             type: 'line',
-            data: {datasets},
+            data: {
+                labels: dateLabels.map(d => {
+                    // yyyyMMdd 형식을 yyyy-MM-dd로 변환
+                    if (d && d.length === 8) {
+                        return `${d.substring(0, 4)}-${d.substring(4, 6)}-${d.substring(6, 8)}`;
+                    }
+                    return d;
+                }),
+                datasets
+            },
             options: {
                 responsive: true,
                 plugins: {legend: {display: true}},
                 scales: {
                     x: {
-                        type: 'linear',
+                        type: 'category',
                         ticks: {
-                            callback: (value) => {
-                                const d = new Date(Number(value));
-                                if (Number.isNaN(d.getTime())) return '';
-                                return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-                            }
+                            autoSkip: false
                         }
                     },
                     y: {beginAtZero: false}

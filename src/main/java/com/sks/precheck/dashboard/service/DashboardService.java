@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,13 +25,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
     private static final DateTimeFormatter YYYYMMDD = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int PAGE_SIZE = 10;
-    private static final int HISTORY_DAYS = 7;
 
     private final DashboardMapper dashboardMapper;
     private final InfoDataConfig infoDataConfig;
@@ -95,7 +96,7 @@ public class DashboardService {
 
     public List<Map<String, Object>> getHistoryData(String groupType) {
         String today = today();
-        String startDate = LocalDate.parse(today, YYYYMMDD).minusDays(HISTORY_DAYS - 1L).format(YYYYMMDD);
+        String startDate = LocalDate.parse(today, YYYYMMDD).minusDays(infoDataConfig.getHistoryDays() - 1L).format(YYYYMMDD);
         String endDate = today;
 
         List<InfoDataConfig.InfoDataItem> items = new ArrayList<>();
@@ -127,10 +128,38 @@ public class DashboardService {
                     item.getServerId(),
                     item.getLogId()
             );
-            List<Map<String, Object>> data = new ArrayList<>();
+            
+            // 날짜별로 그룹화하여 각 날짜마다 가장 최신 데이터만 선택
+            Map<String, AnalyzeResultDto> latestByDate = new TreeMap<>();
             for (AnalyzeResultDto row : rows) {
+                String date = row.getAnalyzeDate();
+                if (date == null) {
+                    continue;
+                }
+                
+                AnalyzeResultDto existing = latestByDate.get(date);
+                if (existing == null) {
+                    latestByDate.put(date, row);
+                } else {
+                    // 같은 날짜의 데이터 중 가장 최신 데이터(logTimestamp가 더 큰 것) 유지
+                    LocalDateTime currentTimestamp = row.getLogTimestamp();
+                    LocalDateTime existingTimestamp = existing.getLogTimestamp();
+                    
+                    if (currentTimestamp != null && existingTimestamp != null) {
+                        if (currentTimestamp.isAfter(existingTimestamp)) {
+                            latestByDate.put(date, row);
+                        }
+                    } else if (currentTimestamp != null) {
+                        latestByDate.put(date, row);
+                    }
+                }
+            }
+            
+            List<Map<String, Object>> data = new ArrayList<>();
+            for (AnalyzeResultDto row : latestByDate.values()) {
                 Map<String, Object> point = new LinkedHashMap<>();
                 point.put("logValue", row.getLogValue());
+                point.put("logDate", row.getAnalyzeDate());
                 point.put("logTimestamp", row.getLogTimestamp());
                 data.add(point);
             }
