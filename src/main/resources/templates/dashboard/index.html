@@ -36,6 +36,7 @@
         }
         .header-info .header-info-label {
             color: rgba(255, 255, 255, .65);
+            font-weight: 700;
         }
         .precheck-header {
             background-image: url('/images/DashBoard_상단배경.png');
@@ -67,6 +68,17 @@
         }
         .server-chip i {
             font-size: .5rem;
+        }
+        .info-value {
+            font-size: .9rem;
+            display: block;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .info-threshold {
+            font-size: .75rem;
+            color: var(--bs-secondary-color);
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -159,21 +171,21 @@
                                 <div id="anRatio" class="progress-bar bg-success" style="width:0%"></div>
                             </div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div id="failTooltip" class="summary-strip-item flex-fill p-3 border-end">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="failIcon" class="bi bi-exclamation-circle text-danger"></i>
                                 <span class="summary-label">수집실패</span>
                             </div>
                             <div class="fw-bold"><span id="failCnt">0</span>건</div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3 border-end">
+                        <div id="skipTooltip" class="summary-strip-item flex-fill p-3 border-end">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="skipIcon" class="bi bi-slash-circle text-secondary"></i>
                                 <span class="summary-label">수집제외 SKIP</span>
                             </div>
                             <div class="fw-bold"><span id="skipCnt">0</span>건</div>
                         </div>
-                        <div class="summary-strip-item flex-fill p-3">
+                        <div id="anFailTooltip" class="summary-strip-item flex-fill p-3">
                             <div class="d-flex align-items-center gap-2">
                                 <i id="anFailIcon" class="bi bi-exclamation-triangle text-danger"></i>
                                 <span class="summary-label">분석실패</span>
@@ -185,7 +197,7 @@
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">종목 현황</div>
                         <div class="card-body p-0">
@@ -194,8 +206,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-primary"></span><span class="text-body-secondary">주식 종목수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MBSOSI_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MBSOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MBSOSI_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-MBSOSI_COUNT">-</span>
                                     </div>
                                 </li>
@@ -203,8 +216,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-warning"></span><span class="text-body-secondary">파생 종목수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MBFOSI_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MBFOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MBFOSI_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-MBFOSI_COUNT">-</span>
                                     </div>
                                 </li>
@@ -212,8 +226,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-success"></span><span class="text-body-secondary">상품 종목수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MBCOSI_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MBCOSI_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MBCOSI_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-MBCOSI_COUNT">-</span>
                                     </div>
                                 </li>
@@ -221,8 +236,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-danger"></span><span class="text-body-secondary">업종 종목수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MBJISU_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MBJISU_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MBJISU_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-MBJISU_COUNT">-</span>
                                     </div>
                                 </li>
@@ -230,8 +246,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-secondary"></span><span class="text-body-secondary">NXT 종목수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-NXT_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-NXT_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-NXT_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-NXT_COUNT">-</span>
                                     </div>
                                 </li>
@@ -239,8 +256,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-info"></span><span class="text-body-secondary">옵션결제월 최대수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-OPT_MAX_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OPT_MAX_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OPT_MAX_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-OPT_MAX_COUNT">-</span>
                                     </div>
                                 </li>
@@ -249,7 +267,67 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-3">
+                    <div class="card h-100">
+                        <div class="card-header fw-bold">해외 종목 현황</div>
+                        <div class="card-body p-0">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-primary"></span><span class="text-body-secondary">미국주간</span>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OS_BA_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OS_BA_COUNT"></span>
+                                        <span class="text-body-secondary small" id="t-OS_BA_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-warning"></span><span class="text-body-secondary">미국야간</span>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OS_NB_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OS_NB_COUNT"></span>
+                                        <span class="text-body-secondary small" id="t-OS_NB_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-success"></span><span class="text-body-secondary">홍콩</span>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OS_HK_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OS_HK_COUNT"></span>
+                                        <span class="text-body-secondary small" id="t-OS_HK_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-danger"></span><span class="text-body-secondary">상해</span>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OS_SH_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OS_SH_COUNT"></span>
+                                        <span class="text-body-secondary small" id="t-OS_SH_COUNT">-</span>
+                                    </div>
+                                </li>
+                                <li class="list-group-item d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <span class="dot bg-secondary"></span><span class="text-body-secondary">심천</span>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-OS_SZ_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-OS_SZ_COUNT"></span>
+                                        <span class="text-body-secondary small" id="t-OS_SZ_COUNT">-</span>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold">서비스 현황</div>
                         <div class="card-body p-0">
@@ -258,8 +336,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-primary"></span><span class="text-body-secondary">서버자동주문 계좌수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-AUTO_ORDER_ACNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-AUTO_ORDER_ACNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-AUTO_ORDER_ACNT"></span>
                                         <span class="text-body-secondary small" id="t-AUTO_ORDER_ACNT">-</span>
                                     </div>
                                 </li>
@@ -267,8 +346,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-warning"></span><span class="text-body-secondary">시세포착1 등록수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-CAP_REG_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-CAP_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-CAP_REG_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-CAP_REG_COUNT">-</span>
                                     </div>
                                 </li>
@@ -276,8 +356,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-success"></span><span class="text-body-secondary">시세포착2 등록수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-CAP2_REG_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-CAP2_REG_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-CAP2_REG_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-CAP2_REG_COUNT">-</span>
                                     </div>
                                 </li>
@@ -285,8 +366,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-info"></span><span class="text-body-secondary">주파수클럽 사용수</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-FREQ_CLUB_COUNT">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-FREQ_CLUB_COUNT">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-FREQ_CLUB_COUNT"></span>
                                         <span class="text-body-secondary small" id="t-FREQ_CLUB_COUNT">-</span>
                                     </div>
                                 </li>
@@ -295,7 +377,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-3">
                     <div class="card h-100">
                         <div class="card-header fw-bold d-flex align-items-baseline justify-content-between">
                             <span>접속자 현황</span>
@@ -307,8 +389,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-primary"></span><span class="text-body-secondary">전일 최대동시접속</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MAX_CONN_PREV">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MAX_CONN_PREV">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MAX_CONN_PREV"></span>
                                         <span class="text-body-secondary small" id="t-MAX_CONN_PREV">-</span>
                                     </div>
                                 </li>
@@ -316,8 +399,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-warning"></span><span class="text-body-secondary">HTS 최대동시접속</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-HTS_MAX_CONN">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-HTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-HTS_MAX_CONN"></span>
                                         <span class="text-body-secondary small" id="t-HTS_MAX_CONN">-</span>
                                     </div>
                                 </li>
@@ -325,8 +409,9 @@
                                     <div class="d-flex align-items-center">
                                         <span class="dot bg-success"></span><span class="text-body-secondary">MTS 최대동시접속</span>
                                     </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="fw-bold" id="v-MTS_MAX_CONN">-</span>
+                                    <div class="d-flex flex-column align-items-end lh-sm">
+                                        <span class="fw-semibold info-value text-dark" id="v-MTS_MAX_CONN">-</span>
+                                        <span class="text-body-secondary small d-none" id="th-MTS_MAX_CONN"></span>
                                         <span class="text-body-secondary small" id="t-MTS_MAX_CONN">-</span>
                                     </div>
                                 </li>
@@ -385,6 +470,7 @@
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-secondary active" id="tabStock">종목수 현황</button>
+                        <button type="button" class="btn btn-outline-secondary" id="tabOverseas">해외종목수 현황</button>
                         <button type="button" class="btn btn-outline-secondary" id="tabConn">접속자수 현황</button>
                     </div>
                 </div>
@@ -635,6 +721,33 @@
         } else {
             anFailIcon.className = 'bi bi-exclamation-triangle text-danger';
         }
+
+        updateReasonTooltip('failTooltip', data.collectFailReasons);
+        updateReasonTooltip('skipTooltip', data.collectSkipReasons);
+        updateReasonTooltip('anFailTooltip', data.analyzeFailReasons);
+    }
+
+    function updateReasonTooltip(elementId, reasons) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        const existing = bootstrap.Tooltip.getInstance(el);
+        if (existing) {
+            existing.dispose();
+        }
+
+        if (reasons && reasons.length > 0) {
+            el.setAttribute('data-bs-toggle', 'tooltip');
+            el.setAttribute('data-bs-html', 'true');
+            el.setAttribute('data-bs-placement', 'top');
+            el.setAttribute('title', reasons.join('<br>'));
+            new bootstrap.Tooltip(el);
+            el.style.cursor = 'help';
+        } else {
+            el.removeAttribute('data-bs-toggle');
+            el.removeAttribute('title');
+            el.style.cursor = '';
+        }
     }
 
     function updateInfoData(data) {
@@ -642,9 +755,50 @@
         for (const [logId, v] of Object.entries(data)) {
             const valueEl = document.getElementById(`v-${logId}`);
             const timeEl = document.getElementById(`t-${logId}`);
+            const thresholdEl = document.getElementById(`th-${logId}`);
             if (!valueEl || !timeEl) continue;
-            valueEl.textContent = (v && v.logValue != null) ? formatNumber(v.logValue) : '-';
+            const valueNum = v && v.logValue != null ? Number(v.logValue) : NaN;
+            const thresholdNum = v && v.thresholdValue != null ? Number(v.thresholdValue) : NaN;
+            const hasThreshold = Number.isFinite(thresholdNum);
+            const op = v && v.thresholdOperator != null ? String(v.thresholdOperator) : '';
+
+            valueEl.innerHTML = '';
+            const mainSpan = document.createElement('span');
+            mainSpan.className = 'info-main';
+            if (Number.isFinite(valueNum)) {
+                mainSpan.textContent = formatNumber(valueNum);
+            } else {
+                mainSpan.textContent = '-';
+            }
+            valueEl.appendChild(mainSpan);
+
+            if (Number.isFinite(valueNum) && hasThreshold) {
+                const label = (op === '<' || op === '<=') ? '최대' : ((op === '>' || op === '>=') ? '최소' : '기준');
+                const thSpan = document.createElement('span');
+                thSpan.className = 'info-threshold';
+                thSpan.textContent = `(${label} ${formatNumber(thresholdNum)})`;
+                valueEl.appendChild(document.createTextNode(' '));
+                valueEl.appendChild(thSpan);
+            }
+
             timeEl.textContent = formatTimestamp(v ? v.logTimestamp : null);
+            const level = v && v.analyzeLevel != null ? String(v.analyzeLevel) : '';
+
+            if (thresholdEl) {
+                thresholdEl.textContent = '';
+                thresholdEl.classList.add('d-none');
+            }
+
+            mainSpan.classList.remove('text-danger', 'text-warning', 'text-dark');
+            mainSpan.classList.add('text-dark');
+
+            if (level === '에러') {
+                mainSpan.classList.remove('text-dark');
+                mainSpan.classList.add('text-danger');
+            } else if (level === '경고') {
+                mainSpan.classList.remove('text-dark');
+                mainSpan.classList.add('text-warning');
+            }
         }
     }
 
@@ -666,13 +820,26 @@
         const logType = row.logType ?? '';
         const parts = [];
         if (logType === '수치') {
-            parts.push(`<div class="d-flex flex-wrap gap-3">`);
-            parts.push(`<div>수집값: <span class="fw-bold">${row.logValue ?? '-'}</span></div>`);
-            parts.push(`<div>임계치: <span class="fw-bold">${row.thresholdValue ?? '-'}</span></div>`);
-            parts.push(`<div>연산자: <span class="fw-bold">${row.thresholdOperator ?? '-'}</span></div>`);
-            if ((row.analyzeLevel ?? '') === '경고') {
-                parts.push(`<div>임계치대비%: <span class="fw-bold">${row.warningRatio ?? '-'}</span></div>`);
+            const logValueNum = row.logValue == null ? NaN : Number(row.logValue);
+            const thresholdValueNum = row.thresholdValue == null ? NaN : Number(row.thresholdValue);
+            const warningRatioNum = row.warningRatio == null ? NaN : Number(row.warningRatio);
+
+            const logValueText = Number.isFinite(logValueNum) ? formatNumber(logValueNum) : '-';
+            const thresholdValueText = Number.isFinite(thresholdValueNum) ? formatNumber(thresholdValueNum) : '-';
+            const warningRatioText = Number.isFinite(warningRatioNum) ? formatNumber(warningRatioNum) : '-';
+
+            let proximityText = '-';
+            if (Number.isFinite(logValueNum) && Number.isFinite(thresholdValueNum) && thresholdValueNum !== 0) {
+                const proximity = Math.abs((thresholdValueNum - logValueNum) / thresholdValueNum * 100);
+                proximityText = formatNumber(Math.round(proximity * 100) / 100);
             }
+            const proximitySuffix = proximityText === '-' ? '' : '%';
+            parts.push(`<div class="d-flex flex-wrap gap-3">`);
+            parts.push(`<div>수집값: <span class="fw-bold">${logValueText}</span></div>`);
+            parts.push(`<div>임계치: <span class="fw-bold">${thresholdValueText}</span></div>`);
+            parts.push(`<div>연산자: <span class="fw-bold">${row.thresholdOperator ?? '-'}</span></div>`);
+            parts.push(`<div>임계치 대비 근접도: <span class="fw-bold">${proximityText}${proximitySuffix}</span></div>`);
+            parts.push(`<div>warning_ratio(%)(TB): <span class="fw-bold">${warningRatioText}</span></div>`);
             parts.push(`</div>`);
         } else if (logType === '문구') {
             parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
@@ -935,6 +1102,11 @@
             MBJISU_COUNT: '#FF0000',
             NXT_COUNT: '#7030A0',
             OPT_MAX_COUNT: '#00B0F0',
+            OS_BA_COUNT: '#4472C4',
+            OS_NB_COUNT: '#ED7D31',
+            OS_HK_COUNT: '#A9D18E',
+            OS_SH_COUNT: '#FF0000',
+            OS_SZ_COUNT: '#7030A0',
             MAX_CONN_PREV: '#4472C4',
             HTS_MAX_CONN: '#ED7D31',
             MTS_MAX_CONN: '#A9D18E'
@@ -1074,6 +1246,15 @@
         document.getElementById('tabStock').addEventListener('click', () => {
             currentGroupType = 'stock';
             document.getElementById('tabStock').classList.add('active');
+            document.getElementById('tabOverseas').classList.remove('active');
+            document.getElementById('tabConn').classList.remove('active');
+            refreshHistoryOnly();
+        });
+
+        document.getElementById('tabOverseas').addEventListener('click', () => {
+            currentGroupType = 'overseas';
+            document.getElementById('tabOverseas').classList.add('active');
+            document.getElementById('tabStock').classList.remove('active');
             document.getElementById('tabConn').classList.remove('active');
             refreshHistoryOnly();
         });
@@ -1082,6 +1263,7 @@
             currentGroupType = 'conn';
             document.getElementById('tabConn').classList.add('active');
             document.getElementById('tabStock').classList.remove('active');
+            document.getElementById('tabOverseas').classList.remove('active');
             refreshHistoryOnly();
         });
 

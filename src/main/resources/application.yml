@@ -72,3 +72,18 @@ precheck:
     - name: MTS최대동시접속
       server-id: pmaster2-마스터
       log-id: MTS_MAX_CONN
+    - name: 미국주간
+      server-id: ddfep01-해외시세
+      log-id: OS_BA_COUNT
+    - name: 미국야간
+      server-id: ddfep01-해외시세
+      log-id: OS_NB_COUNT
+    - name: 홍콩
+      server-id: ddfep01-해외시세
+      log-id: OS_HK_COUNT
+    - name: 상해
+      server-id: ddfep01-해외시세
+      log-id: OS_SH_COUNT
+    - name: 심천
+      server-id: ddfep01-해외시세
+      log-id: OS_SZ_COUNT

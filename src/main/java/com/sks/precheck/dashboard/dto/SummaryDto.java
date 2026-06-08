@@ -2,6 +2,8 @@ package com.sks.precheck.dashboard.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class SummaryDto {
     private int errorCnt;
@@ -27,4 +29,8 @@ public class SummaryDto {
 
     private double collectRatio;
     private double analyzeRatio;
+
+    private List<String> collectFailReasons;
+    private List<String> collectSkipReasons;
+    private List<String> analyzeFailReasons;
 }

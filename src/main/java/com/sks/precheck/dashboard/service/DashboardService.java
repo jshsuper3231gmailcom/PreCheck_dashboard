@@ -57,7 +57,24 @@ public class DashboardService {
 
         summary.setCollectRatio(ratio(summary.getCollectSuccess(), summary.getCollectTotal()));
         summary.setAnalyzeRatio(ratio(summary.getAnalyzeSuccess(), summary.getAnalyzeTotal()));
+
+        summary.setCollectFailReasons(formatFailReasons(dashboardMapper.selectCollectFailReasons(today, "FAIL")));
+        summary.setCollectSkipReasons(formatFailReasons(dashboardMapper.selectCollectFailReasons(today, "SKIP")));
+        summary.setAnalyzeFailReasons(formatFailReasons(dashboardMapper.selectAnalyzeFailReasons(today, "FAIL")));
         return summary;
+    }
+
+    private List<String> formatFailReasons(List<Map<String, Object>> rows) {
+        List<String> reasons = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Object serverId = row.get("serverId");
+            Object failReason = row.get("failReason");
+            if (failReason == null) {
+                continue;
+            }
+            reasons.add(serverId + ": " + failReason);
+        }
+        return reasons;
     }
 
     public List<AnalyzeResultDto> getErrorWarningList(String serverId, int page) {
@@ -103,6 +120,15 @@ public class DashboardService {
         if ("stock".equalsIgnoreCase(groupType)) {
             Set<String> targets = Set.of(
                     "MBSOSI_COUNT", "MBFOSI_COUNT", "MBCOSI_COUNT", "MBJISU_COUNT", "NXT_COUNT", "OPT_MAX_COUNT"
+            );
+            for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
+                if (targets.contains(item.getLogId())) {
+                    items.add(item);
+                }
+            }
+        } else if ("overseas".equalsIgnoreCase(groupType)) {
+            Set<String> targets = Set.of(
+                    "OS_BA_COUNT", "OS_NB_COUNT", "OS_HK_COUNT", "OS_SH_COUNT", "OS_SZ_COUNT"
             );
             for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
                 if (targets.contains(item.getLogId())) {
@@ -185,9 +211,15 @@ public class DashboardService {
             if (row != null) {
                 value.put("logValue", row.getLogValue());
                 value.put("logTimestamp", row.getLogTimestamp());
+                value.put("analyzeLevel", row.getAnalyzeLevel());
+                value.put("thresholdValue", row.getThresholdValue());
+                value.put("thresholdOperator", row.getThresholdOperator());
             } else {
                 value.put("logValue", null);
                 value.put("logTimestamp", null);
+                value.put("analyzeLevel", null);
+                value.put("thresholdValue", null);
+                value.put("thresholdOperator", null);
             }
             result.put(item.getLogId(), value);
         }
@@ -246,4 +278,3 @@ public class DashboardService {
         return serverIds.size();
     }
 }
-

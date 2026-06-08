@@ -66,6 +66,28 @@
             ) AH
     </select>
 
+    <select id="selectCollectFailReasons" resultType="map">
+        SELECT DISTINCT
+            SERVER_ID AS "serverId",
+            FAIL_REASON AS "failReason"
+        FROM TB_COLLECT_HISTORY
+        WHERE COLLECT_DATE = #{today}
+          AND COLLECT_STATUS = #{status}
+          AND FAIL_REASON IS NOT NULL
+        ORDER BY SERVER_ID
+    </select>
+
+    <select id="selectAnalyzeFailReasons" resultType="map">
+        SELECT DISTINCT
+            SERVER_ID AS "serverId",
+            FAIL_REASON AS "failReason"
+        FROM TB_ANALYZE_HISTORY
+        WHERE ANALYZE_DATE = #{today}
+          AND ANALYZE_STATUS = #{status}
+          AND FAIL_REASON IS NOT NULL
+        ORDER BY SERVER_ID
+    </select>
+
     <sql id="serverFilter">
         <if test="serverId != null and serverId != '' and serverId != '전체'">
             AND SERVER_ID = #{serverId}

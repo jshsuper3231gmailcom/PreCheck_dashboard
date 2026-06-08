@@ -13,6 +13,16 @@ import java.util.Map;
 public interface DashboardMapper {
     SummaryDto selectSummary(@Param("today") String today);
 
+    List<Map<String, Object>> selectCollectFailReasons(
+            @Param("today") String today,
+            @Param("status") String status
+    );
+
+    List<Map<String, Object>> selectAnalyzeFailReasons(
+            @Param("today") String today,
+            @Param("status") String status
+    );
+
     List<AnalyzeResultDto> selectErrorWarningList(
             @Param("today") String today,
             @Param("serverId") String serverId,
