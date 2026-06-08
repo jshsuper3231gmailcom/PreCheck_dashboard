@@ -2,6 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sks.precheck.dashboard.mapper.DashboardMapper">
 
+    <!--
+        요약 집계 조회.
+        분석 레벨별 건수는 TB_ANALYZE_RESULT에서 계산하고,
+        수집/분석 성공 현황은 각 이력 테이블에서 별도로 계산해 한 행으로 묶는다.
+        최종 분모 보정은 서비스에서 스케줄 정의서 기준으로 다시 적용한다.
+    -->
     <select id="selectSummary" parameterType="string" resultType="com.sks.precheck.dashboard.dto.SummaryDto">
         SELECT
             COALESCE(AR.ERROR_CNT, 0) AS ERROR_CNT,
@@ -88,12 +94,20 @@
         ORDER BY SERVER_ID
     </select>
 
+    <!--
+        서버 필터 공통 조각.
+        "전체" 선택 시 조건을 강제로 붙이지 않아야 목록, 건수, 페이징 결과가 모두 같은 기준을 유지한다.
+    -->
     <sql id="serverFilter">
         <if test="serverId != null and serverId != '' and serverId != '전체'">
             AND SERVER_ID = #{serverId}
         </if>
     </sql>
 
+    <!--
+        에러/경고 목록 조회.
+        DB별 LIMIT 문법만 다르고, 정렬 기준은 에러 우선 후 최신 시각 순으로 고정한다.
+    -->
     <select id="selectErrorWarningList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="postgresql">
         SELECT
             ANALYZE_RESULT_ID,
@@ -166,6 +180,10 @@
         <include refid="serverFilter"/>
     </select>
 
+    <!--
+        정상/정보/미분석 목록 조회.
+        에러/경고와 탭이 분리돼 있으므로 조회 레벨을 명시적으로 제한한다.
+    -->
     <select id="selectNormalInfoList" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto" databaseId="postgresql">
         SELECT
             ANALYZE_RESULT_ID,
@@ -234,6 +252,10 @@
         <include refid="serverFilter"/>
     </select>
 
+    <!--
+        서버 리스트 카드 조회.
+        오늘 분석 이력이 있는 서버를 기준으로 삼고, 서버별 최근 수집/분석 시각과 에러/경고 건수를 함께 계산한다.
+    -->
     <select id="selectServerList" resultType="map">
         SELECT
             S.SERVER_ID AS "serverId",
@@ -302,6 +324,11 @@
         ORDER BY LOG_TIMESTAMP ASC
     </select>
 
+    <!--
+        서버별 리소스 도넛 차트 조회.
+        분석 기준 화면이므로 오늘 분석 이력이 있는 서버만 대상으로 하고,
+        각 서버의 DISK_HOME 최신 수치 1건만 사용한다.
+    -->
     <select id="selectResourceData" resultType="map">
         SELECT
             S.SERVER_ID AS "serverId",
@@ -366,6 +393,10 @@
           AND AR.LOG_ID = #{logId}
     </select>
 
+    <!--
+        원본 로그 모달 조회.
+        분석 결과에서 파생된 값이 아니라 수집 당시 정규화 로그 원문을 그대로 확인할 때 사용한다.
+    -->
     <select id="selectRawLog" resultType="com.sks.precheck.dashboard.dto.CollectLogDto">
         SELECT
             COLLECT_LOG_ID,

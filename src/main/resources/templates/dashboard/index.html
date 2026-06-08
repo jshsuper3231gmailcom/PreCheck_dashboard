@@ -584,6 +584,8 @@
         return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }
 
+    // 리소스 도넛차트는 임계치 자체를 숫자로만 적는 것보다 초과 구간 위치를 함께 보여줘야
+    // 운영자가 어느 서버가 위험 구간에 들어왔는지 한눈에 판단할 수 있다.
     const thresholdMarkerPlugin = {
         id: 'thresholdMarker',
         afterDatasetsDraw(chart, args, pluginOptions) {
@@ -701,6 +703,7 @@
     }
 
     function updateSummary(data) {
+        // 미분석은 정책 누락을 뜻하므로 단순 건수보다 운영자 조치 필요 여부를 먼저 드러낸다.
         setText('errCnt', formatNumber(data.errorCnt ?? 0));
         setText('warnCnt', formatNumber(data.warnCnt ?? 0));
         setText('normCnt', formatNumber(data.normalCnt ?? 0));
@@ -793,6 +796,7 @@
             const hasThreshold = Number.isFinite(thresholdNum);
             const op = v && v.thresholdOperator != null ? String(v.thresholdOperator) : '';
 
+            // 주요 데이터 카드는 "값 없음"과 "0"을 구분해야 하므로, 미조회 상태는 그대로 `-`로 남긴다.
             valueEl.innerHTML = '';
             const mainSpan = document.createElement('span');
             mainSpan.className = 'info-main';
@@ -859,6 +863,8 @@
             const thresholdValueText = Number.isFinite(thresholdValueNum) ? formatNumber(thresholdValueNum) : '-';
             const warningRatioText = Number.isFinite(warningRatioNum) ? formatNumber(warningRatioNum) : '-';
 
+            // 수치형 상세는 화면 계산 근접도와 DB가 저장한 warning_ratio를 분리해 보여줘야
+            // 운영자가 화면 계산값을 정책 원값으로 오해하지 않는다.
             let proximityText = '-';
             if (Number.isFinite(logValueNum) && Number.isFinite(thresholdValueNum) && thresholdValueNum !== 0) {
                 const proximity = Math.abs((thresholdValueNum - logValueNum) / thresholdValueNum * 100);
@@ -896,6 +902,7 @@
         const totalCount = pageResult?.totalCount ?? 0;
         const totalPages = pageResult?.totalPages ?? 0;
 
+        // 필터 변경 뒤 현재 페이지가 마지막 페이지를 넘을 수 있어, 화면이 비어 보이지 않도록 보정한다.
         if (totalPages > 0 && currentPage > totalPages) {
             currentPage = totalPages;
         }
@@ -1037,6 +1044,7 @@
                 </div>
             `;
 
+            // 오늘 분석 결과가 없으면 빈 도넛보다 "분석없음"을 명시하는 편이 미수행 상태 추적에 유리하다.
             if (logValue == null) {
                 col.innerHTML = `
                     <div class="border rounded p-2 h-100">
@@ -1079,6 +1087,7 @@
             const overColor = '#dc3545';
             const bg = '#e9ecef';
 
+            // 임계치 초과 구간만 빨강으로 분리해 보여줘야 초과 폭을 직관적으로 해석할 수 있다.
             const data = over > 0 ? [safe, over, rest] : [percent, rest];
             const colors = over > 0 ? [safeColor, overColor, bg] : [safeColor, bg];
 
@@ -1146,8 +1155,10 @@
         };
 
         const safeSeries = Array.isArray(series) ? series : [];
-        
-        // 모든 데이터에서 날짜를 수집 (중복 제거)
+
+        // ── Step 1. 공통 날짜축 확정 ──
+        // 여러 LOG_ID를 같은 그래프에 그릴 때 날짜축이 다르면 선이 서로 어긋나므로
+        // 전체 시리즈에서 날짜를 먼저 모아 공통 축으로 고정한다.
         const allDates = new Set();
         for (const s of safeSeries) {
             const data = Array.isArray(s.data) ? s.data : [];
@@ -1157,22 +1168,22 @@
                 }
             }
         }
-        
+
         const dateLabels = Array.from(allDates).sort();
-        
+
         const datasets = safeSeries.map(s => {
             const logId = s.logId;
             const data = Array.isArray(s.data) ? s.data : [];
-            
-            // 날짜별 데이터 맵 생성
+
+            // ── Step 2. 날짜별 대표값 정렬 ──
+            // 누락된 날짜는 null로 유지해야 선 그래프가 임의 보간 없이 실제 수집 이력을 그대로 반영한다.
             const dataByDate = new Map();
             for (const p of data) {
                 if (p && p.logDate && p.logValue != null) {
                     dataByDate.set(p.logDate, Number(p.logValue));
                 }
             }
-            
-            // 날짜 레이블 순서대로 데이터 배열 구성
+
             const points = dateLabels.map(date => {
                 const value = dataByDate.get(date);
                 return value !== undefined ? value : null;
@@ -1191,7 +1202,7 @@
             type: 'line',
             data: {
                 labels: dateLabels.map(d => {
-                    // yyyyMMdd 형식을 yyyy-MM-dd로 변환
+                    // 원본 일자 형식은 조회 키 유지에 쓰고, 화면에는 읽기 쉬운 형식만 노출한다.
                     if (d && d.length === 8) {
                         return `${d.substring(0, 4)}-${d.substring(4, 6)}-${d.substring(6, 8)}`;
                     }
@@ -1254,6 +1265,7 @@
             const collectText = formatTimestamp(collectAt);
             const analyzeText = formatTimestamp(analyzeAt);
 
+            // 서버 리스트는 모바일에서 2줄만 보이므로, 상태 점은 가장 심각한 레벨을 우선 표시한다.
             const item = document.createElement('div');
             item.className = 'list-group-item';
             item.innerHTML = `
