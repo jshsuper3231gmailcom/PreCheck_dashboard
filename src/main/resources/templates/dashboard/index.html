@@ -844,8 +844,8 @@
 
     function historyTickColor(label) {
         if (!label) return '#6c757d';
-        const d = new Date(label);
-        if (Number.isNaN(d.getTime())) return '#6c757d';
+        const d = parseHistoryDateLabel(label);
+        if (!d) return '#6c757d';
         const day = d.getDay();
         if (day === 0) return '#f2a7b5';
         if (day === 6) return '#9ec5fe';
