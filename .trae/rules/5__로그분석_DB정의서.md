@@ -41,6 +41,8 @@
    - 날짜: 오늘 날짜 비교       → 정상/에러
    - 존재: 로그 자체가 에러     → 에러
    - 정보: 분석 없이 저장       → 저장만
+   - 비교: 두 수치 A==B 비교    → 정상/에러 (경고 없음)
+   - 시간: HH:mm → 분 변환 후 임계치 비교 → 정상/에러 (경고 없음)
    - 정책 미등록: LOG_ID가 정책 파일에 없으면 → 미분석
         |
         ↓
@@ -136,7 +138,7 @@ CREATE TABLE TB_ANALYZE_RESULT (
 
     LOG_TYPE            VARCHAR(10)         NOT NULL,
     -- 분석한 로그의 입력 타입
-    -- 허용값: '문구', '정보', '날짜', '수치', '존재'
+    -- 허용값: '문구', '정보', '날짜', '수치', '존재', '비교', '시간'
     -- 타입별로 분석 방법이 다르므로 반드시 저장
 
     LOG_ID              VARCHAR(30)         NOT NULL,
@@ -261,7 +263,7 @@ CREATE TABLE TB_ANALYZE_RESULT (
     -- '미분석'은 정책 파일에 등록되지 않은 LOG_ID 처리용
 
     CONSTRAINT CK_AR_LOG_TYPE CHECK (
-        LOG_TYPE IN ('문구', '정보', '날짜', '수치', '존재')
+        LOG_TYPE IN ('문구', '정보', '날짜', '수치', '존재', '비교', '시간')
     ),
 
     CONSTRAINT CK_NOTIFY_YN CHECK (
@@ -589,7 +591,7 @@ INSERT INTO TB_ANALYZE_RESULT (
     ?,          -- COLLECT_LOG_ID (원본 로그 ID)
     ?,          -- SERVER_ID
     ?,          -- SERVER_IP
-    ?,          -- LOG_TYPE ('문구','정보','날짜','수치','존재')
+    ?,          -- LOG_TYPE ('문구','정보','날짜','수치','존재','비교','시간')
     ?,          -- LOG_ID (예: 'DISK_HOME')
     ?,          -- LOG_TIMESTAMP (원본 로그 timestamp)
     ?,          -- LOG_CONTENT (원본 로그 내용)
@@ -689,6 +691,16 @@ ORDER BY LOG_TIMESTAMP ASC;
 
 [정보 타입]
   정보: "[정보][{LOG_ID}] {LOG_CONTENT}"
+
+[비교 타입]
+  정상: "[정상][{LOG_ID}] {LOG_CONTENT} (A={수치A}, B={수치B}, 일치)"
+  에러: "[에러][{LOG_ID}] {LOG_CONTENT} (A={수치A}, B={수치B}, 불일치)"
+  예)   "[에러][JUCHE_DIFF_01] 실시간정산 #1 수신$123$ 처리$120$ (A=123, B=120, 불일치)"
+
+[시간 타입]
+  정상: "[정상][{LOG_ID}] {LOG_CONTENT} {시간값} {OPERATOR} {임계치시간}(임계치)"
+  에러: "[에러][{LOG_ID}] {LOG_CONTENT} {시간값} {반대OPERATOR} {임계치시간}(임계치)"
+  예)   "[에러][DATE_BTIME] 처리시간 $09:10$ >= 08:00(임계치)"
 
 [미분석 - 정책 미등록 LOG_ID]
   미분석: "[미분석][{LOG_ID}] 분석 정책 미등록"

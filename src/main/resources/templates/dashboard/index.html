@@ -875,6 +875,42 @@
         return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
     }
 
+    function extractDollarTokens(content) {
+        const text = content == null ? '' : String(content);
+        const matches = text.matchAll(/\$([^$]+)\$/g);
+        const tokens = [];
+        for (const m of matches) {
+            tokens.push(m[1]);
+        }
+        return tokens;
+    }
+
+    function extractNumericTokens(content) {
+        const tokens = extractDollarTokens(content);
+        const nums = [];
+        for (const t of tokens) {
+            const trimmed = String(t).trim();
+            if (trimmed.includes(':')) continue;
+            if (!/^[+-]?\d+(?:\.\d+)?$/.test(trimmed)) continue;
+            const n = Number(trimmed);
+            if (Number.isFinite(n)) {
+                nums.push(n);
+            }
+        }
+        return nums;
+    }
+
+    function extractTimeToken(content) {
+        const tokens = extractDollarTokens(content);
+        for (const t of tokens) {
+            const trimmed = String(t).trim();
+            if (/^\d{2}:\d{2}$/.test(trimmed)) {
+                return trimmed;
+            }
+        }
+        return null;
+    }
+
     function getResponsiveHistoryDateLimit(totalCount) {
         if (!Number.isFinite(totalCount) || totalCount <= 0) {
             return 0;
@@ -1168,15 +1204,23 @@
             const thresholdValueNum = row.thresholdValue == null ? NaN : Number(row.thresholdValue);
             const warningRatioNum = row.warningRatio == null ? NaN : Number(row.warningRatio);
 
-            const logValueText = Number.isFinite(logValueNum) ? formatNumber(logValueNum) : '-';
+            let resolvedLogValueNum = logValueNum;
+            if (!Number.isFinite(resolvedLogValueNum)) {
+                const nums = extractNumericTokens(row.logContent);
+                if (nums.length === 1) {
+                    resolvedLogValueNum = nums[0];
+                }
+            }
+
+            const logValueText = Number.isFinite(resolvedLogValueNum) ? formatNumber(resolvedLogValueNum) : '-';
             const thresholdValueText = Number.isFinite(thresholdValueNum) ? formatNumber(thresholdValueNum) : '-';
             const warningRatioText = Number.isFinite(warningRatioNum) ? formatNumber(warningRatioNum) : '-';
 
             // 수치형 상세는 화면 계산 근접도와 DB가 저장한 warning_ratio를 분리해 보여줘야
             // 운영자가 화면 계산값을 정책 원값으로 오해하지 않는다.
             let proximityText = '-';
-            if (Number.isFinite(logValueNum) && Number.isFinite(thresholdValueNum) && thresholdValueNum !== 0) {
-                const proximity = Math.abs((thresholdValueNum - logValueNum) / thresholdValueNum * 100);
+            if (Number.isFinite(resolvedLogValueNum) && Number.isFinite(thresholdValueNum) && thresholdValueNum !== 0) {
+                const proximity = Math.abs((thresholdValueNum - resolvedLogValueNum) / thresholdValueNum * 100);
                 proximityText = formatNumber(Math.round(proximity * 100) / 100);
             }
             const proximitySuffix = proximityText === '-' ? '' : '%';
@@ -1187,6 +1231,21 @@
             parts.push(`<div>임계치 대비 근접도: <span class="fw-bold">${proximityText}${proximitySuffix}</span></div>`);
             parts.push(`<div>warning_ratio(%)(TB): <span class="fw-bold">${warningRatioText}</span></div>`);
             parts.push(`</div>`);
+        } else if (logType === '비교') {
+            const nums = extractNumericTokens(row.logContent);
+            const aText = nums.length >= 1 ? formatNumber(nums[0]) : '-';
+            const bText = nums.length >= 2 ? formatNumber(nums[1]) : '-';
+            parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+            parts.push(`<div class="d-flex flex-wrap gap-3 mb-1">`);
+            parts.push(`<div>값A: <span class="fw-bold">${aText}</span></div>`);
+            parts.push(`<div>값B: <span class="fw-bold">${bText}</span></div>`);
+            parts.push(`</div>`);
+            parts.push(`<div class="text-body-secondary small">분석 메시지: ${row.analyzeMessage ?? '-'}</div>`);
+        } else if (logType === '시간') {
+            const t = extractTimeToken(row.logContent);
+            parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
+            parts.push(`<div class="mb-1">시간값: <span class="fw-bold">${t ?? '-'}</span></div>`);
+            parts.push(`<div class="text-body-secondary small">분석 메시지: ${row.analyzeMessage ?? '-'}</div>`);
         } else if (logType === '문구') {
             parts.push(`<div class="mb-1">로그 내용: <span class="fw-bold">${row.logContent ?? '-'}</span></div>`);
             parts.push(`<div class="text-body-secondary small">분석 메시지: ${row.analyzeMessage ?? '-'}</div>`);
