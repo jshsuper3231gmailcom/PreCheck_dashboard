@@ -301,6 +301,10 @@
         #serverList .list-group-item { padding: 3px 10px; }
         #serverList .fw-bold { font-size: 12px; }
         #serverList .text-body-secondary { font-size: 11px; }
+        /* 원본 로그 모달 - 서버 리스트 스타일 적용 */
+        #rawLogMeta .list-group-item { padding: 3px 10px; }
+        #rawLogMeta .fw-bold { font-size: 12px; }
+        #rawLogMeta .text-body-secondary { font-size: 11px; }
         /* 카드 색상 테마 */
         .card--stock .stat-card__head {
             background: linear-gradient(135deg, rgba(37,99,235,.1) 0%, rgba(37,99,235,.04) 100%);
@@ -785,13 +789,25 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="row g-2 mb-2">
-                    <div class="col-md-4 text-body-secondary small">수집 로그 ID: <span id="mCollectLogId">-</span></div>
-                    <div class="col-md-8 text-body-secondary small">수집 일시: <span id="mCollectDatetime">-</span></div>
-                    <div class="col-md-6 text-body-secondary small">로그 시각: <span id="mLogTimestamp">-</span></div>
-                    <div class="col-md-6 text-body-secondary small">수집 파일: <span id="mSourceFilePath">-</span></div>
+                <div class="list-group list-group-flush mb-2" id="rawLogMeta">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">수집 로그 ID</span>
+                        <span class="text-body-secondary" id="mCollectLogId">-</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">수집 일시</span>
+                        <span class="text-body-secondary" id="mCollectDatetime">-</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">로그 시각</span>
+                        <span class="text-body-secondary" id="mLogTimestamp">-</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">수집 파일</span>
+                        <span class="text-body-secondary" id="mSourceFilePath">-</span>
+                    </div>
                 </div>
-                <pre class="bg-body-tertiary p-2 rounded small mb-0" id="mRawLog">-</pre>
+                <pre class="p-2 rounded small mb-0" id="mRawLog">-</pre>
             </div>
         </div>
     </div>
@@ -1190,6 +1206,14 @@
         return 'text-bg-secondary';
     }
 
+    function bgClassForLevel(level) {
+        if (level === '에러') return 'bg-danger-subtle';
+        if (level === '경고') return 'bg-warning-subtle';
+        if (level === '정상') return 'bg-success-subtle';
+        if (level === '정보') return 'bg-info-subtle';
+        return 'bg-secondary-subtle';
+    }
+
     function rowClassForLevel(level) {
         if (level === '에러') return 'table-danger';
         if (level === '경고') return 'table-warning';
@@ -1260,6 +1284,11 @@
         if ((row.analyzeLevel ?? '') === '미분석') {
             parts.push(`<div class="text-danger small mt-2">정책 파일 업데이트 필요</div>`);
         }
+        parts.push(`
+            <div class="d-md-none mt-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}" data-analyze-level="${row.analyzeLevel ?? ''}">원본 보기</button>
+            </div>
+        `);
         return parts.join('');
     }
 
@@ -1300,7 +1329,7 @@
                 <td class="text-truncate" style="max-width: 420px;">${row.analyzeMessage ?? '-'}</td>
                 <td class="d-none d-lg-table-cell text-body-secondary small">${row.thresholdValue ?? '-'}</td>
                 <td class="d-none d-md-table-cell">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}">보기</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}" data-analyze-level="${level || ''}">보기</button>
                 </td>
             `;
 
@@ -1316,11 +1345,12 @@
             tbody.appendChild(tr);
             tbody.appendChild(detailTr);
 
-            const btn = tr.querySelector('button[data-collect-log-id]');
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openRawLogModal(btn.getAttribute('data-collect-log-id'));
-            });
+            for (const btn of [...tr.querySelectorAll('button[data-collect-log-id]'), ...detailTr.querySelectorAll('button[data-collect-log-id]')]) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openRawLogModal(btn.getAttribute('data-collect-log-id'), btn.getAttribute('data-analyze-level'));
+                });
+            }
         }
 
         renderPagination(totalPages);
@@ -1652,6 +1682,8 @@
 
             const collectText = formatTimestamp(collectAt);
             const analyzeText = formatTimestamp(analyzeAt);
+            const collectSchedule = row.collectSchedule ?? '-';
+            const analyzeSchedule = row.analyzeSchedule ?? '-';
 
             // 서버 리스트는 모바일에서 2줄만 보이므로, 상태 점은 가장 심각한 레벨을 우선 표시한다.
             const item = document.createElement('div');
@@ -1662,15 +1694,22 @@
                     <div class="flex-fill">
                         <div class="fw-bold">${serverId ?? '-'}</div>
                         <div class="text-body-secondary small d-md-none">
-                            수집 ${collectText} /
+                            최종 수집 ${collectText} / 최종 분석 ${analyzeText} /
                             <span class="badge text-bg-danger">에러 ${formatNumber(errorCnt)}</span>
                             <span class="badge text-bg-warning ms-1">경고 ${formatNumber(warningCnt)}</span>
                         </div>
+                        <div class="text-body-secondary small d-md-none">
+                            수집주기 ${collectSchedule} / 분석주기 ${analyzeSchedule}
+                        </div>
                         <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
-                            <span>수집: ${collectText}</span>
-                            <span>분석: ${analyzeText}</span>
+                            <span>최종 수집: ${collectText}</span>
+                            <span>최종 분석: ${analyzeText}</span>
                             <span>에러: ${formatNumber(errorCnt)}</span>
                             <span>경고: ${formatNumber(warningCnt)}</span>
+                        </div>
+                        <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
+                            <span>수집주기: ${collectSchedule}</span>
+                            <span>분석주기: ${analyzeSchedule}</span>
                         </div>
                     </div>
                 </div>
@@ -1679,7 +1718,7 @@
         }
     }
 
-    async function openRawLogModal(collectLogId) {
+    async function openRawLogModal(collectLogId, analyzeLevel) {
         if (!collectLogId) return;
         try {
             const data = await fetchApi(`/dashboard/api/raw-log/${encodeURIComponent(collectLogId)}`);
@@ -1687,7 +1726,10 @@
             setText('mCollectDatetime', data.collectDatetime ?? '-');
             setText('mLogTimestamp', data.logTimestamp ?? '-');
             setText('mSourceFilePath', data.sourceFilePath ?? '-');
-            document.getElementById('mRawLog').textContent = data.rawLog ?? '-';
+            const rawLogEl = document.getElementById('mRawLog');
+            rawLogEl.textContent = data.rawLog ?? '-';
+            rawLogEl.classList.remove('bg-body-tertiary', 'bg-danger-subtle', 'bg-warning-subtle', 'bg-success-subtle', 'bg-info-subtle', 'bg-secondary-subtle');
+            rawLogEl.classList.add(bgClassForLevel(analyzeLevel));
             const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('rawLogModal'));
             modal.show();
         } catch (e) {

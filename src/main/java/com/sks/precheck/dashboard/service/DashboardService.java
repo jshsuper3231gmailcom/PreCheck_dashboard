@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Dashboard 조회용 업무 조합 서비스.
@@ -53,6 +55,8 @@ public class DashboardService {
 
     private int collectTotalFromSchedule;
     private int analyzeTotalFromSchedule;
+    private Map<String, String> collectScheduleMap = Map.of();
+    private Map<String, String> analyzeScheduleMap = Map.of();
 
     /**
      * 애플리케이션 시작 시 스케줄 정의서에서 수집/분석 대상 서버 수를 미리 계산한다.
@@ -65,6 +69,8 @@ public class DashboardService {
     public void init() {
         this.collectTotalFromSchedule = parseScheduleServerCount(infoDataConfig.getCollectSchedulePath());
         this.analyzeTotalFromSchedule = parseScheduleServerCount(infoDataConfig.getAnalyzeSchedulePath());
+        this.collectScheduleMap = parseScheduleMap(infoDataConfig.getCollectSchedulePath());
+        this.analyzeScheduleMap = parseScheduleMap(infoDataConfig.getAnalyzeSchedulePath());
     }
 
     /**
@@ -201,7 +207,13 @@ public class DashboardService {
      * - 서버구분, 최근 수집/분석 시각, 에러/경고 건수를 함께 담은 화면용 목록이다.
      */
     public List<Map<String, Object>> getServerList() {
-        return dashboardMapper.selectServerList(today());
+        List<Map<String, Object>> rows = dashboardMapper.selectServerList(today());
+        for (Map<String, Object> row : rows) {
+            String serverId = String.valueOf(row.get("serverId"));
+            row.put("collectSchedule", collectScheduleMap.getOrDefault(serverId, "-"));
+            row.put("analyzeSchedule", analyzeScheduleMap.getOrDefault(serverId, "-"));
+        }
+        return rows;
     }
 
     /**
@@ -452,5 +464,120 @@ public class DashboardService {
             return 0;
         }
         return serverIds.size();
+    }
+
+    private static final Pattern SCHEDULE_BRACKET_PATTERN = Pattern.compile("\\[([^\\[\\]]*)\\]");
+    private static final String[] DAY_NAMES = {"일", "월", "화", "수", "목", "금", "토"};
+
+    /**
+     * 스케줄 정의서에서 서버별 수집/분석 주기를 사람이 읽기 쉬운 문자열로 변환한다.
+     *
+     * 처리 순서:
+     * - 각 줄의 대괄호 그룹 중 첫 번째는 서버구분, 마지막은 주기 기술로 본다.
+     * - 주기 기술을 {@link #formatScheduleSpec}로 변환해 서버구분에 매핑한다.
+     *
+     * 실패/무시 조건:
+     * - 경로가 비어 있거나 파일이 없으면 빈 맵을 반환한다.
+     * - 빈 줄, skip 처리(`#`) 줄, 포맷이 맞지 않는 줄은 무시한다.
+     */
+    private Map<String, String> parseScheduleMap(String schedulePath) {
+        if (schedulePath == null || schedulePath.isBlank()) {
+            return Map.of();
+        }
+
+        Path path = Path.of(schedulePath);
+        if (!Files.exists(path)) {
+            return Map.of();
+        }
+
+        Map<String, String> result = new LinkedHashMap<>();
+        try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                    continue;
+                }
+
+                List<String> groups = new ArrayList<>();
+                Matcher matcher = SCHEDULE_BRACKET_PATTERN.matcher(trimmed);
+                while (matcher.find()) {
+                    groups.add(matcher.group(1).trim());
+                }
+                if (groups.size() < 2) {
+                    continue;
+                }
+
+                String serverId = groups.get(0);
+                if (serverId.isEmpty()) {
+                    continue;
+                }
+
+                String formatted = formatScheduleSpec(groups.get(groups.size() - 1));
+                if (formatted != null) {
+                    result.put(serverId, formatted);
+                }
+            }
+        } catch (IOException ignored) {
+            return Map.of();
+        }
+        return result;
+    }
+
+    /**
+     * 주기 기술(`배치|요일|시작시간` 또는 `주기|요일|시작시간|간격|종료시간`)을 화면 표시용 문자열로 변환한다.
+     *
+     * @return 포맷이 맞지 않으면 {@code null}
+     */
+    private String formatScheduleSpec(String spec) {
+        String[] parts = spec.split("\\|");
+        if (parts.length < 3) {
+            return null;
+        }
+
+        String dayText = formatDayCode(parts[1].trim());
+        String startTime = formatTime(parts[2].trim());
+        if (dayText == null || startTime == null) {
+            return null;
+        }
+
+        String type = parts[0].trim();
+        if ("배치".equals(type)) {
+            return dayText + " " + startTime + " 1회";
+        }
+        if ("주기".equals(type) && parts.length >= 5) {
+            String interval = parts[3].trim();
+            String endTime = formatTime(parts[4].trim());
+            if (endTime == null) {
+                return null;
+            }
+            return dayText + " " + startTime + "~" + endTime + " (" + interval + "분 간격)";
+        }
+        return null;
+    }
+
+    private String formatDayCode(String dayCode) {
+        if ("*".equals(dayCode) || "0-6".equals(dayCode)) {
+            return "매일";
+        }
+        if (dayCode.matches("[0-6]")) {
+            return DAY_NAMES[Integer.parseInt(dayCode)] + "요일";
+        }
+        if (dayCode.matches("[0-6]-[0-6]")) {
+            String[] range = dayCode.split("-");
+            int start = Integer.parseInt(range[0]);
+            int end = Integer.parseInt(range[1]);
+            if (start <= end) {
+                return DAY_NAMES[start] + "~" + DAY_NAMES[end];
+            }
+        }
+        return null;
+    }
+
+    private String formatTime(String hhmmss) {
+        if (!hhmmss.matches("\\d{6}")) {
+            return null;
+        }
+        return hhmmss.substring(0, 2) + ":" + hhmmss.substring(2, 4) + ":" + hhmmss.substring(4, 6);
     }
 }
