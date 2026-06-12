@@ -1315,9 +1315,9 @@
             tr.dataset.bsTarget = `#${detailId}`;
             tr.innerHTML = `
                 <td class="text-body-secondary small">${formatTimestamp(row.logTimestamp)}</td>
-                <td>${row.serverId ?? '-'}</td>
+                <td class="text-truncate" style="max-width: 100px;" title="${row.serverId ?? '-'}">${row.serverId ?? '-'}</td>
                 <td class="d-none d-md-table-cell text-body-secondary small">${row.serverIp ?? '-'}</td>
-                <td class="text-body-secondary">${row.logId ?? '-'}</td>
+                <td class="text-body-secondary text-truncate" style="max-width: 110px;" title="${row.logId ?? '-'}">${row.logId ?? '-'}</td>
                 <td><span class="badge text-bg-light">${row.logType ?? '-'}</span></td>
                 <td>
                     <span class="badge ${badgeForLevel(level)}">${level || '-'}</span>
@@ -1326,7 +1326,7 @@
                         : ''
                     }
                 </td>
-                <td class="text-truncate" style="max-width: 420px;">${row.analyzeMessage ?? '-'}</td>
+                <td class="text-truncate" style="max-width: none;">${row.analyzeMessage ?? '-'}</td>
                 <td class="d-none d-lg-table-cell text-body-secondary small">${row.thresholdValue ?? '-'}</td>
                 <td class="d-none d-md-table-cell">
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-collect-log-id="${row.collectLogId ?? ''}" data-analyze-level="${level || ''}">보기</button>
