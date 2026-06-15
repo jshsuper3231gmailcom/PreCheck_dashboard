@@ -5,6 +5,12 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    session:
+      timeout: 9h
+      cookie:
+        http-only: true
+        secure: false
+        same-site: lax
 spring:
   profiles:
     active: test

@@ -4,9 +4,12 @@ import com.sks.precheck.dashboard.dto.AnalyzeResultDto;
 import com.sks.precheck.dashboard.dto.CollectLogDto;
 import com.sks.precheck.dashboard.dto.PageResultDto;
 import com.sks.precheck.dashboard.dto.SummaryDto;
+import com.sks.precheck.dashboard.security.AdminUserPrincipal;
 import com.sks.precheck.dashboard.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -34,10 +37,14 @@ public class DashboardController {
     /**
      * 대시보드 메인 화면을 반환한다.
      *
+     * @param principal 현재 로그인한 사용자다.
+     * @param model 헤더에 표시할 사용자 정보를 담는 모델이다.
      * @return Thymeleaf 템플릿 경로다.
      */
     @GetMapping("/dashboard")
-    public String dashboard() {
+    public String dashboard(@AuthenticationPrincipal AdminUserPrincipal principal, Model model) {
+        model.addAttribute("loginUserName", principal.getAdminUser().getUserName());
+        model.addAttribute("loginUserRole", principal.getAdminUser().getRole());
         return "dashboard/index";
     }
 

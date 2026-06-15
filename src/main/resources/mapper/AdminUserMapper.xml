@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sks.precheck.dashboard.mapper.AdminUserMapper">
+
+    <select id="selectByLoginId" resultType="com.sks.precheck.dashboard.dto.AdminUserDto">
+        SELECT
+            ADMIN_USER_ID,
+            LOGIN_ID,
+            PASSWORD,
+            USER_NAME,
+            ROLE,
+            STATUS,
+            LOGIN_FAIL_COUNT,
+            LOCKED_AT,
+            PASSWORD_CHANGED_AT,
+            PASSWORD_EXPIRE_YN,
+            LAST_LOGIN_AT,
+            CREATED_AT,
+            UPDATED_AT
+        FROM TB_ADMIN_USER
+        WHERE LOGIN_ID = #{loginId}
+    </select>
+
+    <select id="selectAll" resultType="com.sks.precheck.dashboard.dto.AdminUserDto">
+        SELECT
+            ADMIN_USER_ID,
+            LOGIN_ID,
+            PASSWORD,
+            USER_NAME,
+            ROLE,
+            STATUS,
+            LOGIN_FAIL_COUNT,
+            LOCKED_AT,
+            PASSWORD_CHANGED_AT,
+            PASSWORD_EXPIRE_YN,
+            LAST_LOGIN_AT,
+            CREATED_AT,
+            UPDATED_AT
+        FROM TB_ADMIN_USER
+        ORDER BY LOGIN_ID
+    </select>
+
+    <insert id="insertAdminUser" parameterType="com.sks.precheck.dashboard.dto.AdminUserDto" databaseId="postgresql">
+        INSERT INTO TB_ADMIN_USER (
+            ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
+            LOGIN_FAIL_COUNT, LOCKED_AT,
+            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+            LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
+        ) VALUES (
+            nextval('SEQ_ADMIN_USER'), #{loginId}, #{password}, #{userName}, #{role}, #{status},
+            #{loginFailCount}, #{lockedAt},
+            #{passwordChangedAt}, #{passwordExpireYn},
+            #{lastLoginAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <insert id="insertAdminUser" parameterType="com.sks.precheck.dashboard.dto.AdminUserDto" databaseId="altibase">
+        INSERT INTO TB_ADMIN_USER (
+            ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
+            LOGIN_FAIL_COUNT, LOCKED_AT,
+            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+            LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
+        ) VALUES (
+            SEQ_ADMIN_USER.NEXTVAL, #{loginId}, #{password}, #{userName}, #{role}, #{status},
+            #{loginFailCount}, #{lockedAt},
+            #{passwordChangedAt}, #{passwordExpireYn},
+            #{lastLoginAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateLoginSuccess">
+        UPDATE TB_ADMIN_USER
+        SET LOGIN_FAIL_COUNT = 0,
+            LAST_LOGIN_AT = #{lastLoginAt},
+            UPDATED_AT = #{lastLoginAt}
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <update id="updateLoginFailCount">
+        UPDATE TB_ADMIN_USER
+        SET LOGIN_FAIL_COUNT = #{loginFailCount}
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <update id="lockAccount">
+        UPDATE TB_ADMIN_USER
+        SET STATUS = 'LOCKED',
+            LOCKED_AT = #{lockedAt}
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <update id="unlockAccount">
+        UPDATE TB_ADMIN_USER
+        SET STATUS = 'ACTIVE',
+            LOGIN_FAIL_COUNT = 0,
+            LOCKED_AT = NULL
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE TB_ADMIN_USER
+        SET STATUS = #{status}
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE TB_ADMIN_USER
+        SET PASSWORD = #{password},
+            PASSWORD_CHANGED_AT = #{passwordChangedAt},
+            PASSWORD_EXPIRE_YN = #{passwordExpireYn}
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </update>
+
+    <insert id="insertPwdHistory" databaseId="postgresql">
+        INSERT INTO TB_ADMIN_USER_PWD_HISTORY (
+            PWD_HISTORY_ID, ADMIN_USER_ID, PASSWORD, CREATED_AT
+        ) VALUES (
+            nextval('SEQ_ADMIN_USER_PWD_HISTORY'), #{adminUserId}, #{password}, #{createdAt}
+        )
+    </insert>
+
+    <insert id="insertPwdHistory" databaseId="altibase">
+        INSERT INTO TB_ADMIN_USER_PWD_HISTORY (
+            PWD_HISTORY_ID, ADMIN_USER_ID, PASSWORD, CREATED_AT
+        ) VALUES (
+            SEQ_ADMIN_USER_PWD_HISTORY.NEXTVAL, #{adminUserId}, #{password}, #{createdAt}
+        )
+    </insert>
+
+    <select id="selectRecentPwdHistory" resultType="string" databaseId="postgresql">
+        SELECT PASSWORD
+        FROM TB_ADMIN_USER_PWD_HISTORY
+        WHERE ADMIN_USER_ID = #{adminUserId}
+        ORDER BY CREATED_AT DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectRecentPwdHistory" resultType="string" databaseId="altibase">
+        SELECT PASSWORD
+        FROM TB_ADMIN_USER_PWD_HISTORY
+        WHERE ADMIN_USER_ID = #{adminUserId}
+        ORDER BY CREATED_AT DESC
+        LIMIT 0, #{limit}
+    </select>
+
+    <insert id="insertAdminUserLog" parameterType="com.sks.precheck.dashboard.dto.AdminUserLogDto" databaseId="postgresql">
+        INSERT INTO TB_ADMIN_USER_LOG (
+            ADMIN_USER_LOG_ID, ADMIN_USER_ID, LOGIN_ID, ACTION_TYPE, ACTOR_LOGIN_ID, CLIENT_IP, DESCRIPTION, CREATED_AT
+        ) VALUES (
+            nextval('SEQ_ADMIN_USER_LOG'), #{adminUserId}, #{loginId}, #{actionType}, #{actorLoginId}, #{clientIp}, #{description}, #{createdAt}
+        )
+    </insert>
+
+    <insert id="insertAdminUserLog" parameterType="com.sks.precheck.dashboard.dto.AdminUserLogDto" databaseId="altibase">
+        INSERT INTO TB_ADMIN_USER_LOG (
+            ADMIN_USER_LOG_ID, ADMIN_USER_ID, LOGIN_ID, ACTION_TYPE, ACTOR_LOGIN_ID, CLIENT_IP, DESCRIPTION, CREATED_AT
+        ) VALUES (
+            SEQ_ADMIN_USER_LOG.NEXTVAL, #{adminUserId}, #{loginId}, #{actionType}, #{actorLoginId}, #{clientIp}, #{description}, #{createdAt}
+        )
+    </insert>
+
+</mapper>

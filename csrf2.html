@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PreCheck Dashboard 로그인</title>
+    <link rel="stylesheet" href="/plugins/bootstrap-icons/bootstrap-icons.css">
+    <link rel="stylesheet" href="/css/adminlte.min.css">
+</head>
+<body class="login-page bg-body-secondary">
+<div class="login-box">
+    <div class="card card-outline card-primary">
+        <div class="card-header text-center">
+            <span class="h1"><b>PreCheck</b> Dashboard</span>
+        </div>
+        <div class="card-body login-card-body">
+            <p class="login-box-msg">관리자 로그인</p>
+
+            
+
+            <form action="/login" method="post"><input type="hidden" name="_csrf" value="br9arXI8g8hnFNC418WXQbsB5lSYt6LYjsA2y-0VQGmNfm1WDd4-mhBZ4K1KdeWO5-ijI49kyzWr1cT16vEDrt5zdFzoH18z"/>
+                <div class="input-group mb-3">
+                    <input type="text" name="username" class="form-control" placeholder="아이디" required autofocus>
+                    <div class="input-group-text"><span class="bi bi-person"></span></div>
+                </div>
+                <div class="input-group mb-3">
+                    <input type="password" name="password" class="form-control" placeholder="비밀번호" required>
+                    <div class="input-group-text"><span class="bi bi-lock-fill"></span></div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-block">로그인</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

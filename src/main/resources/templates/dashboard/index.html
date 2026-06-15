@@ -1,8 +1,10 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <title>PreCheck Dashboard</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
@@ -351,6 +353,10 @@
                 <h1 class="precheck-banner-title"><span class="title">채널 서버 점검</span><span class="sub">Dashboard</span></h1>
             </div>
             <div class="d-flex align-items-center gap-3 precheck-header-meta">
+                <div th:if="${pwdExpireWarningDays != null}" class="header-info text-danger">
+                    비밀번호 만료 D-<span th:text="${pwdExpireWarningDays}"></span>
+                    (<a th:href="@{/password/change}">변경하기</a>)
+                </div>
                 <div class="header-info">
                     <span id="currentTime">-</span>
                 </div>
@@ -359,6 +365,20 @@
                 </div>
                 <div class="header-info">
                     <span class="header-info-label">자동갱신:</span> <span id="countdown">05:00</span>
+                </div>
+                <div class="header-info">
+                    <span class="header-info-label" th:text="${loginUserName}"></span>
+                </div>
+                <div class="header-info">
+                    <a th:if="${loginUserRole == 'SUPER_ADMIN'}" th:href="@{/admin/users}">계정관리</a>
+                </div>
+                <div class="header-info">
+                    <a th:href="@{/password/change}">비밀번호 변경</a>
+                </div>
+                <div class="header-info">
+                    <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                        <button type="submit" class="btn btn-link p-0 header-info">로그아웃</button>
+                    </form>
                 </div>
             </div>
         </div>

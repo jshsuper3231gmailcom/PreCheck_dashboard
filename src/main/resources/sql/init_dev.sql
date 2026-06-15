@@ -2,6 +2,9 @@ CREATE SEQUENCE SEQ_ANALYZE_RESULT START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE SEQ_ANALYZE_HISTORY START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE SEQ_COLLECT_HISTORY START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE SEQ_COLLECT_LOG START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_ADMIN_USER START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_ADMIN_USER_PWD_HISTORY START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_ADMIN_USER_LOG START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE TB_ANALYZE_RESULT (
     ANALYZE_RESULT_ID   NUMERIC(19,0)   NOT NULL,
@@ -123,3 +126,108 @@ INSERT INTO TB_ANALYZE_RESULT (
     (nextval('SEQ_ANALYZE_RESULT'), 1, 'dlprem01-테스트개발', '192.168.0.11', '수치', 'DISK_HOME', '2026-06-05 09:20:01', 'home디스크', 88.000000, '경고', '[경고] DISK_HOME 88 < 90 (근접)', 90.000000, '<', 2.22, 'N', NULL, '20260605', '2026-06-05 09:25:01', '20260605', '2026-06-05 09:25:01'),
     (nextval('SEQ_ANALYZE_RESULT'), 6, 'dlprem01-테스트개발', '192.168.0.11', '비교', 'JUCHE_DIFF_01', '2026-06-05 09:02:10', '실시간정산 #1 수신$123$ 처리$120$', NULL, '에러', '[에러][JUCHE_DIFF_01] 실시간정산 #1 수신$123$ 처리$120$ (A=123, B=120, 불일치)', NULL, NULL, NULL, 'N', NULL, '20260605', '2026-06-05 09:10:10', '20260605', '2026-06-05 09:10:10'),
     (nextval('SEQ_ANALYZE_RESULT'), 7, 'dlprem01-테스트개발', '192.168.0.11', '시간', 'DATE_BTIME', '2026-06-05 09:02:20', 'bday[2026/06/05] 처리시간 $07:35$', NULL, '정상', '[정상][DATE_BTIME] 처리시간 $07:35$ < 08:00(임계치)', NULL, '<', NULL, 'N', NULL, '20260605', '2026-06-05 09:10:20', '20260605', '2026-06-05 09:10:20');
+
+-- ============================================================
+-- TB_ADMIN_USER : 관리자 계정 테이블
+-- ============================================================
+-- [설계 의도]
+--   - 로그인 인증(Spring Security UserDetails)의 기준 테이블
+--   - 비밀번호 만료(90일), 재사용 금지, 로그인 실패 잠금 정책의
+--     상태값을 함께 관리
+--
+-- [상태값 정의]
+--   ROLE   : 'SUPER_ADMIN'(계정관리 가능) | 'ADMIN'(일반)
+--   STATUS : 'ACTIVE'(정상) | 'LOCKED'(로그인 실패로 잠금) | 'DISABLED'(비활성화)
+-- ============================================================
+
+CREATE TABLE TB_ADMIN_USER (
+    ADMIN_USER_ID       NUMERIC(19, 0)  NOT NULL,
+    LOGIN_ID            VARCHAR(50)     NOT NULL,
+    PASSWORD            VARCHAR(200)    NOT NULL,
+    USER_NAME           VARCHAR(50)     NOT NULL,
+    ROLE                VARCHAR(20)     NOT NULL,
+    STATUS              VARCHAR(10)     NOT NULL,
+    LOGIN_FAIL_COUNT    NUMERIC(2, 0)   NOT NULL,
+    LOCKED_AT           TIMESTAMP,
+    PASSWORD_CHANGED_AT TIMESTAMP       NOT NULL,
+    PASSWORD_EXPIRE_YN  CHAR(1)         NOT NULL,
+    LAST_LOGIN_AT       TIMESTAMP,
+    CREATED_AT          TIMESTAMP       NOT NULL,
+    UPDATED_AT          TIMESTAMP,
+
+    CONSTRAINT PK_ADMIN_USER PRIMARY KEY (ADMIN_USER_ID),
+    CONSTRAINT UQ_ADMIN_USER_LOGIN_ID UNIQUE (LOGIN_ID)
+);
+
+-- ============================================================
+-- TB_ADMIN_USER_PWD_HISTORY : 비밀번호 변경 이력 테이블
+-- ============================================================
+-- [설계 의도]
+--   - 비밀번호 변경 시점마다 BCrypt 해시를 적재
+--   - 신규 비밀번호 설정 시, 해당 계정의 최근 2건 해시와
+--     BCrypt matches() 비교하여 재사용 여부 판정
+-- ============================================================
+
+CREATE TABLE TB_ADMIN_USER_PWD_HISTORY (
+    PWD_HISTORY_ID      NUMERIC(19, 0)  NOT NULL,
+    ADMIN_USER_ID       NUMERIC(19, 0)  NOT NULL,
+    PASSWORD            VARCHAR(200)    NOT NULL,
+    CREATED_AT          TIMESTAMP       NOT NULL,
+
+    CONSTRAINT PK_ADMIN_USER_PWD_HISTORY PRIMARY KEY (PWD_HISTORY_ID),
+    CONSTRAINT FK_PWD_HISTORY_ADMIN_USER FOREIGN KEY (ADMIN_USER_ID)
+        REFERENCES TB_ADMIN_USER (ADMIN_USER_ID)
+);
+
+CREATE INDEX IDX_PWD_HISTORY_USER_CREATED
+    ON TB_ADMIN_USER_PWD_HISTORY (ADMIN_USER_ID, CREATED_AT);
+
+-- ============================================================
+-- TB_ADMIN_USER_LOG : 계정 감사 로그 테이블
+-- ============================================================
+-- [설계 의도]
+--   - 8__로그인_보안정책정의서.md 10장(감사 로그) 범위의 이벤트를 기록
+--   - 로그인 실패는 계정이 존재하지 않아도 LOGIN_ID(시도값)를 남김
+--     -> ADMIN_USER_ID는 NULL 허용
+--
+-- [ACTION_TYPE 정의]
+--   LOGIN_SUCCESS / LOGIN_FAIL
+--   PASSWORD_CHANGE / PASSWORD_RESET
+--   USER_CREATE / USER_LOCK / USER_UNLOCK / USER_DISABLE / USER_ENABLE
+-- ============================================================
+
+CREATE TABLE TB_ADMIN_USER_LOG (
+    ADMIN_USER_LOG_ID   NUMERIC(19, 0)  NOT NULL,
+    ADMIN_USER_ID       NUMERIC(19, 0),
+    LOGIN_ID            VARCHAR(50)     NOT NULL,
+    ACTION_TYPE         VARCHAR(20)     NOT NULL,
+    ACTOR_LOGIN_ID      VARCHAR(50),
+    CLIENT_IP           VARCHAR(45),
+    DESCRIPTION         VARCHAR(500),
+    CREATED_AT          TIMESTAMP       NOT NULL,
+
+    CONSTRAINT PK_ADMIN_USER_LOG PRIMARY KEY (ADMIN_USER_LOG_ID)
+);
+
+CREATE INDEX IDX_ADMIN_USER_LOG_USER_CREATED
+    ON TB_ADMIN_USER_LOG (ADMIN_USER_ID, CREATED_AT);
+
+-- ============================================================
+-- 초기 SUPER_ADMIN 계정
+-- ============================================================
+-- LOGIN_ID  : admin
+-- PASSWORD  : !Sks8245 (BCryptPasswordEncoder 해시)
+-- PASSWORD_EXPIRE_YN='N' : 만료 정책 예외 (8__로그인_보안정책정의서.md 11장)
+-- ============================================================
+
+INSERT INTO TB_ADMIN_USER (
+    ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
+    LOGIN_FAIL_COUNT, LOCKED_AT,
+    PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+    LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
+) VALUES (
+    nextval('SEQ_ADMIN_USER'), 'admin', '$2a$10$N1laaBCOeXWzaJ3ebjcGmuKwOvTGSC7vgAZW0s.h/i/laM8ofojg2', '시스템관리자', 'SUPER_ADMIN', 'ACTIVE',
+    0, NULL,
+    CURRENT_TIMESTAMP, 'N',
+    NULL, CURRENT_TIMESTAMP, NULL
+);
