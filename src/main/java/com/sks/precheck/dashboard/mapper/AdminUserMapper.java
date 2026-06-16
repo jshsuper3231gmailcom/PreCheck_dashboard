@@ -122,6 +122,20 @@ public interface AdminUserMapper {
     List<String> selectRecentPwdHistory(@Param("adminUserId") Long adminUserId, @Param("limit") int limit);
 
     /**
+     * 계정을 삭제한다.
+     *
+     * @param adminUserId 삭제할 계정 ID다.
+     */
+    void deleteAdminUser(@Param("adminUserId") Long adminUserId);
+
+    /**
+     * 계정의 비밀번호 변경 이력을 모두 삭제한다.
+     *
+     * @param adminUserId 대상 계정 ID다.
+     */
+    void deletePwdHistoryByUser(@Param("adminUserId") Long adminUserId);
+
+    /**
      * 계정 감사 로그 1건을 적재한다.
      *
      * @param dto 감사 로그 입력 모델이다.

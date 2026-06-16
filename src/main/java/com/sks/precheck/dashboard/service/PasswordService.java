@@ -4,8 +4,10 @@ import com.sks.precheck.dashboard.dto.AdminUserDto;
 import com.sks.precheck.dashboard.mapper.AdminUserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.List;
  * - "최근 2개(직전 + 그 이전) 비밀번호 재사용 금지"는 현재 PASSWORD 값과
  *   TB_ADMIN_USER_PWD_HISTORY의 최신 1건을 비교하는 것으로 동일하게 구현된다.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PasswordService {
@@ -45,7 +48,9 @@ public class PasswordService {
      */
     public void changeOwnPassword(AdminUserDto user, String currentPassword, String newPassword,
                                    String confirmPassword, HttpServletRequest request) {
+        log.info("[PasswordService] changeOwnPassword start. user={} adminUserId={}", user.getLoginId(), user.getAdminUserId());
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            log.warn("[PasswordService] currentPassword mismatch for user={}", user.getLoginId());
             throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
         }
         if (!newPassword.equals(confirmPassword)) {
@@ -53,11 +58,14 @@ public class PasswordService {
         }
 
         validateNewPassword(user, newPassword);
+        log.info("[PasswordService] validation passed for user={}", user.getLoginId());
 
         LocalDateTime now = LocalDateTime.now();
         recordHistoryAndUpdatePassword(user, newPassword, now, "Y");
+        log.info("[PasswordService] password updated in DB for user={} at {}", user.getLoginId(), now);
 
         auditLogService.log(user.getAdminUserId(), user.getLoginId(), "PASSWORD_CHANGE", null, request, "본인 비밀번호 변경");
+        log.info("[PasswordService] audit log inserted for user={}", user.getLoginId());
     }
 
     /**
@@ -93,6 +101,7 @@ public class PasswordService {
      * @param passwordChangedAt 비밀번호 변경 시각으로 기록할 값이다.
      * @param passwordExpireYn 갱신할 만료 정책 적용 여부('Y'/'N')다.
      */
+    @Transactional
     public void recordHistoryAndUpdatePassword(AdminUserDto user, String newPassword,
                                                 LocalDateTime passwordChangedAt, String passwordExpireYn) {
         adminUserMapper.insertPwdHistory(user.getAdminUserId(), user.getPassword(), LocalDateTime.now());

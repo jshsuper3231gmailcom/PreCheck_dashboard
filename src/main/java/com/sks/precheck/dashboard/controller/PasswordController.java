@@ -7,6 +7,7 @@ import com.sks.precheck.dashboard.service.PasswordPolicyValidator;
 import com.sks.precheck.dashboard.service.PasswordService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +35,7 @@ import java.time.LocalDateTime;
  * - 변경 직후 SecurityContext의 인증 정보를 최신 상태로 교체해
  *   PasswordExpiryInterceptor가 갱신된 PASSWORD_CHANGED_AT을 즉시 인식하게 한다.
  */
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class PasswordController {
@@ -70,18 +72,23 @@ public class PasswordController {
      */
     @PostMapping("/password/change")
     public String change(@AuthenticationPrincipal AdminUserPrincipal principal,
-                          @RequestParam String currentPassword,
-                          @RequestParam String newPassword,
-                          @RequestParam String confirmPassword,
+                          @RequestParam("currentPassword") String currentPassword,
+                          @RequestParam("newPassword") String newPassword,
+                          @RequestParam("confirmPassword") String confirmPassword,
                           HttpServletRequest request,
                           Model model,
                           RedirectAttributes redirectAttributes) {
+        log.info("[PasswordController] POST /password/change called. user={}", principal != null ? principal.getUsername() : "NULL");
         AdminUserDto user = adminUserMapper.selectByLoginId(principal.getUsername());
+        log.info("[PasswordController] DB user loaded: loginId={}, passwordChangedAt={}", user.getLoginId(), user.getPasswordChangedAt());
 
         try {
             passwordService.changeOwnPassword(user, currentPassword, newPassword, confirmPassword, request);
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("errorMessage", e.getMessage());
+            log.info("[PasswordController] changeOwnPassword succeeded for user={}", user.getLoginId());
+        } catch (Exception e) {
+            log.warn("[PasswordController] changeOwnPassword failed for user={}: {}", user.getLoginId(), e.getMessage(), e);
+            String msg = e.getMessage();
+            model.addAttribute("errorMessage", msg != null ? msg : "처리 중 오류가 발생했습니다.");
             model.addAttribute("userName", user.getUserName());
             model.addAttribute("forced", isExpired(user));
             return "password/change";
@@ -89,6 +96,7 @@ public class PasswordController {
 
         refreshAuthentication(adminUserMapper.selectByLoginId(user.getLoginId()));
         redirectAttributes.addFlashAttribute("successMessage", "비밀번호가 변경되었습니다.");
+        log.info("[PasswordController] Redirecting to /dashboard after password change for user={}", user.getLoginId());
         return "redirect:/dashboard";
     }
 
@@ -110,7 +118,7 @@ public class PasswordController {
      * @return 만료 정책이 적용되고 90일이 경과했으면 true다.
      */
     private boolean isExpired(AdminUserDto user) {
-        if (!"Y".equals(user.getPasswordExpireYn())) {
+        if (!"Y".equals(user.getPasswordExpireYn()) || user.getPasswordChangedAt() == null) {
             return false;
         }
         long daysSinceChange = Duration.between(user.getPasswordChangedAt(), LocalDateTime.now()).toDays();

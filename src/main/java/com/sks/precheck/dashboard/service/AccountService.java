@@ -104,6 +104,9 @@ public class AccountService {
      */
     public void setEnabled(Long adminUserId, boolean enable, String actorLoginId, HttpServletRequest request) {
         AdminUserDto user = findById(adminUserId);
+        if (!enable && "SUPER_ADMIN".equals(user.getRole())) {
+            throw new IllegalArgumentException("SUPER_ADMIN 계정은 비활성화할 수 없습니다.");
+        }
         String status = enable ? "ACTIVE" : "DISABLED";
         adminUserMapper.updateStatus(adminUserId, status);
         String actionType = enable ? "USER_ENABLE" : "USER_DISABLE";
@@ -129,6 +132,24 @@ public class AccountService {
         passwordService.recordHistoryAndUpdatePassword(user, tempPassword, passwordChangedAt, "Y");
 
         auditLogService.log(adminUserId, user.getLoginId(), "PASSWORD_RESET", actorLoginId, request, "비밀번호 초기화");
+    }
+
+    /**
+     * 계정을 삭제한다. SUPER_ADMIN 계정은 삭제할 수 없다.
+     *
+     * @param adminUserId 삭제할 계정 ID다.
+     * @param actorLoginId 삭제를 수행한 SUPER_ADMIN의 LOGIN_ID다.
+     * @param request 감사 로그 IP 추출용 요청이다.
+     * @throws IllegalArgumentException 대상 계정이 없거나 SUPER_ADMIN 계정일 때다.
+     */
+    public void deleteUser(Long adminUserId, String actorLoginId, HttpServletRequest request) {
+        AdminUserDto user = findById(adminUserId);
+        if ("SUPER_ADMIN".equals(user.getRole())) {
+            throw new IllegalArgumentException("SUPER_ADMIN 계정은 삭제할 수 없습니다.");
+        }
+        auditLogService.log(adminUserId, user.getLoginId(), "USER_DELETE", actorLoginId, request, "계정 삭제");
+        adminUserMapper.deletePwdHistoryByUser(adminUserId);
+        adminUserMapper.deleteAdminUser(adminUserId);
     }
 
     /**

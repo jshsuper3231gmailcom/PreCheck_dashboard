@@ -55,6 +55,39 @@
             color: #4a6080;
             font-weight: 700;
         }
+        .header-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.85rem;
+            border-radius: 7px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            line-height: 1.5;
+            transition: background 0.15s, box-shadow 0.15s;
+            border: 1px solid rgba(26, 44, 61, 0.22);
+            background: rgba(255, 255, 255, 0.38);
+            color: #1a2c3d;
+        }
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.62);
+            color: #1a2c3d;
+            box-shadow: 0 2px 8px rgba(22, 96, 184, 0.18);
+            text-decoration: none;
+        }
+        .header-btn-logout {
+            border-color: rgba(140, 40, 30, 0.25);
+            background: rgba(255, 235, 232, 0.35);
+            color: #6b2418;
+        }
+        .header-btn-logout:hover {
+            background: rgba(255, 215, 210, 0.58);
+            color: #6b2418;
+            box-shadow: 0 2px 8px rgba(180, 40, 30, 0.15);
+        }
         .precheck-header {
             background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
             border-bottom: 1px solid #90b8e0;
@@ -193,6 +226,55 @@
         }
         body {
             background-color: #eaf4fc;
+        }
+        .mini-nav-sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 52px;
+            overflow: hidden;
+            transition: width 0.22s ease;
+            z-index: 10;
+        }
+        .mini-nav-sidebar:hover {
+            width: 200px;
+        }
+        .mini-nav-sidebar nav ul {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .mini-nav-sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0;
+            white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-link {
+            justify-content: flex-start;
+            padding: 0.5rem 0.75rem;
+        }
+        .mini-nav-sidebar .nav-link i {
+            flex-shrink: 0;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+        .mini-nav-sidebar .nav-text {
+            width: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: width 0.22s ease, opacity 0.12s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-text {
+            width: auto;
+            max-width: 160px;
+            opacity: 1;
+            margin-left: 0.55rem;
+            pointer-events: auto;
         }
         .server-chip {
             font-size: .78rem;
@@ -353,10 +435,6 @@
                 <h1 class="precheck-banner-title"><span class="title">채널 서버 점검</span><span class="sub">Dashboard</span></h1>
             </div>
             <div class="d-flex align-items-center gap-3 precheck-header-meta">
-                <div th:if="${pwdExpireWarningDays != null}" class="header-info text-danger">
-                    비밀번호 만료 D-<span th:text="${pwdExpireWarningDays}"></span>
-                    (<a th:href="@{/password/change}">변경하기</a>)
-                </div>
                 <div class="header-info">
                     <span id="currentTime">-</span>
                 </div>
@@ -369,20 +447,41 @@
                 <div class="header-info">
                     <span class="header-info-label" th:text="${loginUserName}"></span>
                 </div>
-                <div class="header-info">
-                    <a th:if="${loginUserRole == 'SUPER_ADMIN'}" th:href="@{/admin/users}">계정관리</a>
-                </div>
-                <div class="header-info">
-                    <a th:href="@{/password/change}">비밀번호 변경</a>
-                </div>
-                <div class="header-info">
-                    <form th:action="@{/logout}" method="post" class="d-inline m-0">
-                        <button type="submit" class="btn btn-link p-0 header-info">로그아웃</button>
-                    </form>
-                </div>
+                <a th:href="@{/password/change}" class="header-btn">
+                    <i class="bi bi-key"></i>비밀번호 변경
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                    <button type="submit" class="header-btn header-btn-logout">
+                        <i class="bi bi-box-arrow-right"></i>로그아웃
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
+
+    <div th:if="${pwdExpireWarningDays != null}" class="alert alert-warning rounded-0 m-0 py-2 px-4 border-start-0 border-end-0">
+        비밀번호가 <strong th:text="${pwdExpireWarningDays}"></strong>일 후 만료됩니다.
+        <a th:href="@{/password/change}" class="ms-1">지금 변경하기</a>
+    </div>
+
+    <div style="position: relative; min-height: calc(100vh - 96px);">
+        <aside class="bg-dark mini-nav-sidebar">
+            <nav class="pt-3">
+                <ul class="nav flex-column px-2 gap-1">
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard}" class="nav-link text-white rounded fw-semibold" style="background: rgba(255,255,255,.15);">
+                            <i class="bi bi-speedometer2"></i><span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" th:if="${loginUserRole == 'SUPER_ADMIN'}">
+                        <a th:href="@{/admin/users}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-people"></i><span class="nav-text">계정관리</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <div style="margin-left: 52px; min-width: 0;">
 
     <div class="content-wrapper p-3">
         <div class="container-fluid">
@@ -831,6 +930,8 @@
             </div>
         </div>
     </div>
+        </div><!-- flex-grow-1 -->
+    </div><!-- d-flex sidebar+content -->
 </div>
 
 <script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>

@@ -43,8 +43,10 @@
                     <div class="input-group-text"><span class="bi bi-person"></span></div>
                 </div>
                 <div class="input-group mb-3">
-                    <input type="password" name="password" class="form-control" placeholder="비밀번호" required>
-                    <div class="input-group-text"><span class="bi bi-lock-fill"></span></div>
+                    <input type="password" id="loginPassword" name="password" class="form-control" placeholder="비밀번호" required>
+                    <button type="button" class="input-group-text" onclick="togglePwd('loginPassword', this)" tabindex="-1">
+                        <span class="bi bi-eye"></span>
+                    </button>
                 </div>
                 <div class="row">
                     <div class="col-12 text-end">
@@ -55,5 +57,18 @@
         </div>
     </div>
 </div>
+<script>
+    function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('span');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+</script>
 </body>
 </html>

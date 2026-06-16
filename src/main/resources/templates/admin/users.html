@@ -8,67 +8,333 @@
     <title>계정관리 - PreCheck Dashboard</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <style>
+        .precheck-header {
+            background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
+            border-bottom: 1px solid #90b8e0;
+            box-shadow: 0 2px 12px rgba(30, 80, 160, .12);
+            height: 96px;
+            min-height: 96px;
+            position: relative;
+            overflow: hidden;
+            padding: 0 28px;
+        }
+        .precheck-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                repeating-linear-gradient(45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px),
+                repeating-linear-gradient(-45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px);
+            pointer-events: none;
+        }
+        .precheck-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 500px 120px at 0% 50%, rgba(255, 255, 255, .45), transparent 70%),
+                radial-gradient(ellipse 300px 100px at 100% 50%, rgba(210, 235, 255, .30), transparent 70%);
+            pointer-events: none;
+        }
+        .db-header-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #7ab8ee 0%, #aed4f5 50%, transparent 100%);
+            opacity: .6;
+            z-index: 3;
+        }
+        .precheck-header .container-fluid {
+            position: relative;
+            z-index: 2;
+        }
+        .precheck-banner-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 0;
+        }
+        .brand-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 11px;
+            background: linear-gradient(160deg, #2c86df 0%, #1660b8 100%);
+            box-shadow: 0 4px 14px rgba(22, 96, 184, .30);
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .brand-icon svg {
+            width: 28px;
+            height: 28px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .18));
+        }
+        .precheck-banner-title {
+            color: #1a2c3d;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -.025em;
+            margin: 0;
+            white-space: nowrap;
+            line-height: 1;
+        }
+        .precheck-banner-title .sub {
+            font-size: 1.0625rem;
+            font-weight: 500;
+            color: #3a5470;
+            margin-left: 8px;
+            letter-spacing: normal;
+        }
+        .precheck-header-meta {
+            position: relative;
+            z-index: 2;
+        }
+        .header-info {
+            font-size: 1rem;
+            color: #3a5470;
+        }
+        .header-info .header-info-label {
+            color: #4a6080;
+            font-weight: 700;
+        }
+        .header-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.85rem;
+            border-radius: 7px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            line-height: 1.5;
+            transition: background 0.15s, box-shadow 0.15s;
+            border: 1px solid rgba(26, 44, 61, 0.22);
+            background: rgba(255, 255, 255, 0.38);
+            color: #1a2c3d;
+        }
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.62);
+            color: #1a2c3d;
+            box-shadow: 0 2px 8px rgba(22, 96, 184, 0.18);
+            text-decoration: none;
+        }
+        .header-btn-logout {
+            border-color: rgba(140, 40, 30, 0.25);
+            background: rgba(255, 235, 232, 0.35);
+            color: #6b2418;
+        }
+        .header-btn-logout:hover {
+            background: rgba(255, 215, 210, 0.58);
+            color: #6b2418;
+            box-shadow: 0 2px 8px rgba(180, 40, 30, 0.15);
+        }
+        body {
+            background-color: #eaf4fc;
+        }
+        #userTable th,
+        #userTable td {
+            font-size: 14px;
+            color: #374151;
+        }
+        .mini-nav-sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 52px;
+            overflow: hidden;
+            transition: width 0.22s ease;
+            z-index: 10;
+        }
+        .mini-nav-sidebar:hover {
+            width: 200px;
+        }
+        .mini-nav-sidebar nav ul {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        .mini-nav-sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0;
+            white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-link {
+            justify-content: flex-start;
+            padding: 0.5rem 0.75rem;
+        }
+        .mini-nav-sidebar .nav-link i {
+            flex-shrink: 0;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+        .mini-nav-sidebar .nav-text {
+            width: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: width 0.22s ease, opacity 0.12s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-text {
+            width: auto;
+            max-width: 160px;
+            opacity: 1;
+            margin-left: 0.55rem;
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
 <div class="wrapper">
+
+    <nav class="app-header navbar navbar-expand precheck-header">
+        <div class="db-header-line"></div>
+        <div class="container-fluid d-flex align-items-center justify-content-between gap-3 flex-wrap flex-md-nowrap">
+            <div class="precheck-banner-content">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1.5"/>
+                        <circle cx="18.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <h1 class="precheck-banner-title"><span class="title">채널 서버 점검</span><span class="sub">Dashboard</span></h1>
+            </div>
+            <div class="d-flex align-items-center gap-3 precheck-header-meta">
+                <div class="header-info">
+                    <span class="header-info-label" th:text="${loginUserName}"></span>
+                </div>
+                <a th:href="@{/password/change}" class="header-btn">
+                    <i class="bi bi-key"></i>비밀번호 변경
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                    <button type="submit" class="header-btn header-btn-logout">
+                        <i class="bi bi-box-arrow-right"></i>로그아웃
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div th:if="${pwdExpireWarningDays != null}" class="alert alert-warning rounded-0 m-0 py-2 px-4 border-start-0 border-end-0">
+        비밀번호가 <strong th:text="${pwdExpireWarningDays}"></strong>일 후 만료됩니다.
+        <a th:href="@{/password/change}" class="ms-1">지금 변경하기</a>
+    </div>
+
+    <div style="position: relative; min-height: calc(100vh - 96px);">
+        <aside class="bg-dark mini-nav-sidebar">
+            <nav class="pt-3">
+                <ul class="nav flex-column px-2 gap-1">
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-speedometer2"></i><span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/admin/users}" class="nav-link text-white rounded fw-semibold" style="background: rgba(255,255,255,.15);">
+                            <i class="bi bi-people"></i><span class="nav-text">계정관리</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <div style="margin-left: 52px; min-width: 0;">
+
     <div class="content-wrapper p-3">
         <div class="container-fluid">
 
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h1 class="h4 mb-0">계정관리</h1>
-                <div class="d-flex gap-2">
-                    <a th:href="@{/dashboard}" class="btn btn-default">Dashboard로 이동</a>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                        계정 생성
-                    </button>
-                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                    계정 생성
+                </button>
             </div>
 
             <div id="alertArea"></div>
 
             <div class="card">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0" id="userTable">
+                    <table class="table table-hover mb-0" id="userTable" style="table-layout: fixed; width: 100%;">
+                        <colgroup>
+                            <col style="width: 11%;">
+                            <col style="width: 8%;">
+                            <col style="width: 9%;">
+                            <col style="width: 7%;">
+                            <col style="width: 6%;">
+                            <col style="width: 11%;">
+                            <col style="width: 11%;">
+                            <col style="width: 11%;">
+                            <col style="width: 26%;">
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th>아이디</th>
-                                <th>이름</th>
-                                <th>권한</th>
+                                <th class="text-truncate">아이디</th>
+                                <th class="text-truncate">이름</th>
+                                <th class="text-truncate">권한</th>
                                 <th>상태</th>
-                                <th>로그인 실패</th>
-                                <th>잠긴 시각</th>
-                                <th>최근 로그인</th>
-                                <th>비밀번호 변경일</th>
+                                <th class="text-truncate">로그인 실패</th>
+                                <th class="text-truncate">잠긴 시각</th>
+                                <th class="text-truncate">최근 로그인</th>
+                                <th class="text-truncate">비밀번호 변경일</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr th:each="user : ${users}">
-                                <td th:text="${user.loginId}"></td>
-                                <td th:text="${user.userName}"></td>
-                                <td th:text="${user.role}"></td>
+                                <td class="text-truncate" th:text="${user.loginId}"></td>
+                                <td class="text-truncate" th:text="${user.userName}"></td>
+                                <td class="text-truncate" th:text="${user.role}"></td>
                                 <td>
                                     <span class="badge"
                                           th:classappend="${user.status == 'ACTIVE'} ? 'text-bg-success' : (${user.status == 'LOCKED'} ? 'text-bg-danger' : 'text-bg-secondary')"
                                           th:text="${user.status}"></span>
                                 </td>
                                 <td th:text="${user.loginFailCount}"></td>
-                                <td th:text="${user.lockedAt != null ? #temporals.format(user.lockedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
-                                <td th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
-                                <td th:text="${user.passwordChangedAt != null ? #temporals.format(user.passwordChangedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="text-truncate" th:text="${user.lockedAt != null ? #temporals.format(user.lockedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="text-truncate" th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="text-truncate" th:text="${user.passwordChangedAt != null ? #temporals.format(user.passwordChangedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary unlock-btn"
-                                                th:disabled="${user.status != 'LOCKED'}"
+                                        <!-- LOCKED only -->
+                                        <button th:if="${user.status == 'LOCKED'}"
+                                                type="button" class="btn btn-sm btn-outline-info unlock-btn"
                                                 th:data-admin-user-id="${user.adminUserId}">잠금해제</button>
-                                        <button type="button" class="btn btn-sm btn-outline-warning toggle-status-btn"
-                                                th:if="${user.status != 'LOCKED'}"
-                                                th:data-admin-user-id="${user.adminUserId}"
-                                                th:data-active="${user.status == 'ACTIVE'}"
-                                                th:text="${user.status == 'ACTIVE'} ? '비활성화' : '활성화'"></button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary reset-password-btn"
+                                        <!-- ACTIVE or LOCKED, not SUPER_ADMIN -->
+                                        <button th:if="${(user.status == 'ACTIVE' or user.status == 'LOCKED') and user.role != 'SUPER_ADMIN'}"
+                                                type="button" class="btn btn-sm btn-outline-danger disable-btn"
+                                                th:data-admin-user-id="${user.adminUserId}">비활성화</button>
+                                        <!-- DISABLED only -->
+                                        <button th:if="${user.status == 'DISABLED'}"
+                                                type="button" class="btn btn-sm btn-outline-success enable-btn"
+                                                th:data-admin-user-id="${user.adminUserId}">재활성화</button>
+                                        <!-- ACTIVE or LOCKED, not SUPER_ADMIN -->
+                                        <button th:if="${(user.status == 'ACTIVE' or user.status == 'LOCKED') and user.role != 'SUPER_ADMIN'}"
+                                                type="button" class="btn btn-sm btn-outline-warning reset-password-btn"
                                                 th:data-admin-user-id="${user.adminUserId}"
                                                 th:data-login-id="${user.loginId}">비밀번호 초기화</button>
+                                        <!-- not SUPER_ADMIN -->
+                                        <button th:if="${user.role != 'SUPER_ADMIN'}"
+                                                type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                                                th:data-admin-user-id="${user.adminUserId}"
+                                                th:data-login-id="${user.loginId}">삭제</button>
                                     </div>
                                 </td>
                             </tr>
@@ -79,6 +345,8 @@
 
         </div>
     </div>
+        </div><!-- flex-grow-1 -->
+    </div><!-- d-flex sidebar+content -->
 </div>
 
 <!-- 계정 생성 모달 -->
@@ -108,7 +376,12 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">초기 비밀번호</label>
-                    <input type="password" id="createInitialPassword" class="form-control">
+                    <div class="input-group">
+                        <input type="password" id="createInitialPassword" class="form-control">
+                        <button type="button" class="input-group-text" onclick="togglePwd('createInitialPassword', this)" tabindex="-1">
+                            <span class="bi bi-eye"></span>
+                        </button>
+                    </div>
                 </div>
                 <ul class="small text-muted">
                     <li>최소 10자 이상, 영문 대/소문자·숫자·특수문자 중 3종류 이상 조합</li>
@@ -137,7 +410,12 @@
                 <div id="resetErrorArea"></div>
                 <div class="mb-3">
                     <label class="form-label">임시 비밀번호</label>
-                    <input type="password" id="resetNewPassword" class="form-control">
+                    <div class="input-group">
+                        <input type="password" id="resetNewPassword" class="form-control">
+                        <button type="button" class="input-group-text" onclick="togglePwd('resetNewPassword', this)" tabindex="-1">
+                            <span class="bi bi-eye"></span>
+                        </button>
+                    </div>
                 </div>
                 <ul class="small text-muted">
                     <li>최소 10자 이상, 영문 대/소문자·숫자·특수문자 중 3종류 이상 조합</li>
@@ -154,11 +432,44 @@
     </div>
 </div>
 
+<!-- 계정 삭제 확인 모달 -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">계정 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong id="deleteTargetLoginId"></strong> 계정을 삭제합니다.<br>이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-danger" onclick="deleteUser()">삭제</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/adminlte.min.js}"></script>
 <script th:inline="javascript">
     const csrfToken = document.querySelector('meta[name="_csrf"]').content;
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
     let resetTargetId = null;
+    let deleteTargetId = null;
+
+    function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('span');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
 
     function showAlert(message, type) {
         const area = document.getElementById('alertArea');
@@ -190,9 +501,17 @@
         }
     }
 
-    async function toggleStatus(adminUserId, currentlyActive) {
-        const action = currentlyActive ? 'disable' : 'enable';
-        const json = await postJson('/admin/users/' + adminUserId + '/' + action);
+    async function disableUser(adminUserId) {
+        const json = await postJson('/admin/users/' + adminUserId + '/disable');
+        if (json.success) {
+            location.reload();
+        } else {
+            showAlert(json.message, 'danger');
+        }
+    }
+
+    async function enableUser(adminUserId) {
+        const json = await postJson('/admin/users/' + adminUserId + '/enable');
         if (json.success) {
             location.reload();
         } else {
@@ -241,15 +560,43 @@
         });
     });
 
-    document.querySelectorAll('.toggle-status-btn').forEach(function (btn) {
+    document.querySelectorAll('.disable-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            toggleStatus(btn.dataset.adminUserId, btn.dataset.active === 'true');
+            disableUser(btn.dataset.adminUserId);
+        });
+    });
+
+    document.querySelectorAll('.enable-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            enableUser(btn.dataset.adminUserId);
         });
     });
 
     document.querySelectorAll('.reset-password-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             openResetModal(btn.dataset.adminUserId, btn.dataset.loginId);
+        });
+    });
+
+    function openDeleteModal(adminUserId, loginId) {
+        deleteTargetId = adminUserId;
+        document.getElementById('deleteTargetLoginId').textContent = loginId;
+        new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+    }
+
+    async function deleteUser() {
+        const json = await postJson('/admin/users/' + deleteTargetId + '/delete');
+        bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+        if (json.success) {
+            location.reload();
+        } else {
+            showAlert(json.message, 'danger');
+        }
+    }
+
+    document.querySelectorAll('.delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            openDeleteModal(btn.dataset.adminUserId, btn.dataset.loginId);
         });
     });
 </script>

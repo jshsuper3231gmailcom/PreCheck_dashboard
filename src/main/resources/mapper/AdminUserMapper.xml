@@ -41,13 +41,16 @@
     </select>
 
     <insert id="insertAdminUser" parameterType="com.sks.precheck.dashboard.dto.AdminUserDto" databaseId="postgresql">
+        <selectKey keyProperty="adminUserId" resultType="long" order="BEFORE">
+            SELECT nextval('SEQ_ADMIN_USER')
+        </selectKey>
         INSERT INTO TB_ADMIN_USER (
             ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
             LOGIN_FAIL_COUNT, LOCKED_AT,
             PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
             LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
-            nextval('SEQ_ADMIN_USER'), #{loginId}, #{password}, #{userName}, #{role}, #{status},
+            #{adminUserId}, #{loginId}, #{password}, #{userName}, #{role}, #{status},
             #{loginFailCount}, #{lockedAt},
             #{passwordChangedAt}, #{passwordExpireYn},
             #{lastLoginAt}, #{createdAt}, #{updatedAt}
@@ -55,13 +58,16 @@
     </insert>
 
     <insert id="insertAdminUser" parameterType="com.sks.precheck.dashboard.dto.AdminUserDto" databaseId="altibase">
+        <selectKey keyProperty="adminUserId" resultType="long" order="BEFORE">
+            SELECT SEQ_ADMIN_USER.NEXTVAL FROM DUAL
+        </selectKey>
         INSERT INTO TB_ADMIN_USER (
             ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
             LOGIN_FAIL_COUNT, LOCKED_AT,
             PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
             LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
-            SEQ_ADMIN_USER.NEXTVAL, #{loginId}, #{password}, #{userName}, #{role}, #{status},
+            #{adminUserId}, #{loginId}, #{password}, #{userName}, #{role}, #{status},
             #{loginFailCount}, #{lockedAt},
             #{passwordChangedAt}, #{passwordExpireYn},
             #{lastLoginAt}, #{createdAt}, #{updatedAt}
@@ -142,6 +148,14 @@
         ORDER BY CREATED_AT DESC
         LIMIT 0, #{limit}
     </select>
+
+    <delete id="deleteAdminUser">
+        DELETE FROM TB_ADMIN_USER WHERE ADMIN_USER_ID = #{adminUserId}
+    </delete>
+
+    <delete id="deletePwdHistoryByUser">
+        DELETE FROM TB_ADMIN_USER_PWD_HISTORY WHERE ADMIN_USER_ID = #{adminUserId}
+    </delete>
 
     <insert id="insertAdminUserLog" parameterType="com.sks.precheck.dashboard.dto.AdminUserLogDto" databaseId="postgresql">
         INSERT INTO TB_ADMIN_USER_LOG (

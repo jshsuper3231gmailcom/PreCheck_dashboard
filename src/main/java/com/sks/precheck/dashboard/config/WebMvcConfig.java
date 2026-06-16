@@ -4,6 +4,7 @@ import com.sks.precheck.dashboard.security.PasswordExpiryInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -23,7 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final PasswordExpiryInterceptor passwordExpiryInterceptor;
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
+        public void addInterceptors(@NonNull InterceptorRegistry registry) {
         registry.addInterceptor(passwordExpiryInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(

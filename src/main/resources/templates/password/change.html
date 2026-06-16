@@ -21,20 +21,35 @@
             <div th:if="${forced}" class="alert alert-warning">
                 비밀번호가 만료되었거나 최초 로그인입니다. 비밀번호를 변경해야 다른 화면을 이용할 수 있습니다.
             </div>
-            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+            <div id="errorAlert" th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
             <form th:action="@{/password/change}" method="post">
                 <div class="mb-3">
                     <label class="form-label">현재 비밀번호</label>
-                    <input type="password" name="currentPassword" class="form-control" required autofocus>
+                    <div class="input-group">
+                        <input type="password" id="currentPassword" name="currentPassword" class="form-control" required autofocus>
+                        <button type="button" class="input-group-text" onclick="togglePwd('currentPassword', this)" tabindex="-1">
+                            <span class="bi bi-eye"></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">신규 비밀번호</label>
-                    <input type="password" name="newPassword" class="form-control" required>
+                    <div class="input-group">
+                        <input type="password" id="newPassword" name="newPassword" class="form-control" required>
+                        <button type="button" class="input-group-text" onclick="togglePwd('newPassword', this)" tabindex="-1">
+                            <span class="bi bi-eye"></span>
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">신규 비밀번호 확인</label>
-                    <input type="password" name="confirmPassword" class="form-control" required>
+                    <div class="input-group">
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required>
+                        <button type="button" class="input-group-text" onclick="togglePwd('confirmPassword', this)" tabindex="-1">
+                            <span class="bi bi-eye"></span>
+                        </button>
+                    </div>
                 </div>
                 <ul class="small text-muted">
                     <li>최소 10자 이상, 영문 대/소문자·숫자·특수문자 중 3종류 이상 조합</li>
@@ -49,5 +64,20 @@
         </div>
     </div>
 </div>
+<script>
+    function togglePwd(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('span');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bi bi-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'bi bi-eye';
+        }
+    }
+    const err = document.getElementById('errorAlert');
+    if (err) { err.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+</script>
 </body>
 </html>

@@ -111,6 +111,11 @@ CREATE TABLE TB_ADMIN_USER (
     -- 'Y' : 90일 만료 정책 적용 (일반 계정)
     -- 'N' : 만료 정책 예외 (SUPER_ADMIN 시드 계정)
 
+    FORCE_PWD_CHANGE_YN CHAR(1)         NOT NULL,
+    -- 'Y' : 다음 로그인 시 비밀번호 강제 변경 대상
+    --       (계정 생성 시 기본값 'Y', 관리자 비밀번호 초기화 시 'Y' 설정)
+    -- 'N' : 강제 변경 불필요 (비밀번호 변경 완료 시 'N'으로 갱신)
+
     -- --------------------------------------------------------
     -- 로그인 이력
     -- --------------------------------------------------------
@@ -227,7 +232,25 @@ CREATE INDEX IDX_ADMIN_USER_LOG_USER_CREATED
 
 ---
 
-## 4. 초기 데이터 (SUPER_ADMIN 시드 계정)
+## 4. 스키마 변경 이력 (ALTER TABLE)
+
+기존 환경(이미 테이블 생성 완료)에 컬럼 추가 시 아래 DDL 실행.
+
+```sql
+-- ============================================================
+-- v1.1 : FORCE_PWD_CHANGE_YN 컬럼 추가
+-- ============================================================
+-- 기존 계정(SUPER_ADMIN 시드)은 강제 변경 불필요 → 기본값 'N'으로 추가
+-- 신규 계정 생성 / 비밀번호 초기화 시 애플리케이션에서 'Y'로 설정
+-- ============================================================
+
+ALTER TABLE TB_ADMIN_USER
+    ADD FORCE_PWD_CHANGE_YN CHAR(1) DEFAULT 'N' NOT NULL;
+```
+
+---
+
+## 5. 초기 데이터 (SUPER_ADMIN 시드 계정)
 
 ```sql
 -- ============================================================
@@ -242,12 +265,12 @@ CREATE INDEX IDX_ADMIN_USER_LOG_USER_CREATED
 INSERT INTO TB_ADMIN_USER (
     ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
     LOGIN_FAIL_COUNT, LOCKED_AT,
-    PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+    PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN, FORCE_PWD_CHANGE_YN,
     LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
 ) VALUES (
     nextval('SEQ_ADMIN_USER'), 'admin', '{bcrypt-hash-of-!Sks8245}', '시스템관리자', 'SUPER_ADMIN', 'ACTIVE',
     0, NULL,
-    CURRENT_TIMESTAMP, 'N',
+    CURRENT_TIMESTAMP, 'N', 'N',
     NULL, CURRENT_TIMESTAMP, NULL
 );
 ```

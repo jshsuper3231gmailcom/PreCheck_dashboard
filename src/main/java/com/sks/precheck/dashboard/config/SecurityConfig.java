@@ -5,6 +5,7 @@ import com.sks.precheck.dashboard.security.ApiAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -45,7 +46,14 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .defaultSuccessUrl("/dashboard", true)
                         .failureHandler((request, response, exception) -> {
-                            String errorType = exception instanceof LockedException ? "locked" : "bad";
+                            String errorType;
+                            if (exception instanceof LockedException) {
+                                errorType = "locked";
+                            } else if (exception instanceof DisabledException) {
+                                errorType = "disabled";
+                            } else {
+                                errorType = "bad";
+                            }
                             response.sendRedirect(request.getContextPath() + "/login?error=" + errorType);
                         })
                         .permitAll()

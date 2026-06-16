@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class LoginController {
 
     private static final String LOCKED_MESSAGE = "계정이 잠겼습니다. 관리자에게 문의하세요.";
+    private static final String DISABLED_MESSAGE = "비활성화된 계정입니다. 관리자에게 문의하세요.";
     private static final String GENERIC_FAIL_MESSAGE = "아이디 또는 비밀번호가 올바르지 않습니다.";
 
     /**
@@ -32,7 +33,10 @@ public class LoginController {
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error, Model model) {
         if (error != null) {
-            model.addAttribute("errorMessage", "locked".equals(error) ? LOCKED_MESSAGE : GENERIC_FAIL_MESSAGE);
+            String message = "locked".equals(error) ? LOCKED_MESSAGE
+                    : "disabled".equals(error) ? DISABLED_MESSAGE
+                    : GENERIC_FAIL_MESSAGE;
+            model.addAttribute("errorMessage", message);
         }
         return "login";
     }

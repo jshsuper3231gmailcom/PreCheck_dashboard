@@ -37,8 +37,10 @@ public class AdminUserController {
      * @return 계정관리 화면 뷰 이름이다.
      */
     @GetMapping("/admin/users")
-    public String users(Model model) {
+    public String users(@AuthenticationPrincipal AdminUserPrincipal principal, Model model) {
         model.addAttribute("users", accountService.listUsers());
+        model.addAttribute("loginUserName", principal.getAdminUser().getUserName());
+        model.addAttribute("loginUserRole", principal.getAdminUser().getRole());
         return "admin/users";
     }
 
@@ -74,7 +76,7 @@ public class AdminUserController {
      */
     @ResponseBody
     @PostMapping("/admin/users/{adminUserId}/unlock")
-    public ApiResponse<Void> unlock(@PathVariable Long adminUserId,
+    public ApiResponse<Void> unlock(@PathVariable("adminUserId") Long adminUserId,
                                      @AuthenticationPrincipal AdminUserPrincipal principal,
                                      HttpServletRequest request) {
         try {
@@ -95,7 +97,7 @@ public class AdminUserController {
      */
     @ResponseBody
     @PostMapping("/admin/users/{adminUserId}/enable")
-    public ApiResponse<Void> enable(@PathVariable Long adminUserId,
+    public ApiResponse<Void> enable(@PathVariable("adminUserId") Long adminUserId,
                                      @AuthenticationPrincipal AdminUserPrincipal principal,
                                      HttpServletRequest request) {
         try {
@@ -116,11 +118,32 @@ public class AdminUserController {
      */
     @ResponseBody
     @PostMapping("/admin/users/{adminUserId}/disable")
-    public ApiResponse<Void> disable(@PathVariable Long adminUserId,
+    public ApiResponse<Void> disable(@PathVariable("adminUserId") Long adminUserId,
                                       @AuthenticationPrincipal AdminUserPrincipal principal,
                                       HttpServletRequest request) {
         try {
             accountService.setEnabled(adminUserId, false, principal.getUsername(), request);
+            return ApiResponse.ok(null);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * 계정을 삭제한다.
+     *
+     * @param adminUserId 삭제할 계정 ID다.
+     * @param principal 삭제를 수행하는 SUPER_ADMIN이다.
+     * @param request 감사 로그 IP 추출용 요청이다.
+     * @return 처리 성공/실패 결과다.
+     */
+    @ResponseBody
+    @PostMapping("/admin/users/{adminUserId}/delete")
+    public ApiResponse<Void> delete(@PathVariable("adminUserId") Long adminUserId,
+                                     @AuthenticationPrincipal AdminUserPrincipal principal,
+                                     HttpServletRequest request) {
+        try {
+            accountService.deleteUser(adminUserId, principal.getUsername(), request);
             return ApiResponse.ok(null);
         } catch (IllegalArgumentException e) {
             return ApiResponse.fail(e.getMessage());
@@ -138,7 +161,7 @@ public class AdminUserController {
      */
     @ResponseBody
     @PostMapping("/admin/users/{adminUserId}/reset-password")
-    public ApiResponse<Void> resetPassword(@PathVariable Long adminUserId,
+    public ApiResponse<Void> resetPassword(@PathVariable("adminUserId") Long adminUserId,
                                             @RequestBody ResetPasswordRequest req,
                                             @AuthenticationPrincipal AdminUserPrincipal principal,
                                             HttpServletRequest request) {
