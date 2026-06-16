@@ -170,6 +170,21 @@ public class DashboardController {
     }
 
     /**
+     * UC 실시간 접속자수 스파크라인 조회 API.
+     *
+     * @return 오늘 UC_TOTAL_COUNT / UC_HTS_COUNT / UC_MTS_COUNT 시계열 응답이다.
+     */
+    @ResponseBody
+    @GetMapping("/dashboard/api/uc-spark")
+    public ApiResponse<Map<String, Object>> ucSpark() {
+        try {
+            return ApiResponse.ok(dashboardService.getUcSparkData());
+        } catch (Exception e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
      * 원본 정규화 로그 모달 조회 API.
      *
      * @param id 수집 로그 식별자다.

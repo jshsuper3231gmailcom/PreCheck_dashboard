@@ -1,8 +1,18 @@
-# PreCheck Dashboard 화면 정의서 v1.4
+# PreCheck Dashboard 화면 정의서 v1.5
 
-> 작성일: 2026-05-29 / 수정일: 2026-06-05  
+> 작성일: 2026-05-29 / 수정일: 2026-06-16  
 > 참조 문서: 프로그램 명세서, 로그포맷정의서, 로그수집DB정의서, 로그분석DB정의서  
 > 사용 기술: Spring Boot 3.x / Thymeleaf / AdminLTE 4.x / Chart.js / Bootstrap 5
+
+> 📌 **v1.5 변경 이력 (2026-06-16)**
+> 1. [신규] 3번 접속자 현황 카드 하단에 **UC 실시간 접속자수 스파크라인** 추가
+>    - 대상 LOG_ID: `UC_TOTAL_COUNT` / `UC_HTS_COUNT` / `UC_MTS_COUNT` (pmaster2-마스터, 오늘 전체)
+>    - 레이아웃: 3행(전체/HTS/MTS), 각 행 = 좌측(라벨 + 현재값 bold + delta ▲/▼) + 우측 mini sparkline
+>    - Chart.js line, tension:0, 각 row별 독립 canvas
+>    - 급증 포인트: `#dc3545` 빨강, 급감 포인트: `#0d6efd` 파랑, 일반: `#6c757d`
+> 2. [신규] API `/dashboard/api/uc-spark` 추가 (오늘 UC_ 시계열 전체 반환)
+> 3. [신규] 0-4 매핑표 UC_ 항목(3개) 추가
+> 4. [신규] 3-6 UC 스파크라인 차트 섹션 추가
 
 > 📌 **v1.4 변경 이력 (검토 의견 반영)**
 > 1. [이슈5] 6번 리소스 도넛차트 — 데이터 없음 텍스트 `"수집 없음"` → `"분석 없음"` 으로 통일
@@ -100,6 +110,9 @@
 | 11 | 전일 최대동시접속 | pmaster2-마스터 (확정 필요) | `MAX_CONN_PREV` | 수치 | 전일 최대값 |
 | 12 | HTS 최대동시접속 | pmaster2-마스터 (확정 필요) | `HTS_MAX_CONN` | 수치 | 전일 최대값 |
 | 13 | MTS 최대동시접속 | pmaster2-마스터 (확정 필요) | `MTS_MAX_CONN` | 수치 | 전일 최대값 |
+| 14 | 전체 접속자수 (실시간) | pmaster2-마스터 | `UC_TOTAL_COUNT` | 수치 | 오늘 전체 시계열 (1분 간격), 스파크라인용 |
+| 15 | HTS 접속자수 (실시간) | pmaster2-마스터 | `UC_HTS_COUNT` | 수치 | 오늘 전체 시계열 (1분 간격), 스파크라인용 |
+| 16 | MTS 접속자수 (실시간) | pmaster2-마스터 | `UC_MTS_COUNT` | 수치 | 오늘 전체 시계열 (1분 간격), 스파크라인용 |
 
 #### 5번 영역 - 히스토리 그래프
 
@@ -498,21 +511,21 @@ FROM (
 |---|---|---|---|
 | 카드 1 | 종목 현황 | 6개 | `col-lg-4` |
 | 카드 2 | 서비스 현황 | 4개 | `col-lg-4` |
-| 카드 3 | 접속자 현황 (전일 기준) | 3개 | `col-lg-4` |
+| 카드 3 | 접속자 현황 (전일 기준 + UC 실시간 스파크라인) | 3개 + 스파크라인 3행 | `col-lg-4` |
 
 ```
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ 종목 현황        │ │ 서비스 현황       │ │ 접속자 현황      │
-│─────────────────│ │─────────────────│ │─────────────────│
-│ ● 주식종목수     │ │ ● 자동주문계좌수  │ │ ● 전일최대접속   │
-│   1,234,567 09:30│ │   2,341    09:30│ │   18,432  전일  │
-│ ● 파생종목수     │ │ ● 시세포착1등록수 │ │ ● HTS 최대접속  │
-│   89,432    09:30│ │   1,872    09:30│ │   12,104  전일  │
-│ ● 상품종목수     │ │ ● 시세포착2등록수 │ │ ● MTS 최대접속  │
-│   12,810    09:30│ │   1,650    09:30│ │   6,328   전일  │
-│ ... (6개)       │ │ ● 주파수클럽사용수│ └─────────────────┘
-└─────────────────┘ │   312      09:30│
-                    └─────────────────┘
+┌─────────────────┐ ┌─────────────────┐ ┌──────────────────────────────┐
+│ 종목 현황        │ │ 서비스 현황       │ │ 접속자 현황                   │
+│─────────────────│ │─────────────────│ │──────────────────────────────│
+│ ● 주식종목수     │ │ ● 자동주문계좌수  │ │ ● 전일최대접속  18,432  전일  │
+│   1,234,567 09:30│ │   2,341    09:30│ │ ● HTS 최대접속  12,104  전일  │
+│ ● 파생종목수     │ │ ● 시세포착1등록수 │ │ ● MTS 최대접속   6,328  전일  │
+│   89,432    09:30│ │   1,872    09:30│ │──────────────────────────────│
+│ ● 상품종목수     │ │ ● 시세포착2등록수 │ │ [UC 실시간 스파크라인]         │
+│   12,810    09:30│ │   1,650    09:30│ │ 전체  18,432 ▲234  ~~~~~~~~  │
+│ ... (6개)       │ │ ● 주파수클럽사용수│ │ HTS   12,104 ▲120  ~~~~~~~   │
+└─────────────────┘ │   312      09:30│ │ MTS    6,328 ▲98   ~~~~~~    │
+                    └─────────────────┘ └──────────────────────────────┘
 ```
 
 ---
@@ -539,13 +552,14 @@ FROM (
 | 시세포착2 등록수 | (확정 필요) | CAP2_REG_COUNT | 오늘 최신값 |
 | 주파수클럽 사용수 | (확정 필요) | FREQ_CLUB_COUNT | 오늘 최신값 |
 
-**카드 3 — 접속자 현황 (3개, 전일 기준)**
+**카드 3 — 접속자 현황 (전일 기준 3개 + UC 실시간 스파크라인)**
 
 | 항목명 | 서버구분 | LOG_ID | 비고 |
 |---|---|---|---|
-| 전일 최대동시접속 | pmaster2-마스터 | MAX_CONN_PREV | 전일 최대값 |
-| HTS 최대동시접속 | pmaster2-마스터 | HTS_MAX_CONN | 전일 최대값 |
-| MTS 최대동시접속 | pmaster2-마스터 | MTS_MAX_CONN | 전일 최대값 |
+| 전일 최대동시접속 | pmaster2-마스터 | MAX_CONN_PREV | 전일 최대값 (기존) |
+| HTS 최대동시접속 | pmaster2-마스터 | HTS_MAX_CONN | 전일 최대값 (기존) |
+| MTS 최대동시접속 | pmaster2-마스터 | MTS_MAX_CONN | 전일 최대값 (기존) |
+| *(구분선 하단)* UC 실시간 스파크라인 | pmaster2-마스터 | `UC_TOTAL_COUNT` `UC_HTS_COUNT` `UC_MTS_COUNT` | 오늘 전체 시계열, 3-6 참조 |
 
 ---
 
@@ -638,6 +652,159 @@ FROM (
 
 </div>
 ```
+
+### 3-6. UC 실시간 접속자수 스파크라인 차트 (v1.5 신규)
+
+#### 위치
+- **접속자 현황 카드** (카드 3) 내부, MTS 최대동시접속 row 하단 구분선 아래
+
+#### 구성
+
+```
+┌──────────────────────────────────────────────────┐
+│  (MTS 최대동시접속 row 이상 기존 3행)              │
+├──────────────────────────────────────────────────┤  ← 구분선 <hr>
+│ 전체   18,432  ▲234  [~~~~~~~~~~~~~~~~~~~~]      │
+│ HTS    12,104  ▲120  [~~~~~~~~~~~~~~~~~~~]       │
+│ MTS     6,328   ▲98  [~~~~~~~~~~~~~~~~~~]        │
+└──────────────────────────────────────────────────┘
+```
+
+#### 행 구성 요소
+
+| 영역 | 구성 | 상세 |
+|---|---|---|
+| 좌측 (label) | 항목명 | `전체` / `HTS` / `MTS`, 고정 색상 텍스트 |
+| 좌측 (value) | 현재값 | 오늘 최신 `LOG_VALUE`, 천단위 콤마, bold |
+| 좌측 (delta) | 변화량 | 직전 포인트 대비 차이, ▲(증가)=빨강 / ▼(감소)=파랑 / -(동일)=회색 |
+| 우측 (chart) | mini sparkline | 오늘 전체 시계열 line chart, `<canvas>` |
+
+#### 색상 정의
+
+| 항목 | 선 색상 | 현재값 색상 |
+|---|---|---|
+| 전체 (`UC_TOTAL_COUNT`) | `#3b82f6` (파랑) | `#3b82f6` |
+| HTS (`UC_HTS_COUNT`) | `#22c55e` (초록) | `#22c55e` |
+| MTS (`UC_MTS_COUNT`) | `#f59e0b` (주황) | `#f59e0b` |
+
+#### 스파크라인 포인트 색상 (급증/급감 강조)
+
+| 조건 | 포인트 색상 | 기준 |
+|---|---|---|
+| 전후 delta > 임계값 | `#dc3545` (빨강) | 급증 |
+| 전후 delta < -임계값 | `#0d6efd` (파랑) | 급감 |
+| 그 외 | `rgba(0,0,0,0)` | 포인트 미표시 (선만) |
+
+> ℹ️ 급증/급감 임계값은 JS 상수로 정의 (`UC_SPIKE_THRESHOLD`, 기본값 운영 실측 후 조정)
+
+#### Chart.js 옵션 요약
+
+```js
+{
+  type: 'line',
+  data: {
+    labels: timestamps,        // log_timestamp (HH:mm)
+    datasets: [{
+      data: values,            // log_value
+      borderColor: color,
+      tension: 0,              // 꺾인선 (스파이크 강조)
+      pointRadius: pointRadii, // 급증/급감만 3, 나머지 0
+      pointBackgroundColor: pointColors,
+      fill: false,
+      borderWidth: 1.5
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+    scales: {
+      x: { display: false },
+      y: { display: false, beginAtZero: false }
+    }
+  }
+}
+```
+
+#### HTML 구조
+
+```html
+<!-- 접속자 현황 카드 내부 구분선 아래 -->
+<hr class="my-2">
+<div class="px-3 pb-2" id="ucSparkSection">
+  <!-- 행 1: 전체 -->
+  <div class="d-flex align-items-center gap-2 mb-1">
+    <span style="font-size:12px;color:#3b82f6;font-weight:600;min-width:28px;">전체</span>
+    <span id="uc-val-total" style="font-size:13px;font-weight:700;color:#3b82f6;min-width:54px;text-align:right;">-</span>
+    <span id="uc-delta-total" style="font-size:11px;min-width:40px;"></span>
+    <div style="flex:1;height:32px;min-width:0;">
+      <canvas id="ucSparkTotal"></canvas>
+    </div>
+  </div>
+  <!-- 행 2: HTS -->
+  <div class="d-flex align-items-center gap-2 mb-1">
+    <span style="font-size:12px;color:#22c55e;font-weight:600;min-width:28px;">HTS</span>
+    <span id="uc-val-hts" style="font-size:13px;font-weight:700;color:#22c55e;min-width:54px;text-align:right;">-</span>
+    <span id="uc-delta-hts" style="font-size:11px;min-width:40px;"></span>
+    <div style="flex:1;height:32px;min-width:0;">
+      <canvas id="ucSparkHts"></canvas>
+    </div>
+  </div>
+  <!-- 행 3: MTS -->
+  <div class="d-flex align-items-center gap-2">
+    <span style="font-size:12px;color:#f59e0b;font-weight:600;min-width:28px;">MTS</span>
+    <span id="uc-val-mts" style="font-size:13px;font-weight:700;color:#f59e0b;min-width:54px;text-align:right;">-</span>
+    <span id="uc-delta-mts" style="font-size:11px;min-width:40px;"></span>
+    <div style="flex:1;height:32px;min-width:0;">
+      <canvas id="ucSparkMts"></canvas>
+    </div>
+  </div>
+</div>
+```
+
+#### delta 표시 규칙
+
+| 조건 | 표시 | 색상 |
+|---|---|---|
+| delta > 0 | `▲ N` | `#dc3545` (빨강) |
+| delta < 0 | `▼ N` | `#0d6efd` (파랑) |
+| delta = 0 또는 데이터 없음 | `-` | `#6c757d` (회색) |
+
+> ℹ️ delta = 현재값(최신 포인트) - 직전 포인트 값
+
+#### 조회 SQL
+
+```sql
+-- UC 접속자수 오늘 전체 시계열 조회 (3개 LOG_ID 공통 패턴)
+-- log_timestamp ASC 정렬 (X축 시간순)
+-- 오늘 analyze_date 기준 전체 포인트 반환
+SELECT
+    LOG_TIMESTAMP,
+    LOG_VALUE
+FROM TB_ANALYZE_RESULT
+WHERE ANALYZE_DATE = #{today}
+  AND SERVER_ID    = 'pmaster2-마스터'
+  AND LOG_ID       = #{logId}        -- UC_TOTAL_COUNT / UC_HTS_COUNT / UC_MTS_COUNT
+  AND LOG_TYPE     = '수치'
+ORDER BY LOG_TIMESTAMP ASC;
+```
+
+> ℹ️ **API 응답 구조** (`/dashboard/api/uc-spark`)
+> ```json
+> {
+>   "success": true,
+>   "data": {
+>     "UC_TOTAL_COUNT": [
+>       { "logTimestamp": "2026-06-16T09:00:00", "logValue": 18000 },
+>       ...
+>     ],
+>     "UC_HTS_COUNT": [...],
+>     "UC_MTS_COUNT": [...]
+>   }
+> }
+> ```
+
+---
 
 ### 3-5. 조회 SQL
 
@@ -1461,14 +1628,15 @@ ORDER BY
 │ 수집 5/6 ▓▓░│ 분석 5/6 ▓▓░│ FAIL 1건    │ SKIP 0 이상없│ 분석실패 이상없│
 ├──────────────────────────────────────────────────────────────────┤
 │ [3. 정보성 중요 데이터 — 그룹별 리스트 카드 3개]                   │
-│ ┌──종목 현황──┐ ┌──서비스 현황──┐ ┌──접속자 현황──┐             │
-│ │● 주식 1,234K│ │● 자동주문 2,341│ │● 전일 18,432 │             │
-│ │● 파생  89K  │ │● 시세포착1 1,872│ │● HTS  12,104 │             │
-│ │● 상품  12K  │ │● 시세포착2 1,650│ │● MTS   6,328 │             │
-│ │● 업종  1,024│ │● 주파수클럽 312│ └──────────────┘             │
-│ │● NXT  54K   │ └───────────────┘                               │
-│ │● 옵션   480 │                                                  │
-│ └─────────────┘                                                  │
+│ ┌──종목 현황──┐ ┌──서비스 현황──┐ ┌──────────접속자 현황───────────┐  │
+│ │● 주식 1,234K│ │● 자동주문 2,341│ │● 전일 18,432             전일│  │
+│ │● 파생  89K  │ │● 시세포착1 1,872│ │● HTS  12,104             전일│  │
+│ │● 상품  12K  │ │● 시세포착2 1,650│ │● MTS   6,328             전일│  │
+│ │● 업종  1,024│ │● 주파수클럽 312│ │─────────────────────────────│  │
+│ │● NXT  54K   │ └───────────────┘ │ 전체 18,432 ▲234 [~~~~~~~]  │  │
+│ │● 옵션   480 │                   │ HTS  12,104 ▲120 [~~~~~~~]  │  │
+│ └─────────────┘                   │ MTS   6,328  ▲98 [~~~~~~~]  │  │
+│                                   └─────────────────────────────┘  │
 ├──────────────────────────────────────────────────────────────────┤
 │ [4. 에러/경고 상세 목록]            (전체 너비 col-12)             │
 │ [서버선택▼] [에러/경고 탭] [정상/정보/미분석 탭]                   │
@@ -1512,6 +1680,7 @@ ORDER BY
 | `/dashboard/api/resource` | GET | 리소스 도넛차트 — 전체 서버 일괄 반환 | JSON |
 | `/dashboard/api/server-list` | GET | 서버 리스트 상태 | JSON |
 | `/dashboard/api/raw-log/{collectLogId}` | GET | 원본 로그 모달 조회 | JSON |
+| `/dashboard/api/uc-spark` | GET | UC 실시간 접속자수 오늘 전체 시계열 (3개 LOG_ID 일괄) | JSON |
 
 ### 9-3. API 공통 파라미터
 
@@ -1620,5 +1789,12 @@ Phase 3: 시각화
 Phase 4: 완성
   ⑩ 전체 AJAX 자동 갱신 적용 (5분 주기, 카운트다운 05:00)
   ⑪ 서버+LOG_ID 매핑표 실제 운영 값으로 확정 및 적용
-  ⑫ 테스트 및 UI 세부 조정
+  ⑫ 3-6 UC 실시간 스파크라인 (v1.5 신규)
+     - Mapper: selectUcSparkData(today, serverId, logId) 추가
+     - Service: getUcSparkData() → UC_TOTAL_COUNT / UC_HTS_COUNT / UC_MTS_COUNT 시계열 맵 반환
+     - Controller: GET /dashboard/api/uc-spark
+     - Frontend: updateUcSpark(data) 함수, canvas 3개 (ucSparkTotal/Hts/Mts)
+     - 접속자 현황 카드 내 MTS row 하단 <hr> + 스파크라인 영역 HTML 추가
+     - refreshAll()에 ucSpark API 호출 포함
+  ⑬ 테스트 및 UI 세부 조정
 ```

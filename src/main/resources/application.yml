@@ -94,3 +94,12 @@ precheck:
     - name: 심천
       server-id: ddfep01-해외시세
       log-id: OS_SZ_COUNT
+    - name: 전체수
+      server-id: pmaster2-마스터
+      log-id: UC_TOTAL_COUNT
+    - name: HTS
+      server-id: pmaster2-마스터
+      log-id: UC_HTS_COUNT
+    - name: MTS
+      server-id: pmaster2-마스터
+      log-id: UC_MTS_COUNT

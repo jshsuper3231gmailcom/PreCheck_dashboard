@@ -374,6 +374,22 @@ public class DashboardService {
     }
 
     /**
+     * UC 실시간 접속자수 오늘 전체 시계열을 3개 LOG_ID 기준으로 반환한다.
+     *
+     * 반환값 의미:
+     * - key는 LOG_ID(`UC_TOTAL_COUNT` / `UC_HTS_COUNT` / `UC_MTS_COUNT`),
+     *   value는 오늘 시간순 정렬된 `{logTimestamp, logValue}` 목록이다.
+     */
+    public Map<String, Object> getUcSparkData() {
+        String today = today();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("UC_TOTAL_COUNT", dashboardMapper.selectUcSparkData(today, "UC_TOTAL_COUNT"));
+        result.put("UC_HTS_COUNT",   dashboardMapper.selectUcSparkData(today, "UC_HTS_COUNT"));
+        result.put("UC_MTS_COUNT",   dashboardMapper.selectUcSparkData(today, "UC_MTS_COUNT"));
+        return result;
+    }
+
+    /**
      * 원본 로그 모달 조회용 수집 로그 1건을 반환한다.
      *
      * @param collectLogId 원본 로그 원문을 확인할 대상 수집 로그 식별자다.

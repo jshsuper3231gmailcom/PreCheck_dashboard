@@ -156,6 +156,18 @@ public interface DashboardMapper {
     );
 
     /**
+     * UC 실시간 접속자수 오늘 전체 시계열을 조회한다.
+     *
+     * @param today 조회 기준 일자(`yyyyMMdd`)다.
+     * @param logId `UC_TOTAL_COUNT`, `UC_HTS_COUNT`, `UC_MTS_COUNT` 중 하나다.
+     * @return 시간순 정렬된 시계열 포인트 목록이다.
+     */
+    List<Map<String, Object>> selectUcSparkData(
+            @Param("today") String today,
+            @Param("logId") String logId
+    );
+
+    /**
      * 원본 로그 모달에 표시할 수집 로그 1건을 조회한다.
      *
      * @param collectLogId 조회 대상 수집 로그 식별자다.
