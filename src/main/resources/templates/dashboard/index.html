@@ -937,6 +937,9 @@
 <script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/adminlte.min.js}"></script>
 
+<script th:inline="javascript">
+    const REFRESH_INTERVAL_SEC = /*[[${refreshIntervalSeconds}]]*/ 300;
+</script>
 <script>
     let currentPage = 1;
     let currentTab = 'error';
@@ -944,7 +947,7 @@
     let historyChart = null;
     let lastHistorySeries = [];
     let currentGroupType = 'stock';
-    let countdown = 300;
+    let countdown = REFRESH_INTERVAL_SEC;
     let historyResizeTimer = null;
 
     function pad2(v) {
@@ -1130,7 +1133,7 @@
             render();
             if (countdown === 0) {
                 refreshAll();
-                countdown = 300;
+                countdown = REFRESH_INTERVAL_SEC;
             }
         }, 1000);
     }

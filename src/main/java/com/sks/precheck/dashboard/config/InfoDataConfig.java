@@ -23,6 +23,7 @@ public class InfoDataConfig {
     private String collectSchedulePath;
     private String analyzeSchedulePath;
     private int historyDays = 7;
+    private int refreshIntervalSeconds = 300;
     private List<InfoDataItem> infoData = new ArrayList<>();
 
     /**

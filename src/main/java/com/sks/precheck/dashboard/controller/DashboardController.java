@@ -1,5 +1,6 @@
 package com.sks.precheck.dashboard.controller;
 
+import com.sks.precheck.dashboard.config.InfoDataConfig;
 import com.sks.precheck.dashboard.dto.AnalyzeResultDto;
 import com.sks.precheck.dashboard.dto.CollectLogDto;
 import com.sks.precheck.dashboard.dto.PageResultDto;
@@ -33,6 +34,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DashboardController {
     private final DashboardService dashboardService;
+    private final InfoDataConfig infoDataConfig;
 
     /**
      * 대시보드 메인 화면을 반환한다.
@@ -45,6 +47,7 @@ public class DashboardController {
     public String dashboard(@AuthenticationPrincipal AdminUserPrincipal principal, Model model) {
         model.addAttribute("loginUserName", principal.getAdminUser().getUserName());
         model.addAttribute("loginUserRole", principal.getAdminUser().getRole());
+        model.addAttribute("refreshIntervalSeconds", infoDataConfig.getRefreshIntervalSeconds());
         return "dashboard/index";
     }
 
