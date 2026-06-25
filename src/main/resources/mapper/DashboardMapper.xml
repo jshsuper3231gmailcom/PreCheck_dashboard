@@ -253,46 +253,69 @@
     </select>
 
     <!--
-        서버 리스트 카드 조회.
-        오늘 분석 이력이 있는 서버를 기준으로 삼고, 서버별 최근 수집/분석 시각과 에러/경고 건수를 함께 계산한다.
+        서버 리스트 카드 조회 (화면정의서 7-4 기준).
+        모수는 수집/분석 이력에 한 번이라도 등장한 서버 전체(합집합)다.
+        수집 conf와 분석 conf의 등록 서버 수가 서로 달라도(예: 분석 conf에만 있는 서버)
+        6번 리소스 도넛차트와 동일한 서버 모집단을 쓰도록 통일한다.
+        오늘 수집 이력이 없는 서버도 목록에 그대로 나와야 "수집미완료" 상태를 판별할 수 있다.
     -->
     <select id="selectServerList" resultType="map">
         SELECT
-            S.SERVER_ID AS "serverId",
-            (
-                SELECT MAX(COLLECT_END_AT)
-                FROM TB_COLLECT_HISTORY CH
-                WHERE CH.COLLECT_DATE = #{today}
-                  AND CH.SERVER_ID = S.SERVER_ID
-                  AND CH.COLLECT_STATUS = 'SUCCESS'
-            ) AS "collectAt",
-            (
-                SELECT MAX(ANALYZE_END_AT)
-                FROM TB_ANALYZE_HISTORY AH
-                WHERE AH.ANALYZE_DATE = #{today}
-                  AND AH.SERVER_ID = S.SERVER_ID
-                  AND AH.ANALYZE_STATUS = 'SUCCESS'
-            ) AS "analyzeAt",
-            (
-                SELECT COUNT(*)
-                FROM TB_ANALYZE_RESULT AR
-                WHERE AR.ANALYZE_DATE = #{today}
-                  AND AR.SERVER_ID = S.SERVER_ID
-                  AND AR.ANALYZE_LEVEL = '에러'
-            ) AS "errorCnt",
-            (
-                SELECT COUNT(*)
-                FROM TB_ANALYZE_RESULT AR
-                WHERE AR.ANALYZE_DATE = #{today}
-                  AND AR.SERVER_ID = S.SERVER_ID
-                  AND AR.ANALYZE_LEVEL = '경고'
-            ) AS "warningCnt"
+            S.SERVER_ID       AS "serverId",
+            CH.LAST_COLLECT_AT AS "collectAt",
+            CH.COLLECT_STATUS  AS "collectStatus",
+            AH.LAST_ANALYZE_AT AS "analyzeAt",
+            AH.ANALYZE_STATUS  AS "analyzeStatus",
+            COALESCE(AR.ERROR_CNT, 0)   AS "errorCnt",
+            COALESCE(AR.WARNING_CNT, 0) AS "warningCnt"
         FROM (
-            SELECT DISTINCT SERVER_ID
+            SELECT SERVER_ID FROM TB_COLLECT_HISTORY
+            UNION
+            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY
+        ) S
+        LEFT JOIN (
+            SELECT
+                SERVER_ID,
+                MAX(COLLECT_END_AT) AS LAST_COLLECT_AT,
+                CASE
+                    WHEN SUM(CASE WHEN COLLECT_STATUS = 'FAIL' THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
+                    WHEN SUM(CASE WHEN COLLECT_STATUS = 'SKIP' THEN 1 ELSE 0 END) > 0 THEN 'SKIP'
+                    ELSE 'SUCCESS'
+                END AS COLLECT_STATUS
+            FROM TB_COLLECT_HISTORY
+            WHERE COLLECT_DATE = #{today}
+            GROUP BY SERVER_ID
+        ) CH ON CH.SERVER_ID = S.SERVER_ID
+        LEFT JOIN (
+            SELECT
+                SERVER_ID,
+                MAX(ANALYZE_END_AT) AS LAST_ANALYZE_AT,
+                CASE
+                    WHEN SUM(CASE WHEN ANALYZE_STATUS = 'FAIL'    THEN 1 ELSE 0 END) > 0 THEN 'FAIL'
+                    WHEN SUM(CASE WHEN ANALYZE_STATUS = 'PARTIAL' THEN 1 ELSE 0 END) > 0 THEN 'PARTIAL'
+                    ELSE 'SUCCESS'
+                END AS ANALYZE_STATUS
             FROM TB_ANALYZE_HISTORY
             WHERE ANALYZE_DATE = #{today}
-        ) S
-        ORDER BY S.SERVER_ID
+            GROUP BY SERVER_ID
+        ) AH ON AH.SERVER_ID = S.SERVER_ID
+        LEFT JOIN (
+            SELECT
+                SERVER_ID,
+                SUM(CASE WHEN ANALYZE_LEVEL = '에러' THEN 1 ELSE 0 END) AS ERROR_CNT,
+                SUM(CASE WHEN ANALYZE_LEVEL = '경고' THEN 1 ELSE 0 END) AS WARNING_CNT
+            FROM TB_ANALYZE_RESULT
+            WHERE ANALYZE_DATE = #{today}
+            GROUP BY SERVER_ID
+        ) AR ON AR.SERVER_ID = S.SERVER_ID
+        ORDER BY
+            CASE
+                WHEN CH.COLLECT_STATUS = 'FAIL' OR COALESCE(AR.ERROR_CNT, 0) > 0 THEN 1
+                WHEN COALESCE(AR.WARNING_CNT, 0) > 0                            THEN 2
+                WHEN CH.COLLECT_STATUS = 'SUCCESS'                              THEN 3
+                ELSE 4
+            END,
+            S.SERVER_ID
     </select>
 
     <select id="selectHistoryData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
@@ -326,8 +349,9 @@
 
     <!--
         서버별 리소스 도넛 차트 조회.
-        분석 기준 화면이므로 오늘 분석 이력이 있는 서버만 대상으로 하고,
-        각 서버의 DISK_HOME 최신 수치 1건만 사용한다.
+        모수는 7번 서버 리스트와 동일하게 수집/분석 이력에 한 번이라도 등장한 서버 전체로 맞춘다
+        (한쪽 conf에만 등록된 서버가 있어도 두 위젯의 서버 모집단이 갈리지 않도록).
+        각 서버의 오늘자 DISK_HOME 최신 수치 1건만 사용하고, 없으면 "분석없음"으로 표시된다.
     -->
     <select id="selectResourceData" resultType="map">
         SELECT
@@ -337,23 +361,30 @@
             AR.THRESHOLD_VALUE AS "thresholdValue",
             AR.LOG_TIMESTAMP AS "logTimestamp"
         FROM (
-            SELECT DISTINCT SERVER_ID
-            FROM TB_ANALYZE_HISTORY
-            WHERE ANALYZE_DATE = #{today}
+            SELECT SERVER_ID FROM TB_COLLECT_HISTORY
+            UNION
+            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY
         ) S
         LEFT JOIN TB_ANALYZE_RESULT AR
-          ON AR.ANALYZE_DATE = #{today}
-         AND AR.SERVER_ID = S.SERVER_ID
-         AND AR.LOG_ID = 'DISK_HOME'
-         AND AR.LOG_TYPE = '수치'
-         AND AR.LOG_TIMESTAMP = (
-            SELECT MAX(LOG_TIMESTAMP)
-            FROM TB_ANALYZE_RESULT
-            WHERE ANALYZE_DATE = #{today}
-              AND SERVER_ID = S.SERVER_ID
-              AND LOG_ID = 'DISK_HOME'
-              AND LOG_TYPE = '수치'
-         )
+          ON AR.ANALYZE_RESULT_ID = (
+                <!-- LOG_TIMESTAMP만으로 매칭하면 수집 중복 등으로 같은 시각에 여러 행이
+                     쌓였을 때 LEFT JOIN이 그 행 수만큼 카드를 중복 표시한다.
+                     ANALYZE_RESULT_ID(PK)까지 좁혀 항상 정확히 1건만 매칭한다. -->
+                SELECT MAX(ANALYZE_RESULT_ID)
+                FROM TB_ANALYZE_RESULT
+                WHERE ANALYZE_DATE = #{today}
+                  AND SERVER_ID = S.SERVER_ID
+                  AND LOG_ID = 'DISK_HOME'
+                  AND LOG_TYPE = '수치'
+                  AND LOG_TIMESTAMP = (
+                        SELECT MAX(LOG_TIMESTAMP)
+                        FROM TB_ANALYZE_RESULT
+                        WHERE ANALYZE_DATE = #{today}
+                          AND SERVER_ID = S.SERVER_ID
+                          AND LOG_ID = 'DISK_HOME'
+                          AND LOG_TYPE = '수치'
+                  )
+            )
         ORDER BY S.SERVER_ID
     </select>
 
@@ -381,13 +412,24 @@
             AR.CREATED_AT
         FROM TB_ANALYZE_RESULT AR
         JOIN (
-            SELECT MAX(LOG_TIMESTAMP) AS MAX_TS
+            <!-- LOG_TIMESTAMP만으로 매칭하면 수집 중복 등으로 같은 시각에 여러 행이
+                 쌓였을 때 이 쿼리가 1건을 기대하는 selectInfoData(AnalyzeResultDto 단건)에서
+                 MyBatis TooManyResultsException이 터진다.
+                 ANALYZE_RESULT_ID(PK)까지 좁혀 항상 정확히 1건만 매칭한다. -->
+            SELECT MAX(ANALYZE_RESULT_ID) AS MAX_ID
             FROM TB_ANALYZE_RESULT
             WHERE ANALYZE_DATE = #{today}
               AND SERVER_ID = #{serverId}
               AND LOG_ID = #{logId}
+              AND LOG_TIMESTAMP = (
+                    SELECT MAX(LOG_TIMESTAMP)
+                    FROM TB_ANALYZE_RESULT
+                    WHERE ANALYZE_DATE = #{today}
+                      AND SERVER_ID = #{serverId}
+                      AND LOG_ID = #{logId}
+              )
         ) T
-          ON AR.LOG_TIMESTAMP = T.MAX_TS
+          ON AR.ANALYZE_RESULT_ID = T.MAX_ID
         WHERE AR.ANALYZE_DATE = #{today}
           AND AR.SERVER_ID = #{serverId}
           AND AR.LOG_ID = #{logId}

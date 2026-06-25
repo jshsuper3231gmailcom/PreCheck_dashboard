@@ -846,7 +846,11 @@
                                     <span style="font-size:12px;color:#1e293b;font-weight:600;min-width:28px;">MTS</span>
                                     <span id="uc-val-mts" style="font-size:13px;font-weight:700;color:#1e293b;min-width:54px;text-align:right;">-</span>
                                     <span id="uc-delta-mts" style="font-size:11px;min-width:40px;color:#6c757d;">-</span>
-                                    <div style="flex:1;height:32px;min-width:0;"><canvas id="ucSparkMts"></canvas></div>
+                                    <div style="flex:1;height:32px;min-width:0;position:relative;">
+                                        <canvas id="ucSparkMts"></canvas>
+                                        <span id="uc-spark-first-time" style="position:absolute;left:2px;bottom:0;font-size:9px;line-height:1;color:#94a3b8;">-</span>
+                                        <span id="uc-spark-last-time" style="position:absolute;right:2px;bottom:0;font-size:9px;line-height:1;color:#94a3b8;">-</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1875,6 +1879,25 @@
                 }
             }
 
+            // MTS 행이 3개 스파크라인 중 맨 아래라 분:초 라벨도 거기에 한 번만 표시
+            if (canvasId === 'ucSparkMts') {
+                const formatMinSec = (row) => {
+                    if (!row || !row.logTimestamp) return '-';
+                    const dt = new Date(row.logTimestamp);
+                    return dt.getMinutes().toString().padStart(2, '0') + ':' + dt.getSeconds().toString().padStart(2, '0');
+                };
+
+                const firstTimeEl = document.getElementById('uc-spark-first-time');
+                if (firstTimeEl) {
+                    firstTimeEl.textContent = formatMinSec(validRows.length > 0 ? validRows[0] : null);
+                }
+
+                const lastTimeEl = document.getElementById('uc-spark-last-time');
+                if (lastTimeEl) {
+                    lastTimeEl.textContent = formatMinSec(validRows.length > 0 ? validRows[validRows.length - 1] : null);
+                }
+            }
+
             buildSparkChart(canvasId, color, labels, values);
         });
     }
@@ -1905,14 +1928,24 @@
             const warningCnt = Number(row.warningCnt ?? 0);
             const collectAt = row.collectAt ?? null;
             const analyzeAt = row.analyzeAt ?? null;
+            const collectStatus = row.collectStatus ?? null;
 
+            // 상태 우선순위: 에러 > 경고 > 정상 > 수집미완료 (화면정의서 7-2 기준).
+            // 오늘 TB_COLLECT_HISTORY에 해당 서버 이력이 없으면(collectStatus null) 수집미완료로 표시한다.
             let dotClass = 'text-body-secondary';
-            if (errorCnt > 0) {
+            let dotIcon = 'bi-circle';
+            let incomplete = false;
+            if (collectStatus === 'FAIL' || errorCnt > 0) {
                 dotClass = 'text-danger';
+                dotIcon = 'bi-circle-fill';
             } else if (warningCnt > 0) {
                 dotClass = 'text-warning';
-            } else {
+                dotIcon = 'bi-circle-fill';
+            } else if (collectStatus === 'SUCCESS') {
                 dotClass = 'text-success';
+                dotIcon = 'bi-circle-fill';
+            } else {
+                incomplete = true;
             }
 
             const collectText = formatTimestamp(collectAt);
@@ -1920,27 +1953,33 @@
             const collectSchedule = row.collectSchedule ?? '-';
             const analyzeSchedule = row.analyzeSchedule ?? '-';
 
+            const statusLine = incomplete
+                ? `<div class="text-body-secondary small">수집 미완료</div>`
+                : `
+                    <div class="text-body-secondary small d-md-none">
+                        최종 수집 ${collectText} / 최종 분석 ${analyzeText} /
+                        <span class="badge text-bg-danger">에러 ${formatNumber(errorCnt)}</span>
+                        <span class="badge text-bg-warning ms-1">경고 ${formatNumber(warningCnt)}</span>
+                    </div>
+                    <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
+                        <span>최종 수집: ${collectText}</span>
+                        <span>최종 분석: ${analyzeText}</span>
+                        <span>에러: ${formatNumber(errorCnt)}</span>
+                        <span>경고: ${formatNumber(warningCnt)}</span>
+                    </div>
+                `;
+
             // 서버 리스트는 모바일에서 2줄만 보이므로, 상태 점은 가장 심각한 레벨을 우선 표시한다.
             const item = document.createElement('div');
             item.className = 'list-group-item';
             item.innerHTML = `
                 <div class="d-flex align-items-start gap-2 py-0">
-                    <i class="bi bi-circle-fill ${dotClass}"></i>
+                    <i class="bi ${dotIcon} ${dotClass}"></i>
                     <div class="flex-fill">
                         <div class="fw-bold">${serverId ?? '-'}</div>
-                        <div class="text-body-secondary small d-md-none">
-                            최종 수집 ${collectText} / 최종 분석 ${analyzeText} /
-                            <span class="badge text-bg-danger">에러 ${formatNumber(errorCnt)}</span>
-                            <span class="badge text-bg-warning ms-1">경고 ${formatNumber(warningCnt)}</span>
-                        </div>
+                        ${statusLine}
                         <div class="text-body-secondary small d-md-none">
                             수집주기 ${collectSchedule} / 분석주기 ${analyzeSchedule}
-                        </div>
-                        <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
-                            <span>최종 수집: ${collectText}</span>
-                            <span>최종 분석: ${analyzeText}</span>
-                            <span>에러: ${formatNumber(errorCnt)}</span>
-                            <span>경고: ${formatNumber(warningCnt)}</span>
                         </div>
                         <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
                             <span>수집주기: ${collectSchedule}</span>

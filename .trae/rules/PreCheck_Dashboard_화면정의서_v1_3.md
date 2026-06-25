@@ -1075,7 +1075,7 @@ WHERE COLLECT_LOG_ID = #{collectLogId};
 | 수치 | 숫자(%, 건수, 개수 등) 형태의 수집값 | THRESHOLD_VALUE · THRESHOLD_OPERATOR로 수치 비교 | O | O (경고 시만) |
 | 문구 | 텍스트·문자열 형태의 수집값 | 에러 키워드 포함 여부 비교 (콤마 구분 키워드 목록) | O (에러 키워드 목록) | X |
 | 존재 | 감시 대상(파일·프로세스·서비스 등)의 부존재 감지 | 로그 발생 자체가 에러 (항상 에러 고정) | X | X |
-| 날짜 | 날짜 형태의 수집값 | 로그 내 yyyy/MM/dd 날짜가 오늘과 일치하면 정상, 다르면 에러 | X | X |
+| 날짜 | 날짜 형태의 수집값 | 로그 내 $날짜$ 토큰(yyyy/MM/dd 또는 yyyy-MM-dd)이 오늘과 일치하면 정상, 다르면 에러 | X | X |
 | 정보 | 에러/경고 판단 없이 참고용으로만 수집되는 값 | 분석 없음 (ANALYZE_LEVEL 항상 '정보' 고정) | X | X |
 
 #### 입력타입별 상세 정의
@@ -1097,7 +1097,7 @@ WHERE COLLECT_LOG_ID = #{collectLogId};
 - 임계치 비교 없으므로 임계치 정보·임계치 대비% 모두 미표시
 
 **날짜**
-- LOG_CONTENT에 포함된 yyyy/MM/dd 형식 날짜가 오늘 날짜와 일치하면 정상, 다르면 에러
+- LOG_CONTENT 안의 $날짜$ 토큰(yyyy/MM/dd 또는 yyyy-MM-dd)이 오늘 날짜와 일치하면 정상, 다르면 에러
 - 임계치 비교 없으므로 임계치 정보·임계치 대비% 모두 미표시
 
 **정보**
@@ -1421,8 +1421,11 @@ ORDER BY LOG_TIMESTAMP ASC;
 > ℹ️ 코드 고정이 아닌 **동적 조회** 방식 사용
 > 서버가 추가되어도 코드 수정 없이 자동으로 반영됨
 
+> ⚠️ **v1.4 변경**: 모집단을 7번 서버 리스트와 동일하게 통일 (수집 conf와 분석 conf의
+> 등록 서버 수가 달라도 두 위젯이 서로 다른 서버 집합을 보여주는 문제를 막기 위함)
+
 ```
-① TB_ANALYZE_HISTORY에서 오늘 분석된 DISTINCT SERVER_ID 목록 조회
+① TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 에 한 번이라도 등장한 DISTINCT SERVER_ID 목록 조회
 ② 각 서버별로 오늘 DISK_HOME LOG_ID 데이터 존재 여부 확인
 ③ 데이터 있으면 → 도넛차트 표시
    데이터 없으면 → "분석없음" 텍스트 표시
@@ -1559,6 +1562,10 @@ LIMIT 1;
 
 ### 7-4. 조회 SQL
 
+> ⚠️ **v1.4 변경**: 모수를 `TB_COLLECT_HISTORY` 단독에서 `TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY`로
+> 확장했다. 수집 conf와 분석 conf의 등록 서버 수가 다르면(예: 분석 conf에만 있는 서버) 한쪽 이력에만
+> 등장하는 서버가 생기는데, 그런 서버도 누락 없이 목록에 표시되어야 6번 도넛차트와 모집단이 일치한다.
+
 ```sql
 -- 서버별 상태 종합 조회
 SELECT
@@ -1570,7 +1577,9 @@ SELECT
     AR.ERROR_CNT,
     AR.WARNING_CNT
 FROM (
-    SELECT DISTINCT SERVER_ID FROM TB_COLLECT_HISTORY
+    SELECT SERVER_ID FROM TB_COLLECT_HISTORY
+    UNION
+    SELECT SERVER_ID FROM TB_ANALYZE_HISTORY
 ) S
 LEFT JOIN (
     SELECT SERVER_ID,
@@ -1773,7 +1782,7 @@ Phase 2: 핵심 데이터
 
 Phase 3: 시각화
   ⑦ 6번 리소스 도넛차트
-     - TB_ANALYZE_HISTORY 기준 서버 목록 조회
+     - TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 기준 서버 목록 조회 (7번과 동일 모집단)
      - LOG_TYPE='수치', LOG_ID='DISK_HOME' 조건으로 최신 1건 조회
      - 분석없음 서버: "분석없음" 텍스트 + 회색 점선 원 표시
   ⑧ 5번 히스토리 그래프 (Line Chart)
