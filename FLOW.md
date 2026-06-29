@@ -168,6 +168,7 @@ dashboard/
 | `resources/sql/init_dev.sql` | 테이블 DDL + 시퀀스 + 초기 데이터 |
 | `templates/login.html` | 로그인 화면 |
 | `templates/dashboard/index.html` | 대시보드 메인 화면 |
+| `templates/dashboard/history.html` | History 페이지 — 4개 그룹 월별 선차트 (v1.6 신규) |
 | `templates/admin/users.html` | 계정 관리 화면 |
 | `templates/password/change.html` | 비밀번호 변경 화면 |
 
@@ -189,6 +190,8 @@ dashboard/
 | `serverList()` | GET | `/dashboard/api/server-list` | `ApiResponse<List<Map>>` | 서버 카드 (최근 수집/분석 시각, 에러/경고 건수) |
 | `ucSpark()` | GET | `/dashboard/api/uc-spark` | `ApiResponse<Map>` | UC 실시간 접속자 스파크라인 (UC_TOTAL/HTS/MTS) |
 | `rawLog()` | GET | `/dashboard/api/raw-log/{id}` | `ApiResponse<CollectLogDto>` | 원본 로그 모달 조회 |
+| `history()` | GET | `/dashboard/history` | `String` (View) | History 페이지 화면 반환 (v1.6 신규) |
+| `monthlyHistory()` | GET | `/dashboard/api/monthly-history` | `ApiResponse<Map>` | History 페이지용 4개 그룹 월별 12개월 시계열 일괄 반환 (v1.6 신규) |
 
 ### AdminUserController
 
@@ -214,6 +217,7 @@ dashboard/
 | `getResourceData()` | `List<Map>` | 서버별 DISK_HOME 최신 리소스 수치 |
 | `getAllInfoData()` | `Map<String, Object>` | LOG_ID별 최신 분석 결과 (카드 표시용) |
 | `getUcSparkData()` | `Map<String, Object>` | 오늘 UC 접속자 시계열 3종 |
+| `getMonthlyHistoryAll()` | `Map<String, Object>` | History 페이지용 4개 그룹(stock/overseas/service/conn) 월별 12개월 시계열 — Java-side YYYYMM 그룹핑, selectHistoryData 재사용 (v1.6 신규) |
 | `getRawLog()` | `CollectLogDto` | 수집 로그 원문 단건 조회 |
 | `parseScheduleServerCount()` | `int` | 스케줄 파일에서 고유 서버 수 추출 |
 | `parseScheduleMap()` | `Map<String,String>` | 서버별 수집/분석 주기 문자열 매핑 |

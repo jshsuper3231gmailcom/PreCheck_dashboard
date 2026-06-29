@@ -1,8 +1,22 @@
-# PreCheck Dashboard 화면 정의서 v1.5
+# PreCheck Dashboard 화면 정의서 v1.6
 
-> 작성일: 2026-05-29 / 수정일: 2026-06-16  
+> 작성일: 2026-05-29 / 수정일: 2026-06-29  
 > 참조 문서: 프로그램 명세서, 로그포맷정의서, 로그수집DB정의서, 로그분석DB정의서  
 > 사용 기술: Spring Boot 3.x / Thymeleaf / AdminLTE 4.x / Chart.js / Bootstrap 5
+
+> 📌 **v1.6 변경 이력 (2026-06-29)**
+> 1. [신규] **History 페이지** (`/dashboard/history`) 추가 — 좌측 사이드바 메뉴 "History" 항목 신설
+>    - 종목현황 / 해외종목현황 / 서비스현황 / 접속자현황 4개 선 차트
+>    - 조회 기간: 오늘 기준 **최근 12개월** (당월 포함, 11개월 전 1일~오늘)
+>    - 집계 단위: **월(YYYYMM)** — 동일 월 내 LOG_TIMESTAMP 최신 1건 대표값
+>    - X축: 년/월 (예: `2025/06`), Y축: 수치
+>    - 툴팁: 시리즈명 + 수치 + 정확한 날짜(YYYY/MM/DD)
+>    - 2열 그리드 레이아웃 (`col-xl-6`), 자동 갱신 없음 (정적 히스토리)
+> 2. [신규] 페이지 Controller `GET /dashboard/history` 추가
+> 3. [신규] API `GET /dashboard/api/monthly-history` 추가 (4개 그룹 일괄 반환)
+> 4. [신규] `DashboardService.getMonthlyHistoryAll()` 추가
+> 5. [신규] 0-4 매핑표에 "History 페이지 4개 그룹" 항목 추가
+> 6. [신규] 5-5 History 페이지 월별 그래프 섹션 추가
 
 > 📌 **v1.5 변경 이력 (2026-06-16)**
 > 1. [신규] 3번 접속자 현황 카드 하단에 **UC 실시간 접속자수 스파크라인** 추가
@@ -127,6 +141,31 @@
 | 접속자수 그룹 | 전일 최대동시접속 | `MAX_CONN_PREV` | 수집 일시 전체 포인트 |
 | 접속자수 그룹 | HTS 최대동시접속 | `HTS_MAX_CONN` | 수집 일시 전체 포인트 |
 | 접속자수 그룹 | MTS 최대동시접속 | `MTS_MAX_CONN` | 수집 일시 전체 포인트 |
+
+#### History 페이지 (10번 영역) — 4개 그룹 LOG_ID 매핑 (v1.6 신규)
+
+| 그룹 | 표시명 | LOG_ID | 서버구분 |
+|---|---|---|---|
+| stock | 주식 종목수 | `MBSOSI_COUNT` | dlprem01-테스트개발 |
+| stock | 파생 종목수 | `MBFOSI_COUNT` | dlprem01-테스트개발 |
+| stock | 상품 종목수 | `MBCOSI_COUNT` | dlprem01-테스트개발 |
+| stock | 업종 종목수 | `MBJISU_COUNT` | dlprem01-테스트개발 |
+| stock | NXT 종목수 | `NXT_COUNT` | dlprem01-테스트개발 |
+| stock | 옵션결제월 최대수 | `OPT_MAX_COUNT` | dlprem01-테스트개발 |
+| overseas | 미국주간 | `OS_BA_COUNT` | ddfep01-해외시세 |
+| overseas | 미국야간 | `OS_NB_COUNT` | ddfep01-해외시세 |
+| overseas | 홍콩 | `OS_HK_COUNT` | ddfep01-해외시세 |
+| overseas | 상해 | `OS_SH_COUNT` | ddfep01-해외시세 |
+| overseas | 심천 | `OS_SZ_COUNT` | ddfep01-해외시세 |
+| service | 서버자동주문 계좌수 | `AUTO_ORDER_ACNT` | pamoap01-자동주문 |
+| service | 시세포착1 등록수 | `CAP_REG_COUNT` | pqgetap1-시세포착1 |
+| service | 시세포착2 등록수 | `CAP2_REG_COUNT` | pqgetap2-시세포착2 |
+| service | 주파수클럽 사용수 | `FREQ_CLUB_COUNT` | pjpsap01-주파수클럽 |
+| conn | 전일 최대동시접속 | `MAX_CONN_PREV` | pmaster2-마스터 |
+| conn | HTS 최대동시접속 | `HTS_MAX_CONN` | pmaster2-마스터 |
+| conn | MTS 최대동시접속 | `MTS_MAX_CONN` | pmaster2-마스터 |
+
+> 서버구분은 `application.yml` `precheck.info-data` 목록을 재사용 (History 전용 설정 불필요)
 
 #### 6번 영역 - 서버별 리소스
 
@@ -1408,6 +1447,71 @@ ORDER BY LOG_TIMESTAMP ASC;
 -- ※ 하루에 여러 건 수집되어도 모두 표시됨
 ```
 
+### 5-5. History 페이지 — 월별 12개월 선 차트 (v1.6 신규)
+
+> URL: `GET /dashboard/history` → Thymeleaf `dashboard/history.html`  
+> 자동 갱신 없음, 페이지 진입 시 1회 API 조회
+
+#### 레이아웃
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  [Header] 채널 서버 점검 Dashboard                                │
+│  [Sidebar] Dashboard | History(active) | 계정관리               │
+├──────────────────────┬───────────────────────────────────────────┤
+│  종목 현황 (stock)   │  해외 종목 현황 (overseas)                │
+│  [Line Chart]        │  [Line Chart]                             │
+├──────────────────────┼───────────────────────────────────────────┤
+│  서비스 현황 (service)│  접속자 현황 (conn)                      │
+│  [Line Chart]        │  [Line Chart]                             │
+└──────────────────────┴───────────────────────────────────────────┘
+```
+
+#### X축 / Y축 / 툴팁 정의
+
+| 항목 | 내용 |
+|---|---|
+| X축 단위 | 월(YYYYMM) — 집계 후 대표값 1건 |
+| X축 표시 형식 | `YYYY/MM` (예: `2025/06`) |
+| Y축 | 수치값 (LOG_VALUE) |
+| 조회 범위 | 오늘 기준 최근 12개월 (11개월 전 1일 ~ 오늘) |
+| 월별 대표값 | 동일 월 내 LOG_TIMESTAMP 최신 1건 |
+| 툴팁 타이틀 | `YYYY/MM` (월 레이블) |
+| 툴팁 본문 | `시리즈명: 수치  YYYY/MM/DD` (정확한 날짜 함께 표시) |
+| 누락 월 처리 | `null` (선 끊김, spanGaps: false) |
+
+#### 그룹별 표시 항목
+
+| 카드 제목 | groupKey | 포함 LOG_ID |
+|---|---|---|
+| 종목 현황 | `stock` | MBSOSI_COUNT, MBFOSI_COUNT, MBCOSI_COUNT, MBJISU_COUNT, NXT_COUNT, OPT_MAX_COUNT |
+| 해외 종목 현황 | `overseas` | OS_BA_COUNT, OS_NB_COUNT, OS_HK_COUNT, OS_SH_COUNT, OS_SZ_COUNT |
+| 서비스 현황 | `service` | AUTO_ORDER_ACNT, CAP_REG_COUNT, CAP2_REG_COUNT, FREQ_CLUB_COUNT |
+| 접속자 현황 | `conn` | MAX_CONN_PREV, HTS_MAX_CONN, MTS_MAX_CONN |
+
+#### API
+
+```
+GET /dashboard/api/monthly-history
+응답:
+{
+  "success": true,
+  "data": {
+    "stock":    [ { "logId": "MBSOSI_COUNT", "data": [ {"yyyyMM":"202506","logValue":1234,"exactDate":"20260629"}, ... ] }, ... ],
+    "overseas": [ ... ],
+    "service":  [ ... ],
+    "conn":     [ ... ]
+  }
+}
+```
+
+#### Service
+
+- `DashboardService.getMonthlyHistoryAll()` — 4개 그룹 전체 반환
+  - 시작일: `LocalDate.now().minusMonths(11).withDayOfMonth(1)`
+  - 기존 `selectHistoryData` Mapper 재사용 (신규 SQL 불필요)
+  - 월별 집계: `analyzeDate.substring(0,6)` 기준 TreeMap, 최신 `logTimestamp` 우선
+
 ---
 
 ## 6. 서버별 리소스 현황
@@ -1676,6 +1780,7 @@ ORDER BY
 | URL | 메서드 | 설명 | 반환 |
 |---|---|---|---|
 | `/dashboard` | GET | 메인 대시보드 페이지 | Thymeleaf HTML |
+| `/dashboard/history` | GET | History 페이지 (v1.6 신규) | Thymeleaf HTML |
 
 ### 9-2. AJAX API (자동 갱신용)
 
@@ -1690,6 +1795,7 @@ ORDER BY
 | `/dashboard/api/server-list` | GET | 서버 리스트 상태 | JSON |
 | `/dashboard/api/raw-log/{collectLogId}` | GET | 원본 로그 모달 조회 | JSON |
 | `/dashboard/api/uc-spark` | GET | UC 실시간 접속자수 오늘 전체 시계열 (3개 LOG_ID 일괄) | JSON |
+| `/dashboard/api/monthly-history` | GET | History 페이지용 4개 그룹 월별 12개월 시계열 일괄 반환 (v1.6 신규) | JSON |
 
 ### 9-3. API 공통 파라미터
 
@@ -1806,4 +1912,9 @@ Phase 4: 완성
      - 접속자 현황 카드 내 MTS row 하단 <hr> + 스파크라인 영역 HTML 추가
      - refreshAll()에 ucSpark API 호출 포함
   ⑬ 테스트 및 UI 세부 조정
+  ⑭ History 페이지 (v1.6 신규)
+     - Mapper: selectHistoryData 재사용 (12개월 범위)
+     - Service: getMonthlyHistoryAll() → 4개 그룹 월별 집계 (Java-side YYYYMM 그룹핑)
+     - Controller: GET /dashboard/history (화면), GET /dashboard/api/monthly-history (API)
+     - Frontend: history.html — 4개 Chart.js 선차트, 툴팁에 YYYY/MM/DD + 수치 표시
 ```

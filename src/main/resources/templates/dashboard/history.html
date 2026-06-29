@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>PreCheck Dashboard - History</title>
+    <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #eaf4fc; }
+        .precheck-header {
+            background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
+            border-bottom: 1px solid #90b8e0;
+            box-shadow: 0 2px 12px rgba(30, 80, 160, .12);
+            height: 96px;
+            min-height: 96px;
+            position: relative;
+            overflow: hidden;
+            padding: 0 28px;
+        }
+        .precheck-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                repeating-linear-gradient(45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px),
+                repeating-linear-gradient(-45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px);
+            pointer-events: none;
+        }
+        .precheck-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 500px 120px at 0% 50%, rgba(255, 255, 255, .45), transparent 70%),
+                radial-gradient(ellipse 300px 100px at 100% 50%, rgba(210, 235, 255, .30), transparent 70%);
+            pointer-events: none;
+        }
+        .db-header-line {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #7ab8ee 0%, #aed4f5 50%, transparent 100%);
+            opacity: .6; z-index: 3;
+        }
+        .precheck-header .container-fluid { position: relative; z-index: 2; }
+        .precheck-banner-content {
+            position: relative; z-index: 2;
+            display: flex; align-items: center; gap: 16px; min-width: 0;
+        }
+        .brand-icon {
+            width: 52px; height: 52px; border-radius: 11px;
+            background: linear-gradient(160deg, #2c86df 0%, #1660b8 100%);
+            box-shadow: 0 4px 14px rgba(22, 96, 184, .30);
+            display: grid; place-items: center; flex-shrink: 0; color: #fff;
+        }
+        .brand-icon svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.18)); }
+        .precheck-banner-title {
+            color: #1a2c3d; font-size: 1.5rem; font-weight: 800;
+            letter-spacing: -.025em; margin: 0; white-space: nowrap; line-height: 1;
+        }
+        .precheck-banner-title .sub {
+            font-size: 1.0625rem; font-weight: 500; color: #3a5470;
+            margin-left: 8px; letter-spacing: normal;
+        }
+        .precheck-header-meta { position: relative; z-index: 2; }
+        .header-info { font-size: 1rem; color: #3a5470; }
+        .header-info .header-info-label { color: #4a6080; font-weight: 700; }
+        .header-btn {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.3rem 0.85rem; border-radius: 7px; font-size: 0.85rem;
+            font-weight: 500; text-decoration: none; cursor: pointer;
+            white-space: nowrap; line-height: 1.5; transition: background 0.15s, box-shadow 0.15s;
+            border: 1px solid rgba(26, 44, 61, 0.22);
+            background: rgba(255, 255, 255, 0.38); color: #1a2c3d;
+        }
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.62); color: #1a2c3d;
+            box-shadow: 0 2px 8px rgba(22, 96, 184, 0.18); text-decoration: none;
+        }
+        .header-btn-logout {
+            border-color: rgba(140, 40, 30, 0.25);
+            background: rgba(255, 235, 232, 0.35); color: #6b2418;
+        }
+        .header-btn-logout:hover {
+            background: rgba(255, 215, 210, 0.58); color: #6b2418;
+            box-shadow: 0 2px 8px rgba(180, 40, 30, 0.15);
+        }
+        .mini-nav-sidebar {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 52px; overflow: hidden;
+            transition: width 0.22s ease; z-index: 10;
+        }
+        .mini-nav-sidebar:hover { width: 200px; }
+        .mini-nav-sidebar nav ul { padding-left: 0; padding-right: 0; }
+        .mini-nav-sidebar .nav-link {
+            display: flex; align-items: center; justify-content: center;
+            padding: 0.5rem 0; white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-link { justify-content: flex-start; padding: 0.5rem 0.75rem; }
+        .mini-nav-sidebar .nav-link i { flex-shrink: 0; font-size: 1.1rem; width: 20px; text-align: center; }
+        .mini-nav-sidebar .nav-text {
+            width: 0; overflow: hidden; opacity: 0;
+            transition: width 0.22s ease, opacity 0.12s ease;
+            pointer-events: none; white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-text {
+            width: auto; max-width: 160px; opacity: 1;
+            margin-left: 0.55rem; pointer-events: auto;
+        }
+        .history-chart-card {
+            background: #fff; border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 6px rgba(0,0,0,.07);
+        }
+        .history-chart-head {
+            padding: 10px 16px; border-bottom: 1px solid #e2e8f0;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .history-chart-icon {
+            width: 26px; height: 26px; border-radius: 6px;
+            display: grid; place-items: center; flex-shrink: 0;
+        }
+        .history-chart-title { font-size: 14px; font-weight: 700; color: #1e293b; }
+        .history-chart-badge {
+            margin-left: auto; font-size: 11px; font-weight: 500;
+            color: #94a3b8; background: #fff;
+            border: 1px solid #e2e8f0; padding: 2px 8px;
+            border-radius: 10px; white-space: nowrap;
+        }
+        .history-chart-body { padding: 12px 16px; }
+        .loading-msg { color: #94a3b8; font-size: 13px; text-align: center; padding: 40px 0; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <nav class="app-header navbar navbar-expand precheck-header">
+        <div class="db-header-line"></div>
+        <div class="container-fluid d-flex align-items-center justify-content-between gap-3 flex-wrap flex-md-nowrap">
+            <div class="precheck-banner-content">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1.5"/>
+                        <circle cx="18.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <h1 class="precheck-banner-title"><span class="title">채널 서버 점검</span><span class="sub">Dashboard</span></h1>
+            </div>
+            <div class="d-flex align-items-center gap-3 precheck-header-meta">
+                <div class="header-info">
+                    <span id="currentTime">-</span>
+                </div>
+                <div class="header-info">
+                    <span class="header-info-label" th:text="${loginUserName}"></span>
+                </div>
+                <a th:href="@{/password/change}" class="header-btn">
+                    <i class="bi bi-key"></i>비밀번호 변경
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                    <button type="submit" class="header-btn header-btn-logout">
+                        <i class="bi bi-box-arrow-right"></i>로그아웃
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div th:if="${pwdExpireWarningDays != null}" class="alert alert-warning rounded-0 m-0 py-2 px-4 border-start-0 border-end-0">
+        비밀번호가 <strong th:text="${pwdExpireWarningDays}"></strong>일 후 만료됩니다.
+        <a th:href="@{/password/change}" class="ms-1">지금 변경하기</a>
+    </div>
+
+    <div style="position: relative; min-height: calc(100vh - 96px);">
+        <aside class="bg-dark mini-nav-sidebar">
+            <nav class="pt-3">
+                <ul class="nav flex-column px-2 gap-1">
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-speedometer2"></i><span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard/history}" class="nav-link text-white rounded fw-semibold" style="background: rgba(255,255,255,.15);">
+                            <i class="bi bi-graph-up"></i><span class="nav-text">History</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" th:if="${loginUserRole == 'SUPER_ADMIN'}">
+                        <a th:href="@{/admin/users}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-people"></i><span class="nav-text">계정관리</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div style="margin-left: 52px; min-width: 0;">
+            <div class="content-wrapper p-3">
+                <div class="container-fluid">
+
+                    <div class="d-flex align-items-center mb-3 gap-2">
+                        <i class="bi bi-graph-up text-primary" style="font-size:1.2rem;"></i>
+                        <h5 class="mb-0 fw-bold" style="color:#1e293b;">History</h5>
+                        <span class="badge text-bg-secondary" style="font-size:11px;">최근 12개월</span>
+                    </div>
+
+                    <div class="row g-3">
+
+                        <!-- 종목현황 -->
+                        <div class="col-12 col-xl-6">
+                            <div class="history-chart-card">
+                                <div class="history-chart-head">
+                                    <div class="history-chart-icon" style="background:rgba(37,99,235,.12);color:#2563eb;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                                            <polyline points="16 7 22 7 22 13"/>
+                                        </svg>
+                                    </div>
+                                    <span class="history-chart-title">종목 현황</span>
+                                    <span class="history-chart-badge">월별</span>
+                                </div>
+                                <div class="history-chart-body">
+                                    <div id="stockLoading" class="loading-msg">데이터 로딩 중...</div>
+                                    <canvas id="stockChart" style="display:none;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 해외종목현황 -->
+                        <div class="col-12 col-xl-6">
+                            <div class="history-chart-card">
+                                <div class="history-chart-head">
+                                    <div class="history-chart-icon" style="background:rgba(14,165,233,.12);color:#0ea5e9;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="history-chart-title">해외 종목 현황</span>
+                                    <span class="history-chart-badge">월별</span>
+                                </div>
+                                <div class="history-chart-body">
+                                    <div id="overseasLoading" class="loading-msg">데이터 로딩 중...</div>
+                                    <canvas id="overseasChart" style="display:none;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 서비스현황 -->
+                        <div class="col-12 col-xl-6">
+                            <div class="history-chart-card">
+                                <div class="history-chart-head">
+                                    <div class="history-chart-icon" style="background:rgba(16,185,129,.12);color:#10b981;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="3" width="20" height="4" rx="1"/>
+                                            <rect x="2" y="10" width="20" height="4" rx="1"/>
+                                            <rect x="2" y="17" width="20" height="4" rx="1"/>
+                                            <circle cx="18.5" cy="5" r=".85" fill="currentColor" stroke="none"/>
+                                            <circle cx="18.5" cy="12" r=".85" fill="currentColor" stroke="none"/>
+                                            <circle cx="18.5" cy="19" r=".85" fill="currentColor" stroke="none"/>
+                                        </svg>
+                                    </div>
+                                    <span class="history-chart-title">서비스 현황</span>
+                                    <span class="history-chart-badge">월별</span>
+                                </div>
+                                <div class="history-chart-body">
+                                    <div id="serviceLoading" class="loading-msg">데이터 로딩 중...</div>
+                                    <canvas id="serviceChart" style="display:none;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 접속자현황 -->
+                        <div class="col-12 col-xl-6">
+                            <div class="history-chart-card">
+                                <div class="history-chart-head">
+                                    <div class="history-chart-icon" style="background:rgba(139,92,246,.12);color:#8b5cf6;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="9" cy="7" r="4"/>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                        </svg>
+                                    </div>
+                                    <span class="history-chart-title">접속자 현황</span>
+                                    <span class="history-chart-badge">월별</span>
+                                </div>
+                                <div class="history-chart-body">
+                                    <div id="connLoading" class="loading-msg">데이터 로딩 중...</div>
+                                    <canvas id="connChart" style="display:none;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/adminlte.min.js}"></script>
+<script>
+    const logIdNames = {
+        MBSOSI_COUNT:    '주식 종목수',
+        MBFOSI_COUNT:    '파생 종목수',
+        MBCOSI_COUNT:    '상품 종목수',
+        MBJISU_COUNT:    '업종 종목수',
+        NXT_COUNT:       'NXT 종목수',
+        OPT_MAX_COUNT:   '옵션결제월 최대수',
+        OS_BA_COUNT:     '미국주간',
+        OS_NB_COUNT:     '미국야간',
+        OS_HK_COUNT:     '홍콩',
+        OS_SH_COUNT:     '상해',
+        OS_SZ_COUNT:     '심천',
+        AUTO_ORDER_ACNT: '서버자동주문 계좌수',
+        CAP_REG_COUNT:   '시세포착1 등록수',
+        CAP2_REG_COUNT:  '시세포착2 등록수',
+        FREQ_CLUB_COUNT: '주파수클럽 사용수',
+        MAX_CONN_PREV:   '전일 최대동시접속',
+        HTS_MAX_CONN:    'HTS 최대동시접속',
+        MTS_MAX_CONN:    'MTS 최대동시접속'
+    };
+
+    const palette = {
+        MBSOSI_COUNT:    '#4472C4',
+        MBFOSI_COUNT:    '#ED7D31',
+        MBCOSI_COUNT:    '#70AD47',
+        MBJISU_COUNT:    '#FF0000',
+        NXT_COUNT:       '#7030A0',
+        OPT_MAX_COUNT:   '#00B0F0',
+        OS_BA_COUNT:     '#4472C4',
+        OS_NB_COUNT:     '#ED7D31',
+        OS_HK_COUNT:     '#70AD47',
+        OS_SH_COUNT:     '#FF0000',
+        OS_SZ_COUNT:     '#7030A0',
+        AUTO_ORDER_ACNT: '#4472C4',
+        CAP_REG_COUNT:   '#ED7D31',
+        CAP2_REG_COUNT:  '#70AD47',
+        FREQ_CLUB_COUNT: '#00B0F0',
+        MAX_CONN_PREV:   '#4472C4',
+        HTS_MAX_CONN:    '#ED7D31',
+        MTS_MAX_CONN:    '#70AD47'
+    };
+
+    function pad2(v) { return String(v).padStart(2, '0'); }
+
+    function formatNow() {
+        const d = new Date();
+        return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+
+    function yyyyMMtoLabel(raw) {
+        if (!raw || raw.length < 6) return raw;
+        return raw.substring(0, 4) + '/' + raw.substring(4, 6);
+    }
+
+    function exactDateToLabel(raw) {
+        if (!raw || raw.length < 8) return '';
+        return raw.substring(0, 4) + '/' + raw.substring(4, 6) + '/' + raw.substring(6, 8);
+    }
+
+    function renderGroupChart(canvasId, loadingId, seriesList) {
+        const loadingEl = document.getElementById(loadingId);
+        const canvas = document.getElementById(canvasId);
+
+        const safeSeries = Array.isArray(seriesList) ? seriesList : [];
+
+        if (safeSeries.length === 0) {
+            if (loadingEl) loadingEl.textContent = '데이터 없음';
+            return;
+        }
+
+        // 전체 월 레이블 수집 (정렬)
+        const allMonthsSet = new Set();
+        safeSeries.forEach(s => {
+            (s.data || []).forEach(d => { if (d.yyyyMM) allMonthsSet.add(d.yyyyMM); });
+        });
+        const months = Array.from(allMonthsSet).sort();
+
+        if (months.length === 0) {
+            if (loadingEl) loadingEl.textContent = '데이터 없음';
+            return;
+        }
+
+        // 시리즈별 월→{value, exactDate} 맵 빌드
+        const datasets = safeSeries.map(s => {
+            const byMonth = new Map();
+            (s.data || []).forEach(d => {
+                if (d.yyyyMM) byMonth.set(d.yyyyMM, { value: d.logValue, exactDate: d.exactDate });
+            });
+
+            const values = months.map(m => {
+                const p = byMonth.get(m);
+                return (p && p.value != null) ? Number(p.value) : null;
+            });
+            const exactDates = months.map(m => {
+                const p = byMonth.get(m);
+                return p ? (p.exactDate || null) : null;
+            });
+
+            return {
+                label: logIdNames[s.logId] || s.logId,
+                data: values,
+                exactDates,
+                borderColor: palette[s.logId] || '#6c757d',
+                backgroundColor: 'transparent',
+                tension: 0.25,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                spanGaps: false,
+                borderWidth: 2
+            };
+        });
+
+        if (loadingEl) loadingEl.style.display = 'none';
+        canvas.style.display = '';
+
+        new Chart(canvas, {
+            type: 'line',
+            data: { labels: months, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.5,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { font: { size: 11 }, boxWidth: 12, padding: 10 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => {
+                                const raw = items && items[0] ? items[0].label : '';
+                                return yyyyMMtoLabel(raw);
+                            },
+                            label: (item) => {
+                                const ds = item.dataset;
+                                const exactDate = ds.exactDates ? ds.exactDates[item.dataIndex] : null;
+                                const datePart = exactDate ? '  ' + exactDateToLabel(exactDate) : '';
+                                const val = item.raw;
+                                const fmtVal = (val != null && Number.isFinite(Number(val)))
+                                    ? Number(val).toLocaleString('ko-KR')
+                                    : '-';
+                                return `${ds.label}: ${fmtVal}${datePart}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'category',
+                        ticks: {
+                            autoSkip: false,
+                            font: { size: 11 },
+                            callback: function(value) {
+                                return yyyyMMtoLabel(this.getLabelForValue(value));
+                            }
+                        },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        ticks: { font: { size: 11 } },
+                        grid: { color: 'rgba(0,0,0,.05)' }
+                    }
+                }
+            }
+        });
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch('/dashboard/api/monthly-history', { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            if (!json || json.success !== true) throw new Error('API error');
+            const data = json.data || {};
+
+            renderGroupChart('stockChart',    'stockLoading',    data.stock    || []);
+            renderGroupChart('overseasChart', 'overseasLoading', data.overseas || []);
+            renderGroupChart('serviceChart',  'serviceLoading',  data.service  || []);
+            renderGroupChart('connChart',     'connLoading',     data.conn     || []);
+        } catch (e) {
+            ['stockLoading', 'overseasLoading', 'serviceLoading', 'connLoading'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '데이터 로딩 실패';
+            });
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const clockEl = document.getElementById('currentTime');
+        if (clockEl) {
+            clockEl.textContent = formatNow();
+            setInterval(() => { clockEl.textContent = formatNow(); }, 1000);
+        }
+        loadHistory();
+    });
+</script>
+</body>
+</html>

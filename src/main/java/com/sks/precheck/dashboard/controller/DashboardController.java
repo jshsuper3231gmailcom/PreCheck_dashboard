@@ -185,6 +185,29 @@ public class DashboardController {
     }
 
     /**
+     * History 페이지 화면을 반환한다.
+     */
+    @GetMapping("/dashboard/history")
+    public String history(@AuthenticationPrincipal AdminUserPrincipal principal, Model model) {
+        model.addAttribute("loginUserName", principal.getAdminUser().getUserName());
+        model.addAttribute("loginUserRole", principal.getAdminUser().getRole());
+        return "dashboard/history";
+    }
+
+    /**
+     * History 페이지용 전체 그룹 월별 시계열 조회 API.
+     */
+    @ResponseBody
+    @GetMapping("/dashboard/api/monthly-history")
+    public ApiResponse<Map<String, Object>> monthlyHistory() {
+        try {
+            return ApiResponse.ok(dashboardService.getMonthlyHistoryAll());
+        } catch (Exception e) {
+            return ApiResponse.fail(e.getMessage());
+        }
+    }
+
+    /**
      * 원본 정규화 로그 모달 조회 API.
      *
      * @param id 수집 로그 식별자다.

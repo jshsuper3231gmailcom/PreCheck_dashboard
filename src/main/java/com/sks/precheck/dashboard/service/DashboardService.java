@@ -390,6 +390,81 @@ public class DashboardService {
     }
 
     /**
+     * History 페이지용 전체 그룹 월별 시계열 데이터를 반환한다.
+     *
+     * 처리 순서:
+     * - 오늘 기준 11개월 전 1일부터 오늘까지(최대 12개월)를 조회 기간으로 확정한다.
+     * - stock / overseas / service / conn 4개 그룹 각각에 대해 infoData 항목을 선별한다.
+     * - 각 LOG_ID별 DB 조회 결과를 월(YYYYMM) 단위로 집계하고, 같은 달 내 최신 LOG_TIMESTAMP 기준 1건만 남긴다.
+     *
+     * 반환값 구조:
+     * - key: 그룹명("stock"/"overseas"/"service"/"conn")
+     * - value: [{logId, data: [{yyyyMM, logValue, exactDate}]}] 형태의 시리즈 목록이다.
+     */
+    public Map<String, Object> getMonthlyHistoryAll() {
+        String today = today();
+        String startDate = LocalDate.parse(today, YYYYMMDD).minusMonths(11).withDayOfMonth(1).format(YYYYMMDD);
+
+        Map<String, Set<String>> groups = new LinkedHashMap<>();
+        groups.put("stock",    new HashSet<>(Set.of("MBSOSI_COUNT", "MBFOSI_COUNT", "MBCOSI_COUNT", "MBJISU_COUNT", "NXT_COUNT", "OPT_MAX_COUNT")));
+        groups.put("overseas", new HashSet<>(Set.of("OS_BA_COUNT", "OS_NB_COUNT", "OS_HK_COUNT", "OS_SH_COUNT", "OS_SZ_COUNT")));
+        groups.put("service",  new HashSet<>(Set.of("AUTO_ORDER_ACNT", "CAP_REG_COUNT", "CAP2_REG_COUNT", "FREQ_CLUB_COUNT")));
+        groups.put("conn",     new HashSet<>(Set.of("MAX_CONN_PREV", "HTS_MAX_CONN", "MTS_MAX_CONN")));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<String>> entry : groups.entrySet()) {
+            String groupName = entry.getKey();
+            Set<String> targets = entry.getValue();
+
+            List<Map<String, Object>> seriesList = new ArrayList<>();
+            for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
+                if (!targets.contains(item.getLogId())) {
+                    continue;
+                }
+
+                List<AnalyzeResultDto> rows = dashboardMapper.selectHistoryData(
+                        startDate, today, item.getServerId(), item.getLogId());
+
+                // 월별 최신 1건 선정 (같은 달, 최신 LOG_TIMESTAMP 우선)
+                Map<String, AnalyzeResultDto> latestByMonth = new TreeMap<>();
+                for (AnalyzeResultDto row : rows) {
+                    String date = row.getAnalyzeDate();
+                    if (date == null || date.length() < 6) {
+                        continue;
+                    }
+                    String yyyyMM = date.substring(0, 6);
+                    AnalyzeResultDto existing = latestByMonth.get(yyyyMM);
+                    if (existing == null) {
+                        latestByMonth.put(yyyyMM, row);
+                    } else {
+                        LocalDateTime curr = row.getLogTimestamp();
+                        LocalDateTime prev = existing.getLogTimestamp();
+                        if (curr != null && (prev == null || curr.isAfter(prev))) {
+                            latestByMonth.put(yyyyMM, row);
+                        }
+                    }
+                }
+
+                List<Map<String, Object>> data = new ArrayList<>();
+                for (AnalyzeResultDto row : latestByMonth.values()) {
+                    Map<String, Object> point = new LinkedHashMap<>();
+                    point.put("yyyyMM", row.getAnalyzeDate().substring(0, 6));
+                    point.put("logValue", row.getLogValue());
+                    point.put("exactDate", row.getAnalyzeDate());
+                    data.add(point);
+                }
+
+                Map<String, Object> seriesEntry = new LinkedHashMap<>();
+                seriesEntry.put("logId", item.getLogId());
+                seriesEntry.put("data", data);
+                seriesList.add(seriesEntry);
+            }
+            result.put(groupName, seriesList);
+        }
+        return result;
+    }
+
+    /**
      * 원본 로그 모달 조회용 수집 로그 1건을 반환한다.
      *
      * @param collectLogId 원본 로그 원문을 확인할 대상 수집 로그 식별자다.
