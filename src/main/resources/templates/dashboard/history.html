@@ -381,42 +381,37 @@
             return;
         }
 
-        // 전체 월 레이블 수집 (정렬)
-        const allMonthsSet = new Set();
+        // 전체 날짜 레이블 수집 (exactDate 기준, 정렬)
+        const allDatesSet = new Set();
         safeSeries.forEach(s => {
-            (s.data || []).forEach(d => { if (d.yyyyMM) allMonthsSet.add(d.yyyyMM); });
+            (s.data || []).forEach(d => { if (d.exactDate) allDatesSet.add(d.exactDate); });
         });
-        const months = Array.from(allMonthsSet).sort();
+        const dates = Array.from(allDatesSet).sort();
 
-        if (months.length === 0) {
+        if (dates.length === 0) {
             if (loadingEl) loadingEl.textContent = '데이터 없음';
             return;
         }
 
-        // 시리즈별 월→{value, exactDate} 맵 빌드
+        // 시리즈별 exactDate→value 맵 빌드
         const datasets = safeSeries.map(s => {
-            const byMonth = new Map();
+            const byDate = new Map();
             (s.data || []).forEach(d => {
-                if (d.yyyyMM) byMonth.set(d.yyyyMM, { value: d.logValue, exactDate: d.exactDate });
+                if (d.exactDate) byDate.set(d.exactDate, d.logValue);
             });
 
-            const values = months.map(m => {
-                const p = byMonth.get(m);
-                return (p && p.value != null) ? Number(p.value) : null;
-            });
-            const exactDates = months.map(m => {
-                const p = byMonth.get(m);
-                return p ? (p.exactDate || null) : null;
+            const values = dates.map(date => {
+                const v = byDate.get(date);
+                return (v != null) ? Number(v) : null;
             });
 
             return {
                 label: logIdNames[s.logId] || s.logId,
                 data: values,
-                exactDates,
                 borderColor: palette[s.logId] || '#6c757d',
                 backgroundColor: 'transparent',
                 tension: 0.25,
-                pointRadius: 3,
+                pointRadius: 0,
                 pointHoverRadius: 5,
                 spanGaps: false,
                 borderWidth: 2
@@ -428,7 +423,7 @@
 
         new Chart(canvas, {
             type: 'line',
-            data: { labels: months, datasets },
+            data: { labels: dates, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
@@ -443,17 +438,14 @@
                         callbacks: {
                             title: (items) => {
                                 const raw = items && items[0] ? items[0].label : '';
-                                return yyyyMMtoLabel(raw);
+                                return exactDateToLabel(raw);
                             },
                             label: (item) => {
-                                const ds = item.dataset;
-                                const exactDate = ds.exactDates ? ds.exactDates[item.dataIndex] : null;
-                                const datePart = exactDate ? '  ' + exactDateToLabel(exactDate) : '';
                                 const val = item.raw;
                                 const fmtVal = (val != null && Number.isFinite(Number(val)))
                                     ? Number(val).toLocaleString('ko-KR')
                                     : '-';
-                                return `${ds.label}: ${fmtVal}${datePart}`;
+                                return `${item.dataset.label}: ${fmtVal}`;
                             }
                         }
                     }
@@ -464,8 +456,16 @@
                         ticks: {
                             autoSkip: false,
                             font: { size: 11 },
-                            callback: function(value) {
-                                return yyyyMMtoLabel(this.getLabelForValue(value));
+                            callback: function(value, index, ticks) {
+                                const raw = this.getLabelForValue(value);
+                                if (!raw || raw.length < 6) return raw;
+                                const label = raw.substring(0, 4) + '/' + raw.substring(4, 6);
+                                if (index > 0) {
+                                    const prevRaw = this.getLabelForValue(ticks[index - 1].value);
+                                    const prevLabel = prevRaw ? prevRaw.substring(0, 4) + '/' + prevRaw.substring(4, 6) : '';
+                                    if (label === prevLabel) return '';
+                                }
+                                return label;
                             }
                         },
                         grid: { color: 'rgba(0,0,0,.05)' }

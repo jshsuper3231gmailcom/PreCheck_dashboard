@@ -425,30 +425,28 @@ public class DashboardService {
                 List<AnalyzeResultDto> rows = dashboardMapper.selectHistoryData(
                         startDate, today, item.getServerId(), item.getLogId());
 
-                // 월별 최신 1건 선정 (같은 달, 최신 LOG_TIMESTAMP 우선)
-                Map<String, AnalyzeResultDto> latestByMonth = new TreeMap<>();
+                // 일별 최신 1건 선정 (같은 날짜, 최신 LOG_TIMESTAMP 우선)
+                Map<String, AnalyzeResultDto> latestByDate = new TreeMap<>();
                 for (AnalyzeResultDto row : rows) {
                     String date = row.getAnalyzeDate();
-                    if (date == null || date.length() < 6) {
+                    if (date == null || date.length() < 8) {
                         continue;
                     }
-                    String yyyyMM = date.substring(0, 6);
-                    AnalyzeResultDto existing = latestByMonth.get(yyyyMM);
+                    AnalyzeResultDto existing = latestByDate.get(date);
                     if (existing == null) {
-                        latestByMonth.put(yyyyMM, row);
+                        latestByDate.put(date, row);
                     } else {
                         LocalDateTime curr = row.getLogTimestamp();
                         LocalDateTime prev = existing.getLogTimestamp();
                         if (curr != null && (prev == null || curr.isAfter(prev))) {
-                            latestByMonth.put(yyyyMM, row);
+                            latestByDate.put(date, row);
                         }
                     }
                 }
 
                 List<Map<String, Object>> data = new ArrayList<>();
-                for (AnalyzeResultDto row : latestByMonth.values()) {
+                for (AnalyzeResultDto row : latestByDate.values()) {
                     Map<String, Object> point = new LinkedHashMap<>();
-                    point.put("yyyyMM", row.getAnalyzeDate().substring(0, 6));
                     point.put("logValue", row.getLogValue());
                     point.put("exactDate", row.getAnalyzeDate());
                     data.add(point);
