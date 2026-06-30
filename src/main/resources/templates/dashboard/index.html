@@ -8,6 +8,7 @@
     <title>PreCheck Dashboard</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <link rel="stylesheet" th:href="@{/css/security.css}">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -412,7 +413,7 @@
         .card--access .stat-card__icon { background: rgba(139,92,246,.12); color: #8b5cf6; }
     </style>
 </head>
-<body>
+<body th:attr="data-username=${loginUserName}">
 <div class="wrapper">
     <nav class="app-header navbar navbar-expand precheck-header">
         <div class="db-header-line"></div>
@@ -2093,5 +2094,6 @@
         }, 150);
     });
 </script>
+<script th:src="@{/js/security.js}"></script>
 </body>
 </html>

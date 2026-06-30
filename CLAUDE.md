@@ -31,6 +31,17 @@ src/main/resources/sql/init_dev.sql
 
 ---
 
+## Spring DevTools 주의 (템플릿 변경 시)
+
+DevTools가 `src/main/resources/` 변경을 Thymeleaf에 **반영하지 않음**.
+템플릿(`.html`) 수정 후 선택지:
+- `gradlew.bat clean bootRun` — 전체 재빌드 (느림, 확실)
+- `Copy-Item src\main\resources\templates\... build\resources\main\templates\...` — 빠른 수동 복사
+
+Java 파일은 DevTools가 자동 재시작. Mapper XML은 수동 복사 후 DevTools가 자동 감지.
+
+---
+
 ## 핵심 gotcha
 
 - **SSR + JS 폴링 혼합 구조**: Thymeleaf가 초기 페이지 렌더링, 브라우저가 `/dashboard/api/*` 엔드포인트를 60초 간격 폴링

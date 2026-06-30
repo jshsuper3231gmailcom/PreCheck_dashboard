@@ -8,6 +8,7 @@
     <title>계정관리 - PreCheck Dashboard</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <link rel="stylesheet" th:href="@{/css/security.css}">
     <style>
         .precheck-header {
             background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
@@ -144,6 +145,17 @@
             font-size: 14px;
             color: #374151;
         }
+        @media (max-width: 767.98px) {
+            #userTable th,
+            #userTable td {
+                font-size: 12px;
+                padding: 0.4rem 0.5rem;
+            }
+            .btn-sm {
+                font-size: 11px;
+                padding: 0.2rem 0.4rem;
+            }
+        }
         .mini-nav-sidebar {
             position: absolute;
             top: 0;
@@ -193,9 +205,24 @@
             margin-left: 0.55rem;
             pointer-events: auto;
         }
+        @media (max-width: 991.98px) {
+            .precheck-header { padding: 0 1.5rem; }
+            .precheck-banner-title { font-size: 1.25rem; }
+            .precheck-header-meta { gap: .75rem !important; flex-wrap: wrap; justify-content: flex-end; }
+        }
+        @media (max-width: 767.98px) {
+            .precheck-header { height: auto; min-height: 96px; padding: .75rem 1rem; }
+            .precheck-header .container-fluid { align-items: flex-start !important; gap: .75rem; }
+            .precheck-banner-content { gap: .75rem; }
+            .brand-icon { width: 44px; height: 44px; }
+            .precheck-banner-title { white-space: normal; line-height: 1.25; }
+            .precheck-banner-title .sub { display: block; margin-left: 0; }
+            .header-info { font-size: .88rem; }
+            .precheck-header-meta { width: 100%; justify-content: flex-start !important; }
+        }
     </style>
 </head>
-<body>
+<body th:attr="data-username=${loginUserName}">
 <div class="wrapper">
 
     <nav class="app-header navbar navbar-expand precheck-header">
@@ -277,28 +304,18 @@
 
             <div class="card">
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0" id="userTable" style="table-layout: fixed; width: 100%;">
-                        <colgroup>
-                            <col style="width: 11%;">
-                            <col style="width: 8%;">
-                            <col style="width: 9%;">
-                            <col style="width: 7%;">
-                            <col style="width: 6%;">
-                            <col style="width: 11%;">
-                            <col style="width: 11%;">
-                            <col style="width: 11%;">
-                            <col style="width: 26%;">
-                        </colgroup>
+                    <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="userTable">
                         <thead>
                             <tr>
                                 <th class="text-truncate">아이디</th>
                                 <th class="text-truncate">이름</th>
-                                <th class="text-truncate">권한</th>
+                                <th class="text-truncate d-none d-md-table-cell">권한</th>
                                 <th>상태</th>
-                                <th class="text-truncate">로그인 실패</th>
-                                <th class="text-truncate">잠긴 시각</th>
-                                <th class="text-truncate">최근 로그인</th>
-                                <th class="text-truncate">비밀번호 변경일</th>
+                                <th class="text-truncate d-none d-lg-table-cell">로그인 실패</th>
+                                <th class="text-truncate d-none d-xl-table-cell">잠긴 시각</th>
+                                <th class="text-truncate d-none d-md-table-cell">최근 로그인</th>
+                                <th class="text-truncate d-none d-xl-table-cell">비밀번호 변경일</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
@@ -306,16 +323,16 @@
                             <tr th:each="user : ${users}">
                                 <td class="text-truncate" th:text="${user.loginId}"></td>
                                 <td class="text-truncate" th:text="${user.userName}"></td>
-                                <td class="text-truncate" th:text="${user.role}"></td>
+                                <td class="text-truncate d-none d-md-table-cell" th:text="${user.role}"></td>
                                 <td>
                                     <span class="badge"
                                           th:classappend="${user.status == 'ACTIVE'} ? 'text-bg-success' : (${user.status == 'LOCKED'} ? 'text-bg-danger' : 'text-bg-secondary')"
                                           th:text="${user.status}"></span>
                                 </td>
-                                <td th:text="${user.loginFailCount}"></td>
-                                <td class="text-truncate" th:text="${user.lockedAt != null ? #temporals.format(user.lockedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
-                                <td class="text-truncate" th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
-                                <td class="text-truncate" th:text="${user.passwordChangedAt != null ? #temporals.format(user.passwordChangedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="d-none d-lg-table-cell" th:text="${user.loginFailCount}"></td>
+                                <td class="text-truncate d-none d-xl-table-cell" th:text="${user.lockedAt != null ? #temporals.format(user.lockedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="text-truncate d-none d-md-table-cell" th:text="${user.lastLoginAt != null ? #temporals.format(user.lastLoginAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
+                                <td class="text-truncate d-none d-xl-table-cell" th:text="${user.passwordChangedAt != null ? #temporals.format(user.passwordChangedAt, 'yyyy-MM-dd HH:mm') : '-'}"></td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
                                         <!-- LOCKED only -->
@@ -345,6 +362,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div><!-- table-responsive -->
                 </div>
             </div>
 
@@ -605,5 +623,6 @@
         });
     });
 </script>
+<script th:src="@{/js/security.js}"></script>
 </body>
 </html>

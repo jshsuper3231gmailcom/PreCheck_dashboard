@@ -448,7 +448,14 @@
           AND SERVER_ID    = 'pmaster2-마스터'
           AND LOG_ID       = #{logId}
           AND LOG_TYPE     = '수치'
-          AND ANALYZE_DATETIME >= NOW() - INTERVAL '60 minutes'
+          AND LOG_TIMESTAMP >= (
+                SELECT MAX(LOG_TIMESTAMP) - INTERVAL '60 minutes'
+                FROM TB_ANALYZE_RESULT
+                WHERE ANALYZE_DATE = #{today}
+                  AND SERVER_ID    = 'pmaster2-마스터'
+                  AND LOG_ID       = #{logId}
+                  AND LOG_TYPE     = '수치'
+          )
         ORDER BY LOG_TIMESTAMP ASC
     </select>
 

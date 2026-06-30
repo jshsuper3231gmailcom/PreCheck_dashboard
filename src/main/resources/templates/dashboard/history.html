@@ -8,6 +8,7 @@
     <title>PreCheck Dashboard - History</title>
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <link rel="stylesheet" th:href="@{/css/security.css}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #eaf4fc; }
@@ -131,9 +132,24 @@
         }
         .history-chart-body { padding: 12px 16px; }
         .loading-msg { color: #94a3b8; font-size: 13px; text-align: center; padding: 40px 0; }
+        @media (max-width: 991.98px) {
+            .precheck-header { padding: 0 1.5rem; }
+            .precheck-banner-title { font-size: 1.25rem; }
+            .precheck-header-meta { gap: .75rem !important; flex-wrap: wrap; justify-content: flex-end; }
+        }
+        @media (max-width: 767.98px) {
+            .precheck-header { height: auto; min-height: 96px; padding: .75rem 1rem; }
+            .precheck-header .container-fluid { align-items: flex-start !important; gap: .75rem; }
+            .precheck-banner-content { gap: .75rem; }
+            .brand-icon { width: 44px; height: 44px; }
+            .precheck-banner-title { white-space: normal; line-height: 1.25; }
+            .precheck-banner-title .sub { display: block; margin-left: 0; }
+            .header-info { font-size: .88rem; }
+            .precheck-header-meta { width: 100%; justify-content: flex-start !important; }
+        }
     </style>
 </head>
-<body>
+<body th:attr="data-username=${loginUserName}">
 <div class="wrapper">
     <nav class="app-header navbar navbar-expand precheck-header">
         <div class="db-header-line"></div>
@@ -353,6 +369,16 @@
         MTS_MAX_CONN:    '#70AD47'
     };
 
+    const chartInstances = {};
+    let historyData = null;
+
+    function getMaxTicks(canvasWidth) {
+        if (canvasWidth < 380) return 4;
+        if (canvasWidth < 560) return 6;
+        if (canvasWidth < 780) return 9;
+        return 12;
+    }
+
     function pad2(v) { return String(v).padStart(2, '0'); }
 
     function formatNow() {
@@ -421,7 +447,11 @@
         if (loadingEl) loadingEl.style.display = 'none';
         canvas.style.display = '';
 
-        new Chart(canvas, {
+        if (chartInstances[canvasId]) {
+            chartInstances[canvasId].destroy();
+        }
+
+        chartInstances[canvasId] = new Chart(canvas, {
             type: 'line',
             data: { labels: dates, datasets },
             options: {
@@ -454,7 +484,8 @@
                     x: {
                         type: 'category',
                         ticks: {
-                            autoSkip: false,
+                            autoSkip: true,
+                            maxTicksLimit: getMaxTicks(canvas.offsetWidth),
                             font: { size: 11 },
                             callback: function(value, index, ticks) {
                                 const raw = this.getLabelForValue(value);
@@ -480,17 +511,21 @@
         });
     }
 
+    function renderAll() {
+        if (!historyData) return;
+        renderGroupChart('stockChart',    'stockLoading',    historyData.stock    || []);
+        renderGroupChart('overseasChart', 'overseasLoading', historyData.overseas || []);
+        renderGroupChart('serviceChart',  'serviceLoading',  historyData.service  || []);
+        renderGroupChart('connChart',     'connLoading',     historyData.conn     || []);
+    }
+
     async function loadHistory() {
         try {
             const res = await fetch('/dashboard/api/monthly-history', { headers: { 'Accept': 'application/json' } });
             const json = await res.json();
             if (!json || json.success !== true) throw new Error('API error');
-            const data = json.data || {};
-
-            renderGroupChart('stockChart',    'stockLoading',    data.stock    || []);
-            renderGroupChart('overseasChart', 'overseasLoading', data.overseas || []);
-            renderGroupChart('serviceChart',  'serviceLoading',  data.service  || []);
-            renderGroupChart('connChart',     'connLoading',     data.conn     || []);
+            historyData = json.data || {};
+            renderAll();
         } catch (e) {
             ['stockLoading', 'overseasLoading', 'serviceLoading', 'connLoading'].forEach(id => {
                 const el = document.getElementById(id);
@@ -498,6 +533,12 @@
             });
         }
     }
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(renderAll, 200);
+    });
 
     window.addEventListener('DOMContentLoaded', () => {
         const clockEl = document.getElementById('currentTime');
@@ -508,5 +549,6 @@
         loadHistory();
     });
 </script>
+<script th:src="@{/js/security.js}"></script>
 </body>
 </html>
