@@ -160,9 +160,10 @@ public class AccountService {
      * @throws IllegalArgumentException 대상 계정이 없을 때다.
      */
     private AdminUserDto findById(Long adminUserId) {
-        return adminUserMapper.selectAll().stream()
-                .filter(u -> u.getAdminUserId().equals(adminUserId))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("대상 계정을 찾을 수 없습니다."));
+        AdminUserDto user = adminUserMapper.selectById(adminUserId);
+        if (user == null) {
+            throw new IllegalArgumentException("대상 계정을 찾을 수 없습니다.");
+        }
+        return user;
     }
 }

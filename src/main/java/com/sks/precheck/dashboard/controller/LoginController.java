@@ -1,5 +1,6 @@
 package com.sks.precheck.dashboard.controller;
 
+import com.sks.precheck.dashboard.security.AuthMessages;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,13 +16,10 @@ import org.springframework.web.bind.annotation.RequestParam;
  * - 8__로그인_보안정책정의서.md 6장: 잠긴 계정은 별도 메시지를 노출하고,
  *   그 외 실패(존재하지 않는 ID/비밀번호 불일치)는 동일한 일반 메시지로 통일해
  *   잔여 시도 횟수/잠금 정보를 노출하지 않는다.
+ * - 메시지 문구는 {@link AuthMessages}에서 가져온다(AdminAuthenticationProvider와 공유).
  */
 @Controller
 public class LoginController {
-
-    private static final String LOCKED_MESSAGE = "계정이 잠겼습니다. 관리자에게 문의하세요.";
-    private static final String DISABLED_MESSAGE = "비활성화된 계정입니다. 관리자에게 문의하세요.";
-    private static final String GENERIC_FAIL_MESSAGE = "아이디 또는 비밀번호가 올바르지 않습니다.";
 
     /**
      * 로그인 화면을 반환한다.
@@ -33,9 +31,9 @@ public class LoginController {
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error, Model model) {
         if (error != null) {
-            String message = "locked".equals(error) ? LOCKED_MESSAGE
-                    : "disabled".equals(error) ? DISABLED_MESSAGE
-                    : GENERIC_FAIL_MESSAGE;
+            String message = "locked".equals(error) ? AuthMessages.LOCKED_MESSAGE
+                    : "disabled".equals(error) ? AuthMessages.DISABLED_MESSAGE
+                    : AuthMessages.GENERIC_FAIL_MESSAGE;
             model.addAttribute("errorMessage", message);
         }
         return "login";

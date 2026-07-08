@@ -14,8 +14,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.LocalDateTime;
 
 /**
  * 비밀번호 만료(90일) 정책 인터셉터.
@@ -57,16 +55,11 @@ public class PasswordExpiryInterceptor implements HandlerInterceptor {
                 request.getRequestURI(), principal.getUsername(),
                 user != null ? user.getPasswordChangedAt() : "NULL",
                 user != null ? user.getPasswordExpireYn() : "NULL");
-        if (user == null || "SUPER_ADMIN".equals(user.getRole()) || !"Y".equals(user.getPasswordExpireYn())) {
+        long daysRemaining = PasswordPolicyValidator.daysRemaining(user);
+        if (daysRemaining == Long.MAX_VALUE) {
             return true;
         }
-        if (user.getPasswordChangedAt() == null) {
-            return true;
-        }
-
-        long daysSinceChange = Duration.between(user.getPasswordChangedAt(), LocalDateTime.now()).toDays();
-        long daysRemaining = PasswordPolicyValidator.PASSWORD_EXPIRE_DAYS - daysSinceChange;
-        log.debug("[PasswordExpiryInterceptor] daysSinceChange={} daysRemaining={}", daysSinceChange, daysRemaining);
+        log.debug("[PasswordExpiryInterceptor] daysRemaining={}", daysRemaining);
 
         if (daysRemaining <= 0) {
             log.info("[PasswordExpiryInterceptor] Password expired for user={}. Redirecting to /password/change", principal.getUsername());

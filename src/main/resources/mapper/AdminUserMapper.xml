@@ -21,6 +21,25 @@
         WHERE LOGIN_ID = #{loginId}
     </select>
 
+    <select id="selectById" resultType="com.sks.precheck.dashboard.dto.AdminUserDto">
+        SELECT
+            ADMIN_USER_ID,
+            LOGIN_ID,
+            PASSWORD,
+            USER_NAME,
+            ROLE,
+            STATUS,
+            LOGIN_FAIL_COUNT,
+            LOCKED_AT,
+            PASSWORD_CHANGED_AT,
+            PASSWORD_EXPIRE_YN,
+            LAST_LOGIN_AT,
+            CREATED_AT,
+            UPDATED_AT
+        FROM TB_ADMIN_USER
+        WHERE ADMIN_USER_ID = #{adminUserId}
+    </select>
+
     <select id="selectAll" resultType="com.sks.precheck.dashboard.dto.AdminUserDto">
         SELECT
             ADMIN_USER_ID,

@@ -439,7 +439,7 @@
         UC 실시간 접속자수 최근 60분 시계열 조회.
         LOG_TIMESTAMP ASC 정렬로 스파크라인 X축(시간) 순서를 보장한다.
     -->
-    <select id="selectUcSparkData" resultType="map">
+    <select id="selectUcSparkData" resultType="map" databaseId="postgresql">
         SELECT
             LOG_TIMESTAMP AS "logTimestamp",
             LOG_VALUE     AS "logValue"
@@ -450,6 +450,26 @@
           AND LOG_TYPE     = '수치'
           AND LOG_TIMESTAMP >= (
                 SELECT MAX(LOG_TIMESTAMP) - INTERVAL '60 minutes'
+                FROM TB_ANALYZE_RESULT
+                WHERE ANALYZE_DATE = #{today}
+                  AND SERVER_ID    = 'pmaster2-마스터'
+                  AND LOG_ID       = #{logId}
+                  AND LOG_TYPE     = '수치'
+          )
+        ORDER BY LOG_TIMESTAMP ASC
+    </select>
+
+    <select id="selectUcSparkData" resultType="map" databaseId="altibase">
+        SELECT
+            LOG_TIMESTAMP AS "logTimestamp",
+            LOG_VALUE     AS "logValue"
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND SERVER_ID    = 'pmaster2-마스터'
+          AND LOG_ID       = #{logId}
+          AND LOG_TYPE     = '수치'
+          AND LOG_TIMESTAMP >= (
+                SELECT MAX(LOG_TIMESTAMP) - INTERVAL 60 MINUTE
                 FROM TB_ANALYZE_RESULT
                 WHERE ANALYZE_DATE = #{today}
                   AND SERVER_ID    = 'pmaster2-마스터'

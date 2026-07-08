@@ -41,9 +41,6 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
     /** 정책서 6장: 잠금 후 5분 경과 시 자동 해제. */
     private static final long AUTO_UNLOCK_MINUTES = 5;
 
-    private static final String GENERIC_FAIL_MESSAGE = "아이디 또는 비밀번호가 올바르지 않습니다.";
-    private static final String LOCKED_MESSAGE = "계정이 잠겼습니다. 관리자에게 문의하세요.";
-
     private final AdminUserMapper adminUserMapper;
     private final PasswordEncoder passwordEncoder;
     private final AdminAuditLogService auditLogService;
@@ -57,23 +54,23 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
         AdminUserDto user = adminUserMapper.selectByLoginId(loginId);
         if (user == null) {
             auditLogService.log(null, loginId, "LOGIN_FAIL", null, request, "존재하지 않는 계정");
-            throw new BadCredentialsException(GENERIC_FAIL_MESSAGE);
+            throw new BadCredentialsException(AuthMessages.GENERIC_FAIL_MESSAGE);
         }
 
         autoUnlockIfExpired(user);
 
         if ("LOCKED".equals(user.getStatus())) {
             auditLogService.log(user.getAdminUserId(), loginId, "LOGIN_FAIL", null, request, "잠긴 계정 로그인 시도");
-            throw new LockedException(LOCKED_MESSAGE);
+            throw new LockedException(AuthMessages.LOCKED_MESSAGE);
         }
         if ("DISABLED".equals(user.getStatus())) {
             auditLogService.log(user.getAdminUserId(), loginId, "LOGIN_FAIL", null, request, "비활성화된 계정 로그인 시도");
-            throw new DisabledException(GENERIC_FAIL_MESSAGE);
+            throw new DisabledException(AuthMessages.DISABLED_MESSAGE);
         }
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             handleLoginFailure(user);
-            throw new BadCredentialsException(GENERIC_FAIL_MESSAGE);
+            throw new BadCredentialsException(AuthMessages.GENERIC_FAIL_MESSAGE);
         }
 
         adminUserMapper.updateLoginSuccess(user.getAdminUserId(), LocalDateTime.now());

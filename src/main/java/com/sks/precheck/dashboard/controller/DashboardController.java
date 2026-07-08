@@ -8,6 +8,7 @@ import com.sks.precheck.dashboard.dto.SummaryDto;
 import com.sks.precheck.dashboard.security.AdminUserPrincipal;
 import com.sks.precheck.dashboard.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Dashboard 화면과 조회 API 진입점을 제공하는 컨트롤러.
@@ -29,12 +31,31 @@ import java.util.Map;
  * 설계 이유:
  * - Dashboard는 조회 전용이므로 각 API가 상태를 바꾸지 않게 얇은 위임 계층으로 유지한다.
  * - 예외는 공통 응답 형식으로 감싸 화면이 개별 실패를 식별할 수 있게 한다.
+ * - 실패 시 원본 예외 메시지(DB/드라이버 상세 포함 가능)를 클라이언트에 그대로 내려보내지 않고,
+ *   서버 로그에는 스택트레이스를 남기고 화면에는 일반화된 메시지만 전달한다.
  */
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class DashboardController {
     private final DashboardService dashboardService;
     private final InfoDataConfig infoDataConfig;
+
+    /**
+     * 조회 API 공통 예외 처리 래퍼.
+     *
+     * @param apiName 로그 식별용 API 이름이다.
+     * @param supplier 실제 조회 로직이다.
+     * @return 성공 시 데이터를 담은 응답, 실패 시 일반화된 오류 메시지를 담은 응답이다.
+     */
+    private <T> ApiResponse<T> handle(String apiName, Supplier<T> supplier) {
+        try {
+            return ApiResponse.ok(supplier.get());
+        } catch (Exception e) {
+            log.error("[DashboardController] {} 조회 중 오류", apiName, e);
+            return ApiResponse.fail("조회 중 오류가 발생했습니다.");
+        }
+    }
 
     /**
      * 대시보드 메인 화면을 반환한다.
@@ -59,11 +80,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/summary")
     public ApiResponse<SummaryDto> summary() {
-        try {
-            return ApiResponse.ok(dashboardService.getSummary());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("summary", dashboardService::getSummary);
     }
 
     /**
@@ -74,11 +91,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/info-data")
     public ApiResponse<Map<String, Object>> infoData() {
-        try {
-            return ApiResponse.ok(dashboardService.getAllInfoData());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("info-data", dashboardService::getAllInfoData);
     }
 
     /**
@@ -94,11 +107,7 @@ public class DashboardController {
             @RequestParam(value = "serverId", required = false) String serverId,
             @RequestParam(value = "page", required = false, defaultValue = "1") int page
     ) {
-        try {
-            return ApiResponse.ok(dashboardService.getErrorWarningPage(serverId, page));
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("error-list", () -> dashboardService.getErrorWarningPage(serverId, page));
     }
 
     /**
@@ -114,11 +123,7 @@ public class DashboardController {
             @RequestParam(value = "serverId", required = false) String serverId,
             @RequestParam(value = "page", required = false, defaultValue = "1") int page
     ) {
-        try {
-            return ApiResponse.ok(dashboardService.getNormalInfoPage(serverId, page));
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("normal-list", () -> dashboardService.getNormalInfoPage(serverId, page));
     }
 
     /**
@@ -132,11 +137,7 @@ public class DashboardController {
     public ApiResponse<List<Map<String, Object>>> history(
             @RequestParam("groupType") String groupType
     ) {
-        try {
-            return ApiResponse.ok(dashboardService.getHistoryData(groupType));
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("history", () -> dashboardService.getHistoryData(groupType));
     }
 
     /**
@@ -147,11 +148,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/resource")
     public ApiResponse<List<Map<String, Object>>> resource() {
-        try {
-            return ApiResponse.ok(dashboardService.getResourceData());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("resource", dashboardService::getResourceData);
     }
 
     /**
@@ -162,11 +159,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/server-list")
     public ApiResponse<List<Map<String, Object>>> serverList() {
-        try {
-            return ApiResponse.ok(dashboardService.getServerList());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("server-list", dashboardService::getServerList);
     }
 
     /**
@@ -177,11 +170,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/uc-spark")
     public ApiResponse<Map<String, Object>> ucSpark() {
-        try {
-            return ApiResponse.ok(dashboardService.getUcSparkData());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("uc-spark", dashboardService::getUcSparkData);
     }
 
     /**
@@ -200,11 +189,7 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/monthly-history")
     public ApiResponse<Map<String, Object>> monthlyHistory() {
-        try {
-            return ApiResponse.ok(dashboardService.getMonthlyHistoryAll());
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("monthly-history", dashboardService::getMonthlyHistoryAll);
     }
 
     /**
@@ -216,10 +201,6 @@ public class DashboardController {
     @ResponseBody
     @GetMapping("/dashboard/api/raw-log/{id}")
     public ApiResponse<CollectLogDto> rawLog(@PathVariable("id") Long id) {
-        try {
-            return ApiResponse.ok(dashboardService.getRawLog(id));
-        } catch (Exception e) {
-            return ApiResponse.fail(e.getMessage());
-        }
+        return handle("raw-log", () -> dashboardService.getRawLog(id));
     }
 }

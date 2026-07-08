@@ -61,7 +61,7 @@ public class PasswordService {
         log.info("[PasswordService] validation passed for user={}", user.getLoginId());
 
         LocalDateTime now = LocalDateTime.now();
-        recordHistoryAndUpdatePassword(user, newPassword, now, "Y");
+        recordHistoryAndUpdatePassword(user, newPassword, now, PasswordPolicyValidator.expireYnAfterChange(user.getRole()));
         log.info("[PasswordService] password updated in DB for user={} at {}", user.getLoginId(), now);
 
         auditLogService.log(user.getAdminUserId(), user.getLoginId(), "PASSWORD_CHANGE", null, request, "본인 비밀번호 변경");

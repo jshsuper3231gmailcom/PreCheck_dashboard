@@ -19,9 +19,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.Duration;
-import java.time.LocalDateTime;
-
 /**
  * 본인 비밀번호 변경 화면 컨트롤러.
  *
@@ -118,10 +115,6 @@ public class PasswordController {
      * @return 만료 정책이 적용되고 90일이 경과했으면 true다.
      */
     private boolean isExpired(AdminUserDto user) {
-        if (!"Y".equals(user.getPasswordExpireYn()) || user.getPasswordChangedAt() == null) {
-            return false;
-        }
-        long daysSinceChange = Duration.between(user.getPasswordChangedAt(), LocalDateTime.now()).toDays();
-        return daysSinceChange >= PasswordPolicyValidator.PASSWORD_EXPIRE_DAYS;
+        return PasswordPolicyValidator.isExpired(user);
     }
 }

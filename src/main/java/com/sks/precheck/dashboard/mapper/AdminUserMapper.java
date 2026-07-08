@@ -31,6 +31,14 @@ public interface AdminUserMapper {
     AdminUserDto selectByLoginId(@Param("loginId") String loginId);
 
     /**
+     * ADMIN_USER_ID로 계정을 조회한다.
+     *
+     * @param adminUserId 대상 계정 ID다.
+     * @return 일치하는 계정이다. 없으면 null이다.
+     */
+    AdminUserDto selectById(@Param("adminUserId") Long adminUserId);
+
+    /**
      * 계정관리 화면의 전체 계정 목록을 조회한다.
      *
      * @return LOGIN_ID 기준으로 정렬된 계정 목록이다.

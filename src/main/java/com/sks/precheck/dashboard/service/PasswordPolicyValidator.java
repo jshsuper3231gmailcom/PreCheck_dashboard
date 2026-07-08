@@ -1,5 +1,9 @@
 package com.sks.precheck.dashboard.service;
 
+import com.sks.precheck.dashboard.dto.AdminUserDto;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +29,49 @@ public final class PasswordPolicyValidator {
      * 최초 로그인 직후 만료 정책에 의해 강제 변경되도록 한다 (PASSWORD_EXPIRE_DAYS보다 1일 더 과거).
      */
     public static final int FORCE_CHANGE_BACKDATE_DAYS = PASSWORD_EXPIRE_DAYS + 1;
+
+    /**
+     * 비밀번호 변경이 실제로 반영된 후 적용할 PASSWORD_EXPIRE_YN 값을 role별로 정한다.
+     *
+     * SUPER_ADMIN은 90일 주기 만료 정책이 영구 면제이므로, 최초 로그인 강제 변경(생성/초기화 직후
+     * 'Y' + 백데이트)을 완료한 시점부터는 'N'으로 되돌려 다시는 주기 체크에 걸리지 않게 한다.
+     * ADMIN은 매 변경마다 'Y'를 유지해 다음 90일 주기가 그대로 적용되게 한다.
+     *
+     * @param role 계정 권한("SUPER_ADMIN" 또는 "ADMIN")이다.
+     * @return SUPER_ADMIN이면 "N", 그 외에는 "Y"다.
+     */
+    public static String expireYnAfterChange(String role) {
+        return "SUPER_ADMIN".equals(role) ? "N" : "Y";
+    }
+
+    /**
+     * 만료 정책 적용 대상 계정의 잔여 일수를 계산한다.
+     *
+     * PasswordExpiryInterceptor(강제 리다이렉트/D-n 배너)와 PasswordController(변경 화면의
+     * "취소 불가" 강제 여부 표시) 양쪽이 동일한 기준으로 판정해야 하므로 한 곳에 모았다.
+     *
+     * @param user 대상 계정이다.
+     * @return 만료까지 남은 일수다. 정책 미적용 대상(PASSWORD_EXPIRE_YN != 'Y' 또는
+     *         PASSWORD_CHANGED_AT 미기록, 계정 없음)이면 {@link Long#MAX_VALUE}를 반환해
+     *         호출부가 별도 null/역할 분기 없이 "만료 아님"으로 취급할 수 있게 한다.
+     */
+    public static long daysRemaining(AdminUserDto user) {
+        if (user == null || !"Y".equals(user.getPasswordExpireYn()) || user.getPasswordChangedAt() == null) {
+            return Long.MAX_VALUE;
+        }
+        long daysSinceChange = Duration.between(user.getPasswordChangedAt(), LocalDateTime.now()).toDays();
+        return PASSWORD_EXPIRE_DAYS - daysSinceChange;
+    }
+
+    /**
+     * 만료 정책 적용 대상이면서 이미 만료(잔여일 0 이하)됐는지 판정한다.
+     *
+     * @param user 대상 계정이다.
+     * @return 만료 정책이 적용되고 잔여일이 0 이하면 true다.
+     */
+    public static boolean isExpired(AdminUserDto user) {
+        return daysRemaining(user) <= 0;
+    }
 
     private static final int MIN_LENGTH = 10;
     private static final int MIN_CHAR_TYPE_COUNT = 3;
