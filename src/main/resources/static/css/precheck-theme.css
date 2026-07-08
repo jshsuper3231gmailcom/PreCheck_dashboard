@@ -1,0 +1,478 @@
+/* ============================================================
+ * precheck-theme.css
+ * 다크모드 톤: 네이비-블루 그라디언트 시안(대시보드_재구성_화면_샘플스타일) 적용.
+ *
+ * 전략
+ *  - 라이트모드는 기존 화면을 그대로 유지한다(무변경).
+ *  - 모든 규칙은 [data-bs-theme=dark] 아래에만 둔다 → 토글 시 원본/시안 전환.
+ *  - Bootstrap 5 / AdminLTE v4 코어 변수를 재정의해 카드·표·폼·모달 등
+ *    네이티브 컴포넌트를 일괄 다크 처리하고, 템플릿의 커스텀 클래스만 추가 오버라이드.
+ *  - 상태색(에러/경고/정상/정보)은 좌측 스트립·테두리·pill 배지 + 옅은 배경 틴트로
+ *    신호를 주는 시안 톤을 따른다(카드 배경은 대체로 균일한 패널색 유지).
+ * ============================================================ */
+
+/* 인라인 색상용 변수 — 라이트 기본값(= 기존 색) */
+:root {
+    --pc-warn-num: #856404;   /* 경고 KPI 숫자 */
+    --pc-info-num: #055160;   /* 정보 KPI 숫자 */
+    --pc-uc-label: #1e293b;   /* 접속자 스파크 라벨/값 */
+}
+
+/* ── 시안 컬러 토큰 + 코어 변수 재정의 ─────────────────────── */
+[data-bs-theme=dark] {
+    /* 시안 컬러 토큰 (네이비-블루 그라디언트) */
+    --pc-bg-top: #1a3a72;
+    --pc-bg-bottom: #1c3d75;
+    --pc-card-bg: #1c3d75;      /* panel */
+    --pc-card-header: #1a3868;  /* panel-soft */
+    --pc-track: #16305e;        /* progress/donut track */
+    --pc-border: rgba(255, 255, 255, .09);
+    --pc-text: #FFFFFF;
+    --pc-text-2: #B7C6E8;
+    --pc-text-3: #7C8CB3;
+    --pc-critical: #F1926B;     /* 에러 = 오렌지 */
+    --pc-warning: #F6D97E;      /* 경고 = 골드 */
+    --pc-success: #5FDCC0;      /* 정상 = 틸 */
+    --pc-info: #4B98F7;         /* 정보 = 블루 */
+    --pc-critical-bg: rgba(241, 146, 107, .12);
+    --pc-critical-border: rgba(241, 146, 107, .35);
+    --pc-warning-bg: rgba(246, 217, 126, .12);
+    --pc-warning-border: rgba(246, 217, 126, .35);
+    --pc-success-bg: rgba(95, 220, 192, .10);
+    --pc-success-border: rgba(95, 220, 192, .30);
+    --pc-info-bg: rgba(75, 152, 247, .12);
+    --pc-info-border: rgba(75, 152, 247, .35);
+    --pc-pill-critical-bg: #EF7F63;
+    --pc-pill-critical-fg: #3a1508;
+    --pc-pill-warning-bg: #F6D97E;
+    --pc-pill-warning-fg: #3a2c08;
+    --pc-pill-success-bg: #5FDCC0;
+    --pc-pill-success-fg: #083a30;
+    --pc-accent: var(--pc-info);
+
+    /* 인라인 색상 다크값 */
+    --pc-warn-num: var(--pc-warning);
+    --pc-info-num: var(--pc-info);
+    --pc-uc-label: var(--pc-text);
+
+    /* Bootstrap 코어 변수 → 네이티브 컴포넌트 일괄 다크 */
+    --bs-body-bg: var(--pc-bg-bottom);
+    --bs-body-color: var(--pc-text);
+    --bs-emphasis-color: var(--pc-text);
+    --bs-secondary-bg: var(--pc-card-header);
+    --bs-tertiary-bg: var(--pc-card-bg);
+    --bs-border-color: var(--pc-border);
+    --bs-card-bg: var(--pc-card-bg);
+    --bs-card-cap-bg: var(--pc-card-header);
+    --bs-card-border-color: var(--pc-border);
+    --bs-secondary-color: rgba(255, 255, 255, .68);
+    --bs-tertiary-color: rgba(255, 255, 255, .46);
+}
+
+[data-bs-theme=dark] body {
+    background: linear-gradient(160deg, var(--pc-bg-top), var(--pc-bg-bottom)) fixed;
+    color: var(--pc-text);
+}
+
+/* 카드류 라운드 업(시안 패널 18px톤) */
+[data-bs-theme=dark] .card {
+    border-radius: 16px;
+}
+
+/* ── 헤더 배너 ─────────────────────────────────────────────── */
+[data-bs-theme=dark] .precheck-header {
+    background: linear-gradient(90deg, #142c58 0%, #1a3a72 45%, #1c3d75 100%);
+    border-bottom: 1px solid var(--pc-border);
+    box-shadow: 0 2px 14px rgba(0, 0, 0, .35);
+}
+[data-bs-theme=dark] .precheck-header::before {
+    background-image:
+        repeating-linear-gradient(45deg, rgba(120, 170, 230, .06) 0 1px, transparent 1px 12px),
+        repeating-linear-gradient(-45deg, rgba(120, 170, 230, .06) 0 1px, transparent 1px 12px);
+}
+[data-bs-theme=dark] .precheck-header::after {
+    background:
+        radial-gradient(ellipse 500px 120px at 0% 50%, rgba(75, 152, 247, .12), transparent 70%),
+        radial-gradient(ellipse 300px 100px at 100% 50%, rgba(95, 220, 192, .10), transparent 70%);
+}
+[data-bs-theme=dark] .db-header-line {
+    background: linear-gradient(90deg, var(--pc-info) 0%, var(--pc-success) 55%, transparent 100%);
+    opacity: .75;
+}
+[data-bs-theme=dark] .precheck-banner-title { color: var(--pc-text); }
+[data-bs-theme=dark] .precheck-banner-title .sub { color: var(--pc-text-2); }
+[data-bs-theme=dark] .header-info { color: var(--pc-text-2); }
+[data-bs-theme=dark] .header-info .header-info-label { color: var(--pc-text); }
+
+/* 브랜드 아이콘: 시안 로고뱃지 그라디언트(블루→틸) */
+[data-bs-theme=dark] .brand-icon {
+    background: linear-gradient(135deg, var(--pc-info), var(--pc-success));
+    box-shadow: 0 4px 14px rgba(75, 152, 247, .35);
+}
+
+/* 헤더 버튼: pill 형태(시안 .btn) */
+[data-bs-theme=dark] .header-btn {
+    border-radius: 999px;
+    border-color: rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .06);
+    color: var(--pc-text-2);
+}
+[data-bs-theme=dark] .header-btn:hover {
+    background: rgba(255, 255, 255, .14);
+    color: var(--pc-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+}
+[data-bs-theme=dark] .header-btn-logout {
+    border-color: rgba(241, 146, 107, .35);
+    background: rgba(241, 146, 107, .12);
+    color: #ffcab3;
+}
+[data-bs-theme=dark] .header-btn-logout:hover {
+    background: rgba(241, 146, 107, .22);
+    color: #ffdcc9;
+}
+
+/* ── 오늘의 점검 현황: kpi-card 좌측 컬러 스트립 + 상태별 배경 틴트 ── */
+[data-bs-theme=dark] .panel-accent-title { color: var(--pc-text); }
+[data-bs-theme=dark] .panel-accent-title .bar {
+    background: linear-gradient(90deg, var(--pc-info), var(--pc-success));
+}
+[data-bs-theme=dark] .pc-ratio-pill {
+    background: rgba(95, 220, 192, .16);
+    color: var(--pc-success);
+}
+[data-bs-theme=dark] .kpi-card {
+    background: var(--pc-card-header);
+    border-color: var(--pc-border);
+}
+[data-bs-theme=dark] .kpi-card--error {
+    --kpi-color: var(--pc-critical);
+    background: var(--pc-critical-bg);
+    border-color: var(--pc-critical-border);
+}
+[data-bs-theme=dark] .kpi-card--warn {
+    --kpi-color: var(--pc-warning);
+    background: var(--pc-warning-bg);
+    border-color: var(--pc-warning-border);
+}
+[data-bs-theme=dark] .kpi-card--normal {
+    --kpi-color: var(--pc-success);
+    background: var(--pc-success-bg);
+    border-color: var(--pc-success-border);
+}
+[data-bs-theme=dark] .kpi-card--info {
+    --kpi-color: var(--pc-info);
+    background: var(--pc-info-bg);
+    border-color: var(--pc-info-border);
+}
+[data-bs-theme=dark] .kpi-card--unknown { --kpi-color: var(--pc-text-3); }
+[data-bs-theme=dark] .kpi-card-label { color: var(--pc-text-2); }
+[data-bs-theme=dark] .kpi-card-pct { color: var(--pc-text-3); }
+[data-bs-theme=dark] .kpi-card-note { color: var(--pc-critical); }
+/* ── 수집 서버 점검 현황: collect-item도 박스형 ─────────────── */
+[data-bs-theme=dark] .collect-item {
+    background: var(--pc-card-header);
+    border: 1px solid var(--pc-border);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+[data-bs-theme=dark] .collect-label { color: var(--pc-text-2); }
+[data-bs-theme=dark] .collect-value { color: var(--pc-text); }
+[data-bs-theme=dark] .collect-value.ok { color: var(--pc-success); }
+/* 레벨 칩은 pill 배지로 통일(시안 톤) */
+[data-bs-theme=dark] .badge { border-radius: 999px; }
+/* Bootstrap 배지 색을 시안 팔레트로 교체 */
+[data-bs-theme=dark] .badge.text-bg-danger { background-color: var(--pc-pill-critical-bg) !important; color: var(--pc-pill-critical-fg) !important; }
+[data-bs-theme=dark] .badge.text-bg-warning { background-color: var(--pc-pill-warning-bg) !important; color: var(--pc-pill-warning-fg) !important; }
+[data-bs-theme=dark] .badge.text-bg-success { background-color: var(--pc-pill-success-bg) !important; color: var(--pc-pill-success-fg) !important; }
+[data-bs-theme=dark] .badge.text-bg-info { background-color: var(--pc-info) !important; color: #ffffff !important; }
+[data-bs-theme=dark] .badge.text-bg-secondary { background-color: rgba(255, 255, 255, .12) !important; color: var(--pc-text-2) !important; }
+
+/* ── 진행바(수집/분석 현황): 시안 track + 블루→틸 그라디언트 ── */
+[data-bs-theme=dark] .progress { background-color: var(--pc-track); }
+[data-bs-theme=dark] .progress-bar.bg-info,
+[data-bs-theme=dark] .progress-bar.bg-success {
+    background: linear-gradient(90deg, var(--pc-info), var(--pc-success)) !important;
+}
+
+/* ── 그룹 구분선 / 3패널 로우 / 상세현황 탭 / 접속자 패널 ──────── */
+[data-bs-theme=dark] .group-title h2 { color: var(--pc-text); }
+[data-bs-theme=dark] .group-title .sub { color: var(--pc-text-3); }
+[data-bs-theme=dark] .group-title::after { background: var(--pc-border); }
+[data-bs-theme=dark] .tab-btn {
+    background: var(--pc-card-header);
+    border-color: var(--pc-border);
+    color: var(--pc-text-3);
+}
+[data-bs-theme=dark] .tab-btn.active {
+    background: linear-gradient(90deg, var(--pc-info), #3E7FE0);
+    border-color: transparent;
+    color: #fff;
+}
+[data-bs-theme=dark] .conn-stat { background: var(--pc-card-header); border-color: var(--pc-border); }
+[data-bs-theme=dark] .conn-stat-label { color: var(--pc-text-2); }
+[data-bs-theme=dark] .conn-stat-value { color: var(--pc-text); }
+[data-bs-theme=dark] .conn-stat-min { color: var(--pc-text-3); }
+[data-bs-theme=dark] .live-pill { background: var(--pc-card-header); border-color: var(--pc-border); }
+[data-bs-theme=dark] .live-pill b { color: var(--pc-text-2); }
+[data-bs-theme=dark] .live-pill .val { color: var(--pc-text); }
+[data-bs-theme=dark] .uc-merged-time { color: var(--pc-text-3); }
+
+/* ── 카테고리 카드(종목/해외/서비스/접속자) ───────────────── */
+[data-bs-theme=dark] .stat-card {
+    background: var(--pc-card-bg);
+    border-color: var(--pc-border);
+    border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .4);
+}
+[data-bs-theme=dark] .stat-card__title { color: var(--pc-text); }
+/* 종목/해외종목/서비스/접속자 카드 수치: JS가 정상/정보/미분석 값에 부트스트랩 .text-dark를
+   그대로 붙이므로 다크모드에서 검게 보인다. 밝은 색으로 교체하고, 괄호 안 최소/최대 기준값은
+   본문 대비 한 단계 죽인 회색으로 분리한다. */
+[data-bs-theme=dark] .info-main.text-dark { color: var(--pc-text) !important; }
+[data-bs-theme=dark] .info-threshold { color: var(--pc-text-3); }
+[data-bs-theme=dark] .stat-card__badge {
+    background: transparent;
+    border-color: var(--pc-border);
+    color: var(--pc-text-2);
+}
+[data-bs-theme=dark] .stat-label { color: var(--pc-text-2); }
+[data-bs-theme=dark] .stat-value { color: var(--pc-text); }
+[data-bs-theme=dark] .stat-time { color: var(--pc-text-3); }
+[data-bs-theme=dark] .stat-row { border-top: 1px solid rgba(255, 255, 255, .04); }
+[data-bs-theme=dark] .stat-row:nth-child(even) { background: rgba(255, 255, 255, .025); }
+/* 접속자 스파크 구분선 */
+[data-bs-theme=dark] .stat-card hr { border-color: var(--pc-border); }
+
+/* ── 에러/경고 로그 표: 좌측 accent 스트립 + 헤더 다크 ─────── */
+[data-bs-theme=dark] #logTable thead.table-light th {
+    background-color: var(--pc-card-header);
+    color: var(--pc-text-2);
+    border-color: var(--pc-border);
+}
+/* zebra: 데이터행(1,3,5..) 사이 격행 틴트. 에러/경고행은 제외해 강조색 유지 */
+[data-bs-theme=dark] #logTable tbody tr:nth-of-type(4n+3):not(.table-danger):not(.table-warning) > td {
+    background-color: rgba(255, 255, 255, .03);
+}
+/* Bootstrap .table-danger/.table-warning는 라이트 배경을 하드코딩하므로
+   시안 톤(좌측 accent 스트립 + 옅은 틴트)으로 --bs-table-* 변수를 재정의한다. */
+[data-bs-theme=dark] #logTable .table-danger {
+    --bs-table-color: var(--pc-text);
+    --bs-table-bg: rgba(241, 146, 107, .07);
+    --bs-table-border-color: var(--pc-border);
+    --bs-table-hover-color: var(--pc-text);
+    --bs-table-hover-bg: rgba(241, 146, 107, .13);
+}
+[data-bs-theme=dark] #logTable .table-warning {
+    --bs-table-color: var(--pc-text);
+    --bs-table-bg: rgba(246, 217, 126, .07);
+    --bs-table-border-color: var(--pc-border);
+    --bs-table-hover-color: var(--pc-text);
+    --bs-table-hover-bg: rgba(246, 217, 126, .13);
+}
+[data-bs-theme=dark] #logTable .table-danger td:first-child { border-left: 3px solid var(--pc-critical); }
+[data-bs-theme=dark] #logTable .table-warning td:first-child { border-left: 3px solid var(--pc-warning); }
+/* logType 배지(.text-bg-light)는 항상 흰 배경+검정 글씨로 고정돼 다크 행 위에서 붕 뜬다 */
+[data-bs-theme=dark] #logTable .badge.text-bg-light {
+    background-color: transparent !important;
+    border: 1px solid var(--pc-border);
+    color: var(--pc-text-2) !important;
+}
+/* 상세 펼침줄: 카드 경계로 소속 행과 시각 연결 */
+[data-bs-theme=dark] #logTable tr.collapse > td {
+    border-top: 1px solid var(--pc-border);
+}
+
+/* ── 원본 로그 모달 ─────────────────────────────────────────── */
+[data-bs-theme=dark] #mRawLog {
+    border: 1px solid var(--pc-border);
+    color: var(--pc-text);
+}
+[data-bs-theme=dark] #mRawLog.bg-danger-subtle {
+    background-color: rgba(241, 146, 107, .10) !important;
+    border-color: rgba(241, 146, 107, .35);
+}
+[data-bs-theme=dark] #mRawLog.bg-warning-subtle {
+    background-color: rgba(246, 217, 126, .10) !important;
+    border-color: rgba(246, 217, 126, .35);
+}
+[data-bs-theme=dark] #mRawLog.bg-success-subtle {
+    background-color: rgba(95, 220, 192, .10) !important;
+    border-color: rgba(95, 220, 192, .35);
+}
+[data-bs-theme=dark] #mRawLog.bg-info-subtle {
+    background-color: rgba(75, 152, 247, .10) !important;
+    border-color: rgba(75, 152, 247, .35);
+}
+[data-bs-theme=dark] #mRawLog.bg-secondary-subtle {
+    background-color: var(--pc-card-header) !important;
+    border-color: var(--pc-border);
+}
+
+/* ── History 화면 차트 카드 ────────────────────────────────── */
+[data-bs-theme=dark] .history-chart-card {
+    background: var(--pc-card-bg);
+    border-color: var(--pc-border);
+    border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .4);
+}
+[data-bs-theme=dark] .history-chart-head { border-bottom-color: var(--pc-border); }
+[data-bs-theme=dark] .history-chart-title { color: var(--pc-text); }
+[data-bs-theme=dark] .loading-msg { color: var(--pc-text-2); }
+
+/* ── 계정관리 표 ───────────────────────────────────────────── */
+[data-bs-theme=dark] #userTable th,
+[data-bs-theme=dark] #userTable td { color: var(--pc-text); }
+
+/* ── 수집대상 서버 리스트: 상태별 컬러 카드 ─────────────────── */
+[data-bs-theme=dark] #serverList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+[data-bs-theme=dark] #serverList .list-group-item {
+    background: var(--pc-card-header);
+    border: 1px solid var(--pc-border);
+    border-left: 4px solid transparent;
+    border-radius: 14px;
+    padding: 10px 14px;
+}
+/* 상태별 좌측 스트립 + 옅은 배경 틴트 (base 규칙과 동일한 #serverList 특이도로 승) */
+[data-bs-theme=dark] #serverList .pc-srv-row--error {
+    background: rgba(241, 146, 107, .08);
+    border-color: rgba(241, 146, 107, .28);
+    border-left-color: var(--pc-critical);
+}
+[data-bs-theme=dark] #serverList .pc-srv-row--warn {
+    background: rgba(246, 217, 126, .08);
+    border-color: rgba(246, 217, 126, .28);
+    border-left-color: var(--pc-warning);
+}
+[data-bs-theme=dark] #serverList .pc-srv-row--normal {
+    background: var(--pc-card-header);
+    border-left-color: var(--pc-success);
+}
+[data-bs-theme=dark] #serverList .pc-srv-row--incomplete {
+    background: var(--pc-card-bg);
+    border-style: dashed;
+    border-color: var(--pc-border);
+    border-left-color: var(--pc-border);
+}
+
+/* 우측 상태 배지 클러스터 — 라이트모드에서는 완전히 숨김(무변경) */
+.pc-srv-badges { display: none; }
+[data-bs-theme=dark] .pc-srv-cnt { display: none; }
+@media (min-width: 768px) {
+    [data-bs-theme=dark] .pc-srv-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+}
+.pc-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+[data-bs-theme=dark] .pc-badge-err {
+    background: rgba(241, 146, 107, .14);
+    border-color: rgba(241, 146, 107, .35);
+    color: var(--pc-critical);
+}
+[data-bs-theme=dark] .pc-badge-warn {
+    background: rgba(246, 217, 126, .14);
+    border-color: rgba(246, 217, 126, .35);
+    color: var(--pc-warning);
+}
+[data-bs-theme=dark] .pc-badge-ok {
+    background: rgba(95, 220, 192, .14);
+    border-color: rgba(95, 220, 192, .35);
+    color: var(--pc-success);
+}
+[data-bs-theme=dark] .pc-badge-idle {
+    background: transparent;
+    border-color: var(--pc-border);
+    color: var(--pc-text-3);
+}
+/* 건수 0 배지는 채도를 낮춰 위급 배지와 시각적으로 구분 */
+[data-bs-theme=dark] .pc-badge.is-zero {
+    background: transparent;
+    border-color: var(--pc-border);
+    color: var(--pc-text-3);
+}
+
+/* ── 도넛 카드: 샘플스타일(3) 참고 — 상태 구분 없이 단일 네이비 배경, 링 색으로만 상태 표시 ── */
+/* .border 의 --bs-border-color 를 이기기 위해 !important 사용 */
+[data-bs-theme=dark] .pc-donut--error,
+[data-bs-theme=dark] .pc-donut--warn,
+[data-bs-theme=dark] .pc-donut--normal {
+    background: var(--pc-card-header);
+    border-color: var(--pc-border) !important;
+    border-radius: 16px !important;
+}
+[data-bs-theme=dark] .pc-donut--empty {
+    background: var(--pc-card-header);
+    border-style: dashed !important;
+    border-color: var(--pc-border) !important;
+    border-radius: 16px !important;
+}
+
+/* ── 히스토리 라인차트 탭 버튼 / 로그 필터 탭: pill 그룹 ────── */
+[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary {
+    background: var(--pc-card-header);
+    border-color: var(--pc-border);
+    color: var(--pc-text-2);
+}
+[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary:hover {
+    background: rgba(255, 255, 255, .08);
+    color: var(--pc-text);
+}
+[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary.active {
+    background: var(--pc-info);
+    border-color: var(--pc-info);
+    color: #ffffff;
+}
+[data-bs-theme=dark] .btn-group .btn-outline-secondary:first-child {
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+}
+[data-bs-theme=dark] .btn-group .btn-outline-secondary:last-child {
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
+}
+
+/* ── 페이지네이션: pill 형태(시안 .pager) ──────────────────── */
+[data-bs-theme=dark] .pagination .page-link {
+    border-radius: 999px !important;
+    margin: 0 2px;
+    background: transparent;
+    border-color: transparent;
+    color: var(--pc-text-2);
+}
+[data-bs-theme=dark] .pagination .page-link:hover {
+    background: rgba(255, 255, 255, .08);
+    color: var(--pc-text);
+}
+[data-bs-theme=dark] .pagination .page-item.active .page-link {
+    background: var(--pc-info);
+    border-color: var(--pc-info);
+    color: #fff;
+}
+[data-bs-theme=dark] .pagination .page-item.disabled .page-link {
+    color: var(--pc-text-3);
+    background: transparent;
+}
+
+/* ── 로그인 / 비밀번호 변경 화면 ───────────────────────────── */
+[data-bs-theme=dark] body.login-page {
+    background: linear-gradient(160deg, var(--pc-bg-top) 0%, var(--pc-bg-bottom) 100%) fixed;
+}
+[data-bs-theme=dark] body.login-page::before {
+    background-image:
+        repeating-linear-gradient(45deg, rgba(120, 170, 230, .06) 0 1px, transparent 1px 12px),
+        repeating-linear-gradient(-45deg, rgba(120, 170, 230, .06) 0 1px, transparent 1px 12px);
+}

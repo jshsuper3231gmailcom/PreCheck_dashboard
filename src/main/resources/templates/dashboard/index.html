@@ -9,6 +9,8 @@
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
     <link rel="stylesheet" th:href="@{/css/security.css}">
+    <link rel="stylesheet" th:href="@{/css/precheck-theme.css}">
+    <script th:src="@{/js/precheck-theme.js}"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -40,6 +42,15 @@
         .donut-box canvas {
             width: 100% !important;
             height: 100% !important;
+        }
+        /* 도넛 카드 모양(샘플스타일 3 참고): 라운드/여백/가운데 정렬 */
+        .pc-donut-card {
+            border-radius: 16px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+        .pc-donut--empty {
+            opacity: .6;
         }
         .dot {
             width: 8px;
@@ -406,11 +417,123 @@
             border-bottom-color: rgba(16,185,129,.13);
         }
         .card--service .stat-card__icon { background: rgba(16,185,129,.12); color: #10b981; }
-        .card--access .stat-card__head {
-            background: linear-gradient(135deg, rgba(139,92,246,.1) 0%, rgba(139,92,246,.04) 100%);
-            border-bottom-color: rgba(139,92,246,.13);
+        /* ── 오늘의 점검 현황 / 수집 서버 점검 현황 패널 ─────────── */
+        .panel-accent-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
         }
-        .card--access .stat-card__icon { background: rgba(139,92,246,.12); color: #8b5cf6; }
+        .panel-accent-title .bar {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2563eb;
+        }
+        .pc-ratio-pill {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(25,135,84,.12);
+            color: #198754;
+            white-space: nowrap;
+        }
+        .kpi-card-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .kpi-card {
+            flex: 1 1 150px;
+            position: relative;
+            overflow: hidden;
+            background: var(--bs-tertiary-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: var(--kpi-color, var(--bs-secondary-color));
+        }
+        .kpi-card--error { --kpi-color: var(--bs-danger); }
+        .kpi-card--warn { --kpi-color: var(--bs-warning); }
+        .kpi-card--normal { --kpi-color: var(--bs-success); }
+        .kpi-card--info { --kpi-color: var(--bs-info); }
+        .kpi-card--unknown { --kpi-color: var(--bs-secondary); }
+        .kpi-card-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--bs-secondary-color);
+            margin-bottom: 8px;
+        }
+        .kpi-card-pct { font-size: 11px; color: var(--bs-tertiary-color); }
+        .kpi-card-value {
+            font-size: clamp(22px, 4vw, 30px);
+            font-weight: 800;
+            line-height: 1;
+            color: var(--kpi-color, inherit);
+        }
+        .kpi-card-note { font-size: 11px; color: #dc3545; margin-top: 8px; }
+        .collect-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .collect-item {
+            flex: 1 1 140px;
+            background: var(--bs-tertiary-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+        .collect-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--bs-secondary-color);
+            margin-bottom: 8px;
+        }
+        .collect-value { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+        .collect-value.ok { font-size: 17px; color: #198754; }
+        /* ── 그룹 구분선 / 3패널 로우 / 탭 / 접속자 패널 (샘플스타일 구조) ─────── */
+        .group-title { display: flex; align-items: baseline; gap: 10px; margin: 28px 4px 14px; }
+        .group-title:first-of-type { margin-top: 0; }
+        .group-title h2 { font-size: 14px; margin: 0; color: var(--bs-emphasis-color); letter-spacing: .5px; text-transform: uppercase; font-weight: 700; }
+        .group-title .sub { font-size: 11px; color: var(--bs-secondary-color); }
+        .group-title::after { content: ""; flex: 1; height: 1px; background: var(--bs-border-color); margin-left: 6px; }
+        .row-flex { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1rem; }
+        .row-flex > .stat-card { flex: 1 1 280px; }
+        .tabs { display: flex; gap: 8px; }
+        .tab-btn { padding: 8px 20px; font-size: 12px; font-weight: 700; border-radius: 999px; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); cursor: pointer; border: 1px solid var(--bs-border-color); }
+        .tab-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .conn-body { display: flex; gap: 24px; flex-wrap: wrap; }
+        .conn-left { flex: 0 0 240px; display: flex; flex-direction: column; gap: 12px; }
+        .conn-stat { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; padding: 12px 16px; }
+        .conn-stat-label { font-size: 11px; color: var(--bs-secondary-color); }
+        .conn-stat-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+        .conn-stat-min { font-size: 10px; color: var(--bs-tertiary-color); display: block; margin-top: 2px; }
+        .conn-right { flex: 1; min-width: 280px; }
+        .live-stats { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+        .live-pill { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; padding: 10px 16px; flex: 1 1 120px; }
+        .live-pill b { font-size: 11px; color: var(--bs-secondary-color); display: block; margin-bottom: 4px; font-weight: 600; }
+        .live-pill .val { font-size: 20px; font-weight: 800; margin-right: 6px; }
+        .uc-merged-chart-wrap { position: relative; height: 150px; margin-bottom: 22px; }
+        .uc-merged-time-row {
+            position: absolute; left: 2px; right: 2px; bottom: -22px;
+            display: flex; justify-content: space-between;
+            font-size: 13px; font-weight: 600; color: var(--bs-body-color); line-height: 1;
+        }
     </style>
 </head>
 <body th:attr="data-username=${loginUserName}">
@@ -448,6 +571,9 @@
                 <div class="header-info">
                     <span class="header-info-label" th:text="${loginUserName}"></span>
                 </div>
+                <button type="button" class="header-btn" data-theme-toggle title="테마 전환">
+                    <i class="bi bi-sun"></i><span data-theme-label>라이트</span>
+                </button>
                 <a th:href="@{/password/change}" class="header-btn">
                     <i class="bi bi-key"></i>비밀번호 변경
                 </a>
@@ -492,124 +618,84 @@
     <div class="content-wrapper p-3">
         <div class="container-fluid">
 
+            <div class="group-title"><h2>현황</h2><span class="sub">서버 점검 · 종목수 · 상세 · 접속자 현황 · History</span></div>
+
             <div class="card mb-3">
-                <div class="card-body p-0">
-                    <div class="row g-0">
-                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="badge text-bg-danger">에러</span>
-                                <span class="text-body-secondary small" id="errRatio">0%</span>
-                            </div>
-                            <div class="summary-number text-danger fw-bold" id="errCnt">0</div>
-                            </div>
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="panel-accent-title"><span class="bar"></span>오늘의 점검 현황</span>
+                    <span class="pc-ratio-pill ms-auto" id="normRatioPill">정상 비중 0%</span>
+                </div>
+                <div class="card-body">
+                    <div class="kpi-card-row">
+                        <div class="kpi-card kpi-card--error">
+                            <div class="kpi-card-label"><span>에러</span><span class="kpi-card-pct" id="errRatio">0%</span></div>
+                            <div class="kpi-card-value" id="errCnt">0</div>
                         </div>
-                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="badge text-bg-warning">경고</span>
-                                <span class="text-body-secondary small" id="warnRatio">0%</span>
-                            </div>
-                            <div class="summary-number fw-bold" style="color:#856404" id="warnCnt">0</div>
-                            </div>
+                        <div class="kpi-card kpi-card--warn">
+                            <div class="kpi-card-label"><span>경고</span><span class="kpi-card-pct" id="warnRatio">0%</span></div>
+                            <div class="kpi-card-value" id="warnCnt">0</div>
                         </div>
-                        <div class="col-6 col-md-4 col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="badge text-bg-success">정상</span>
-                                <span class="text-body-secondary small" id="normRatio">0%</span>
-                            </div>
-                            <div class="summary-number text-success fw-bold" id="normCnt">0</div>
-                            </div>
+                        <div class="kpi-card kpi-card--normal">
+                            <div class="kpi-card-label"><span>정상</span><span class="kpi-card-pct" id="normRatio">0%</span></div>
+                            <div class="kpi-card-value" id="normCnt">0</div>
                         </div>
-                        <div class="col-6 col-md col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="badge text-bg-info">정보</span>
-                                <span class="text-body-secondary small" id="infoRatio">0%</span>
-                            </div>
-                            <div class="summary-number fw-bold" style="color:#055160" id="infoCnt">0</div>
-                            </div>
+                        <div class="kpi-card kpi-card--info">
+                            <div class="kpi-card-label"><span>정보</span><span class="kpi-card-pct" id="infoRatio">0%</span></div>
+                            <div class="kpi-card-value" id="infoCnt">0</div>
                         </div>
-                        <div class="col-12 col-md col-lg border-lg-end-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="badge text-bg-secondary">미분석</span>
-                                <span class="text-body-secondary small" id="unknRatio">0%</span>
-                            </div>
-                            <div class="summary-number text-secondary fw-bold" id="unknCnt">0</div>
-                            <div id="unknownPolicyWarning" class="text-danger small d-none">정책 파일 업데이트 필요</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="my-0">
-
-                    <div class="row g-0">
-                        <div class="col-6 col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-download text-info"></i>
-                                <span class="summary-label">수집 현황</span>
-                            </div>
-                            <div class="fw-bold">
-                                <span id="colSuccess">0</span>/<span id="colTotal">0</span>
-                            </div>
-                            <div class="progress" style="height:3px;">
-                                <div id="colRatio" class="progress-bar bg-info" style="width:0%"></div>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-lg border-end border-bottom border-lg-bottom-0">
-                            <div class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <i class="bi bi-bar-chart-line text-success"></i>
-                                <span class="summary-label">분석 현황</span>
-                            </div>
-                            <div class="fw-bold">
-                                <span id="anSuccess">0</span>/<span id="anTotal">0</span>
-                            </div>
-                            <div class="progress" style="height:3px;">
-                                <div id="anRatio" class="progress-bar bg-success" style="width:0%"></div>
-                            </div>
-                            </div>
-                        </div>
-                        <div class="col-4 col-lg border-end">
-                            <div id="failTooltip" class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <i id="failIcon" class="bi bi-exclamation-circle text-danger"></i>
-                                <span class="summary-label">수집실패</span>
-                            </div>
-                            <div class="fw-bold"><span id="failCnt">0</span>건</div>
-                            </div>
-                        </div>
-                        <div class="col-4 col-lg border-end">
-                            <div id="skipTooltip" class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <i id="skipIcon" class="bi bi-slash-circle text-secondary"></i>
-                                <span class="summary-label">수집제외 SKIP</span>
-                            </div>
-                            <div class="fw-bold"><span id="skipCnt">0</span>건</div>
-                            </div>
-                        </div>
-                        <div class="col-4 col-lg border-lg-end-0">
-                            <div id="anFailTooltip" class="summary-strip-item p-3 h-100">
-                            <div class="d-flex align-items-center gap-2">
-                                <i id="anFailIcon" class="bi bi-exclamation-triangle text-danger"></i>
-                                <span class="summary-label">분석실패</span>
-                            </div>
-                            <div class="fw-bold"><span id="anFailCnt">0</span>건</div>
-                            </div>
+                        <div class="kpi-card kpi-card--unknown">
+                            <div class="kpi-card-label"><span>미분석</span><span class="kpi-card-pct" id="unknRatio">0%</span></div>
+                            <div class="kpi-card-value" id="unknCnt">0</div>
+                            <div id="unknownPolicyWarning" class="kpi-card-note d-none">정책 파일 업데이트 필요</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-3 mb-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <span class="panel-accent-title"><span class="bar"></span>서버 점검 현황</span>
+                </div>
+                <div class="card-body">
+                    <div class="collect-row">
+                        <div class="collect-item">
+                            <div class="collect-label"><i class="bi bi-download text-info"></i>수집 현황</div>
+                            <div class="collect-value">
+                                <span id="colSuccess">0</span>/<span id="colTotal">0</span>
+                            </div>
+                            <div class="progress" style="height:6px;">
+                                <div id="colRatio" class="progress-bar bg-info" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="collect-item">
+                            <div class="collect-label"><i class="bi bi-bar-chart-line text-success"></i>분석 현황</div>
+                            <div class="collect-value">
+                                <span id="anSuccess">0</span>/<span id="anTotal">0</span>
+                            </div>
+                            <div class="progress" style="height:6px;">
+                                <div id="anRatio" class="progress-bar bg-success" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="collect-item" id="failTooltip">
+                            <div class="collect-label"><i id="failIcon" class="bi bi-exclamation-circle text-danger"></i>수집실패</div>
+                            <div class="collect-value ok"><span id="failCnt">0</span>건</div>
+                        </div>
+                        <div class="collect-item" id="skipTooltip">
+                            <div class="collect-label"><i id="skipIcon" class="bi bi-slash-circle text-secondary"></i>수집제외 SKIP</div>
+                            <div class="collect-value ok"><span id="skipCnt">0</span>건</div>
+                        </div>
+                        <div class="collect-item" id="anFailTooltip">
+                            <div class="collect-label"><i id="anFailIcon" class="bi bi-exclamation-triangle text-danger"></i>분석실패</div>
+                            <div class="collect-value ok"><span id="anFailCnt">0</span>건</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row-flex">
 
                 <!-- 종목 현황 -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat-card card--stock h-100">
+                <div class="stat-card card--stock h-100">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
                                 <div class="stat-card__icon">
@@ -672,11 +758,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
                 <!-- 해외 종목 현황 -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat-card card--foreign h-100">
+                <div class="stat-card card--foreign h-100">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
                                 <div class="stat-card__icon">
@@ -732,11 +816,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
                 <!-- 서비스 현황 -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat-card card--service h-100">
+                <div class="stat-card card--service h-100">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
                                 <div class="stat-card__icon">
@@ -787,131 +869,121 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 접속자 현황 -->
-                <div class="col-12 col-md-6 col-lg-3">
-                    <div class="stat-card card--access h-100">
-                        <div class="stat-card__head">
-                            <div class="stat-card__head-left">
-                                <div class="stat-card__icon">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                    </svg>
-                                </div>
-                                <span class="stat-card__title">접속자 현황</span>
-                            </div>
-                            <span class="stat-card__badge">전일 기준</span>
-                        </div>
-                        <div class="stat-card__body">
-                            <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#3b82f6"></span><span class="stat-label">전일 최대동시접속</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MAX_CONN_PREV">-</span>
-                                    <span class="stat-time" id="t-MAX_CONN_PREV"></span>
-                                    <span class="d-none" id="th-MAX_CONN_PREV"></span>
-                                </div>
-                            </div>
-                            <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#f59e0b"></span><span class="stat-label">HTS 최대동시접속</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-HTS_MAX_CONN">-</span>
-                                    <span class="stat-time" id="t-HTS_MAX_CONN"></span>
-                                    <span class="d-none" id="th-HTS_MAX_CONN"></span>
-                                </div>
-                            </div>
-                            <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#22c55e"></span><span class="stat-label">MTS 최대동시접속</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MTS_MAX_CONN">-</span>
-                                    <span class="stat-time" id="t-MTS_MAX_CONN"></span>
-                                    <span class="d-none" id="th-MTS_MAX_CONN"></span>
-                                </div>
-                            </div>
-                            <hr class="my-2">
-                            <div id="ucSparkSection" style="padding-left:9px;padding-right:9px;padding-bottom:9px;">
-                                <div class="d-flex justify-content-end mb-1">
-                                    <span class="stat-card__badge">TODAY (60분)</span>
-                                </div>
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    <span style="font-size:12px;color:#1e293b;font-weight:600;min-width:28px;">전체</span>
-                                    <span id="uc-val-total" style="font-size:13px;font-weight:700;color:#1e293b;min-width:54px;text-align:right;">-</span>
-                                    <span id="uc-delta-total" style="font-size:11px;min-width:40px;color:#6c757d;">-</span>
-                                    <div style="flex:1;height:32px;min-width:0;"><canvas id="ucSparkTotal"></canvas></div>
-                                </div>
-                                <div class="d-flex align-items-center gap-1 mb-1">
-                                    <span style="font-size:12px;color:#1e293b;font-weight:600;min-width:28px;">HTS</span>
-                                    <span id="uc-val-hts" style="font-size:13px;font-weight:700;color:#1e293b;min-width:54px;text-align:right;">-</span>
-                                    <span id="uc-delta-hts" style="font-size:11px;min-width:40px;color:#6c757d;">-</span>
-                                    <div style="flex:1;height:32px;min-width:0;"><canvas id="ucSparkHts"></canvas></div>
-                                </div>
-                                <div class="d-flex align-items-center gap-1">
-                                    <span style="font-size:12px;color:#1e293b;font-weight:600;min-width:28px;">MTS</span>
-                                    <span id="uc-val-mts" style="font-size:13px;font-weight:700;color:#1e293b;min-width:54px;text-align:right;">-</span>
-                                    <span id="uc-delta-mts" style="font-size:11px;min-width:40px;color:#6c757d;">-</span>
-                                    <div style="flex:1;height:32px;min-width:0;position:relative;">
-                                        <canvas id="ucSparkMts"></canvas>
-                                        <span id="uc-spark-first-time" style="position:absolute;left:2px;bottom:0;font-size:9px;line-height:1;color:#94a3b8;">-</span>
-                                        <span id="uc-spark-last-time" style="position:absolute;right:2px;bottom:0;font-size:9px;line-height:1;color:#94a3b8;">-</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
+            <div class="group-title"><h2>상세 현황</h2><span class="sub">점검현황 상세 · 수집서버 상세 탭 전환</span></div>
             <div class="card mb-3">
-                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <select class="form-select form-select-sm" id="serverFilter" style="min-width: 220px;">
-                            <option value="">전체</option>
-                        </select>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-outline-secondary active" id="tabError">에러/경고</button>
-                            <button type="button" class="btn btn-outline-secondary" id="tabNormal">정상/정보/미분석</button>
+                <div class="card-header">
+                    <div class="tabs">
+                        <button type="button" class="tab-btn active" id="tabBtnCheck">점검현황 상세</button>
+                        <button type="button" class="tab-btn" id="tabBtnCollect">수집서버 상세</button>
+                    </div>
+                </div>
+                <div id="panelCheck">
+                    <div class="card-body pb-0">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <select class="form-select form-select-sm" id="serverFilter" style="min-width: 140px; width: 140px;">
+                                <option value="">전체</option>
+                            </select>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary active" id="tabError">에러/경고</button>
+                                <button type="button" class="btn btn-outline-secondary" id="tabNormal">정상/정보/미분석</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm align-middle mb-0" id="logTable">
-                            <thead class="table-light">
-                            <tr>
-                                <th>시각</th>
-                                <th>서버</th>
-                                <th class="d-none d-md-table-cell">서버 IP</th>
-                                <th>LOG_ID</th>
-                                <th>타입</th>
-                                <th>레벨</th>
-                                <th>분석 메시지</th>
-                                <th class="d-none d-lg-table-cell">임계치</th>
-                                <th class="d-none d-md-table-cell">원본</th>
-                            </tr>
-                            </thead>
-                            <tbody id="resultTbody"></tbody>
-                        </table>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm align-middle mb-0" id="logTable">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>시각</th>
+                                    <th>서버</th>
+                                    <th class="d-none d-md-table-cell">서버 IP</th>
+                                    <th>LOG_ID</th>
+                                    <th>타입</th>
+                                    <th>레벨</th>
+                                    <th>분석 메시지</th>
+                                    <th class="d-none d-lg-table-cell">임계치</th>
+                                    <th class="d-none d-md-table-cell">원본</th>
+                                </tr>
+                                </thead>
+                                <tbody id="resultTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer d-flex align-items-center gap-3">
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+                        </nav>
+                        <div class="text-body-secondary small" id="pageInfo">총 -건 (-/- 페이지)</div>
                     </div>
                 </div>
-                <div class="card-footer d-flex align-items-center gap-3">
-                    <nav>
-                        <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
-                    </nav>
-                    <div class="text-body-secondary small" id="pageInfo">총 -건 (-/- 페이지)</div>
+                <div id="panelCollect" style="display:none;">
+                    <div class="card-body">
+                        <div class="list-group list-group-flush" id="serverList"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="card mb-3" id="resourceSection">
+                <div class="card-header">
+                    <span class="panel-accent-title"><span class="bar"></span>디스크 현황</span>
+                </div>
                 <div class="card-body">
                     <div class="row g-3" id="resourceGrid"></div>
                 </div>
             </div>
 
+            <div class="group-title"><h2>접속자 현황 &amp; 추이</h2><span class="sub">전일 기준 요약 → 실시간 → 60분 추이 순으로 이어서 표시</span></div>
+
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="panel-accent-title"><span class="bar"></span>접속자 현황</span>
+                </div>
+                <div class="card-body">
+                    <div class="conn-body">
+                        <div class="conn-left">
+                            <div class="conn-stat">
+                                <div class="conn-stat-label">전일 최대동시접속</div>
+                                <div class="conn-stat-value" id="v-MAX_CONN_PREV">-</div>
+                                <span class="conn-stat-min" id="t-MAX_CONN_PREV"></span>
+                                <span class="d-none" id="th-MAX_CONN_PREV"></span>
+                            </div>
+                            <div class="conn-stat">
+                                <div class="conn-stat-label">전일 HTS 최대동시접속</div>
+                                <div class="conn-stat-value" id="v-HTS_MAX_CONN">-</div>
+                                <span class="conn-stat-min" id="t-HTS_MAX_CONN"></span>
+                                <span class="d-none" id="th-HTS_MAX_CONN"></span>
+                            </div>
+                            <div class="conn-stat">
+                                <div class="conn-stat-label">전일 MTS 최대동시접속</div>
+                                <div class="conn-stat-value" id="v-MTS_MAX_CONN">-</div>
+                                <span class="conn-stat-min" id="t-MTS_MAX_CONN"></span>
+                                <span class="d-none" id="th-MTS_MAX_CONN"></span>
+                            </div>
+                        </div>
+                        <div class="conn-right">
+                            <div class="live-stats">
+                                <div class="live-pill"><b>전체</b><span class="val" id="uc-val-total">-</span><span id="uc-delta-total">-</span></div>
+                                <div class="live-pill"><b>HTS</b><span class="val" id="uc-val-hts">-</span><span id="uc-delta-hts">-</span></div>
+                                <div class="live-pill"><b>MTS</b><span class="val" id="uc-val-mts">-</span><span id="uc-delta-mts">-</span></div>
+                            </div>
+                            <div class="d-flex justify-content-end mb-1">
+                                <span class="stat-card__badge">TODAY (60분)</span>
+                            </div>
+                            <div class="uc-merged-chart-wrap">
+                                <canvas id="ucSparkMerged"></canvas>
+                                <div class="uc-merged-time-row" id="uc-spark-times"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="panel-accent-title"><span class="bar"></span>History</span>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-secondary active" id="tabStock">종목수 현황</button>
                         <button type="button" class="btn btn-outline-secondary" id="tabOverseas">해외종목수 현황</button>
@@ -920,13 +992,6 @@
                 </div>
                 <div class="card-body">
                     <canvas id="historyChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header fw-bold">수집대상 서버 리스트</div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush" id="serverList"></div>
                 </div>
             </div>
 
@@ -983,6 +1048,13 @@
     let currentGroupType = 'stock';
     let countdown = REFRESH_INTERVAL_SEC;
     let historyResizeTimer = null;
+
+    // 차트는 CSS 변수를 못 읽으므로 축·격자 색을 테마에 맞춰 전역 기본값으로 지정한다.
+    function applyChartTheme() {
+        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        Chart.defaults.color = dark ? '#B7C6E8' : '#666';
+        Chart.defaults.borderColor = dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.1)';
+    }
 
     function pad2(v) {
         return String(v).padStart(2, '0');
@@ -1236,6 +1308,7 @@
         setText('normRatio', `${data.normalRatio ?? 0}%`);
         setText('infoRatio', `${data.infoRatio ?? 0}%`);
         setText('unknRatio', `${data.unknownRatio ?? 0}%`);
+        setText('normRatioPill', `정상 비중 ${data.normalRatio ?? 0}%`);
 
         const unknownWarn = document.getElementById('unknownPolicyWarning');
         if ((data.unknownCnt ?? 0) > 0) {
@@ -1594,25 +1667,25 @@
             const hasThreshold = Number.isFinite(thresholdNum);
             const threshold = hasThreshold ? Math.max(0, Math.min(100, thresholdNum)) : NaN;
             const overThreshold = Number.isFinite(threshold) && percent >= threshold;
-            const badgeClass = overThreshold ? 'text-bg-danger' : badgeForLevel(analyzeLevel);
 
+            // 카드 배경은 상태 무관 단일톤(샘플스타일 3), donutState는 링 색상과 empty 여부(점선 테두리)에만 사용: 초과=error, 경고=warn, 미분석/무값=empty, 그 외 normal
+            let donutState = 'normal';
+            if (logValue == null) donutState = 'empty';
+            else if (overThreshold) donutState = 'error';
+            else if ((analyzeLevel || '') === '경고') donutState = 'warn';
+
+            // 샘플스타일(3) 참고: 서버명만 표시(배지 없음), 시각 표시 없이 임계치·상태를 링 아래 한 줄로 표시
             const header = `
-                <div class="d-flex align-items-center justify-content-between mb-1">
-                    <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${serverId}</div>
-                    <span class="badge ${badgeClass}" style="font-size:11px;flex-shrink:0">${analyzeLevel || '-'}</span>
-                </div>
+                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${serverId}</div>
             `;
 
             // 오늘 분석 결과가 없으면 빈 도넛보다 "분석없음"을 명시하는 편이 미수행 상태 추적에 유리하다.
             if (logValue == null) {
                 col.innerHTML = `
-                    <div class="border rounded p-1 h-100">
+                    <div class="border h-100 pc-donut-card pc-donut--${donutState}">
                         ${header}
                         <div class="d-flex justify-content-center my-1">
                             <div class="donut-empty">분석없음</div>
-                        </div>
-                        <div class="text-body-secondary small">
-                            ${formatTimestampFull(logTimestamp)}
                         </div>
                     </div>
                 `;
@@ -1620,18 +1693,17 @@
                 continue;
             }
 
+            const statusLine = `임계치 ${Number.isFinite(threshold) ? threshold : '-'} · ${analyzeLevel || '-'}`;
             const canvasId = `donut-${serverId.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}-${Math.random().toString(36).slice(2)}`;
             col.innerHTML = `
-                <div class="border rounded p-1 h-100">
+                <div class="border h-100 pc-donut-card pc-donut--${donutState}">
                     ${header}
                     <div class="d-flex justify-content-center my-1 position-relative">
                         <div class="donut-box">
                             <canvas id="${canvasId}"></canvas>
                         </div>
                     </div>
-                    <div class="text-body-secondary small">
-                        ${formatTimestampFull(logTimestamp)}
-                    </div>
+                    <div class="text-body-secondary" style="font-size:11px">${statusLine}</div>
                 </div>
             `;
             grid.appendChild(col);
@@ -1639,38 +1711,40 @@
             const rest = Math.max(0, 100 - percent);
             const ctx = document.getElementById(canvasId).getContext('2d');
 
-            const safe = Number.isFinite(threshold) ? Math.min(percent, threshold) : percent;
-            const over = Number.isFinite(threshold) ? Math.max(0, percent - threshold) : 0;
+            const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const normalColor = dark ? '#5FDCC0' : '#198754';
+            const warnColor = dark ? '#F6D97E' : '#ffc107';
+            const overColor = dark ? '#F1926B' : '#dc3545';
+            const bg = dark ? '#16305e' : '#e9ecef';
+            // 링 전체를 카드 레벨(정상/경고/에러) 단일색으로 표시한다 (샘플스타일 3 참고: 임계치 초과분만 따로 분리하지 않음).
+            const levelColor = donutState === 'error' ? overColor : donutState === 'warn' ? warnColor : normalColor;
+            const textColor = levelColor;
 
-            const safeColor = '#198754';
-            const overColor = '#dc3545';
-            const bg = '#e9ecef';
-
-            // 임계치 초과 구간만 빨강으로 분리해 보여줘야 초과 폭을 직관적으로 해석할 수 있다.
-            const data = over > 0 ? [safe, over, rest] : [percent, rest];
-            const colors = over > 0 ? [safeColor, overColor, bg] : [safeColor, bg];
+            const data = [percent, rest];
+            const colors = [levelColor, bg];
 
             const chart = new Chart(ctx, {
                 type: 'doughnut',
                 plugins: [thresholdMarkerPlugin],
                 data: {
-                    labels: over > 0 ? ['임계치 이하', '임계치 초과', '잔여'] : ['사용', '잔여'],
+                    labels: ['사용', '잔여'],
                     datasets: [{
                         data,
                         backgroundColor: colors,
-                        borderWidth: 0
+                        borderWidth: 0,
+                        borderRadius: 8
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    cutout: '70%',
+                    cutout: '80%',
                     plugins: {
                         legend: {display: false},
                         tooltip: {enabled: false},
                         thresholdMarker: {
                             threshold: threshold,
-                            color: '#dc3545',
+                            color: overColor,
                             lineWidth: 2
                         }
                     }
@@ -1681,13 +1755,56 @@
             centerText.className = 'position-absolute top-50 start-50 translate-middle text-center';
             centerText.style.zIndex = '1';
             centerText.innerHTML = `
-                <div class="fw-bold ${overThreshold ? 'text-danger' : ''}" style="font-size:12px;line-height:1.2">${percent}%</div>
-                <div class="text-body-secondary" style="font-size:10px;line-height:1.2">임계치 ${Number.isFinite(threshold) ? threshold : '-'}</div>
+                <div class="fw-bold" style="font-size:23px;line-height:1.2;color:${textColor}">${percent}%</div>
             `;
             col.querySelector('.position-relative').appendChild(centerText);
             col.dataset.chart = chart;
         }
     }
+
+    // 차트영역 배경(다크시안): 카드보다 어두운 트랙색(#16305e)을 플롯영역에 깔아 라인 대비 강화
+    const chartAreaBgPlugin = {
+        id: 'chartAreaBg',
+        beforeDraw(chart, args, opts) {
+            if (!opts || !opts.color) return;
+            const {ctx, chartArea} = chart;
+            if (!chartArea) return;
+            ctx.save();
+            ctx.fillStyle = opts.color;
+            ctx.fillRect(chartArea.left, chartArea.top,
+                chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+            ctx.restore();
+        }
+    };
+
+    // 주말(토/일) 세로 밴드(다크시안): 평일/주말 패턴을 면적으로 즉시 구분
+    const weekendBandPlugin = {
+        id: 'weekendBand',
+        beforeDatasetsDraw(chart, args, opts) {
+            if (!opts || !opts.enabled) return;
+            const {ctx, chartArea, scales} = chart;
+            const x = scales && scales.x;
+            if (!x || !chartArea) return;
+            const labels = (chart.data && chart.data.labels) || [];
+            if (labels.length === 0) return;
+            const half = labels.length > 1
+                ? (x.getPixelForValue(1) - x.getPixelForValue(0)) / 2
+                : (chartArea.right - chartArea.left) / 2;
+            ctx.save();
+            ctx.fillStyle = opts.color || 'rgba(11,15,20,.5)';
+            for (let i = 0; i < labels.length; i++) {
+                const d = parseHistoryDateLabel(labels[i]);
+                if (!d) continue;
+                const day = d.getDay();
+                if (day !== 0 && day !== 6) continue;
+                const cx = x.getPixelForValue(i);
+                const left = Math.max(chartArea.left, cx - half);
+                const right = Math.min(chartArea.right, cx + half);
+                ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
+            }
+            ctx.restore();
+        }
+    };
 
     function updateHistory(series) {
         lastHistorySeries = Array.isArray(series) ? series : [];
@@ -1698,6 +1815,7 @@
             historyChart = null;
         }
 
+        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         const palette = {
             MBSOSI_COUNT: '#4472C4',
             MBFOSI_COUNT: '#ED7D31',
@@ -1714,6 +1832,12 @@
             HTS_MAX_CONN: '#ED7D31',
             MTS_MAX_CONN: '#A9D18E'
         };
+        // 다크시안: 접속자수 3라인은 채도 높은 정보/경고/정상 색으로 교체해 어두운 배경 대비 확보
+        if (dark) {
+            palette.MAX_CONN_PREV = '#4B98F7';
+            palette.HTS_MAX_CONN = '#F6D97E';
+            palette.MTS_MAX_CONN = '#5FDCC0';
+        }
 
         const safeSeries = lastHistorySeries;
 
@@ -1757,12 +1881,14 @@
                 data: points,
                 borderColor: palette[logId] ?? '#6c757d',
                 backgroundColor: 'transparent',
+                borderWidth: dark ? 2 : 3,
                 tension: 0.2
             };
         });
 
         historyChart = new Chart(ctx, {
             type: 'line',
+            plugins: [chartAreaBgPlugin, weekendBandPlugin],
             data: {
                 labels: dateLabels,
                 datasets
@@ -1772,6 +1898,8 @@
                 maintainAspectRatio: true,
                 aspectRatio: 2.86,
                 plugins: {
+                    chartAreaBg: {color: dark ? '#1C3D75' : null},
+                    weekendBand: {enabled: false, color: 'rgba(0,0,0,.18)'},
                     legend: {display: true},
                     tooltip: {
                         callbacks: {
@@ -1785,6 +1913,7 @@
                 scales: {
                     x: {
                         type: 'category',
+                        grid: dark ? {color: 'rgba(255,255,255,.08)', borderDash: [3, 3]} : {},
                         ticks: {
                             autoSkip: false,
                             callback: function(value) {
@@ -1798,43 +1927,58 @@
                             }
                         }
                     },
-                    y: {beginAtZero: false}
+                    y: {
+                        beginAtZero: false,
+                        grid: dark ? {color: 'rgba(255,255,255,.08)', borderDash: [3, 3]} : {}
+                    }
                 }
             }
         });
     }
 
-    const UC_SPIKE_THRESHOLD = 500;
-    const ucSparkCharts = {};
+    let ucMergedChart = null;
 
-    function buildSparkChart(canvasId, color, labels, values) {
-        if (ucSparkCharts[canvasId]) {
-            const chart = ucSparkCharts[canvasId];
-            chart.data.labels = labels;
-            chart.data.datasets[0].data = values;
-            chart.update('none');
+    function buildMergedSparkChart(labels, datasets) {
+        const el = document.getElementById('ucSparkMerged');
+        if (!el) return;
+        const chartDatasets = datasets.map(ds => ({
+            label: ds.label,
+            data: ds.values,
+            borderColor: ds.color,
+            backgroundColor: ds.color + '33',
+            tension: 0.3,
+            pointRadius: 0,
+            fill: true,
+            borderWidth: 2
+        }));
+
+        if (ucMergedChart) {
+            ucMergedChart.data.labels = labels;
+            ucMergedChart.data.datasets = chartDatasets;
+            ucMergedChart.update('none');
             return;
         }
-        const el = document.getElementById(canvasId);
-        if (!el) return;
-        ucSparkCharts[canvasId] = new Chart(el, {
+
+        ucMergedChart = new Chart(el, {
             type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    data: values,
-                    borderColor: color,
-                    tension: 0,
-                    pointRadius: 0,
-                    fill: false,
-                    borderWidth: 1.5
-                }]
-            },
+            data: { labels, datasets: chartDatasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: { left: 3, right: 3, bottom: 3 } },
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } },
+                    tooltip: {
+                        enabled: true,
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: (items) => (items && items[0]) ? items[0].label : '',
+                            label: (item) => `${item.dataset.label}: ${Number(item.parsed.y).toLocaleString('ko-KR')}`
+                        }
+                    }
+                },
                 scales: {
                     x: { display: false },
                     y: { display: false, beginAtZero: false }
@@ -1843,21 +1987,38 @@
         });
     }
 
+    // 배열에서 최대 maxCount개를 양끝 포함해 균등 간격으로 뽑는다.
+    function pickEvenLabels(arr, maxCount) {
+        if (arr.length === 0) return [];
+        if (arr.length <= maxCount) return arr.slice();
+        const result = [];
+        for (let i = 0; i < maxCount; i++) {
+            const idx = Math.round(i * (arr.length - 1) / (maxCount - 1));
+            result.push(arr[idx]);
+        }
+        return result;
+    }
+
+    // 접속자 현황 실시간 60분 추이: 전체/HTS/MTS 3개 지표를 캔버스 1개에 겹쳐 그린다(샘플스타일 miniArea 대응).
     function updateUcSpark(data) {
         if (!data) return;
         const d = data || {};
         const configs = [
-            { logId: 'UC_TOTAL_COUNT', canvasId: 'ucSparkTotal', valId: 'uc-val-total', deltaId: 'uc-delta-total', color: '#3b82f6' },
-            { logId: 'UC_HTS_COUNT',   canvasId: 'ucSparkHts',   valId: 'uc-val-hts',   deltaId: 'uc-delta-hts',   color: '#22c55e' },
-            { logId: 'UC_MTS_COUNT',   canvasId: 'ucSparkMts',   valId: 'uc-val-mts',   deltaId: 'uc-delta-mts',   color: '#f59e0b' }
+            { logId: 'UC_TOTAL_COUNT', valId: 'uc-val-total', deltaId: 'uc-delta-total', color: '#3b82f6', label: '전체' },
+            { logId: 'UC_HTS_COUNT',   valId: 'uc-val-hts',   deltaId: 'uc-delta-hts',   color: '#f59e0b', label: 'HTS' },
+            { logId: 'UC_MTS_COUNT',   valId: 'uc-val-mts',   deltaId: 'uc-delta-mts',   color: '#22c55e', label: 'MTS' }
         ];
-        configs.forEach(({ logId, canvasId, valId, deltaId, color }) => {
+
+        let longestLabels = [];
+        const datasets = configs.map(({ logId, valId, deltaId, color, label }) => {
             const validRows = (d[logId] || []).filter(r => r.logValue != null);
             const labels = validRows.map(r => {
                 if (!r.logTimestamp) return '';
                 const dt = new Date(r.logTimestamp);
                 return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
             });
+            if (labels.length > longestLabels.length) longestLabels = labels;
+
             const values = validRows.map(r => Math.round(Number(r.logValue)));
             const last = values.length > 0 ? values[values.length - 1] : null;
             const prev = values.length > 1 ? values[values.length - 2] : null;
@@ -1885,27 +2046,16 @@
                 }
             }
 
-            // MTS 행이 3개 스파크라인 중 맨 아래라 분:초 라벨도 거기에 한 번만 표시
-            if (canvasId === 'ucSparkMts') {
-                const formatMinSec = (row) => {
-                    if (!row || !row.logTimestamp) return '-';
-                    const dt = new Date(row.logTimestamp);
-                    return dt.getHours().toString().padStart(2, '0') + ':' + dt.getMinutes().toString().padStart(2, '0');
-                };
-
-                const firstTimeEl = document.getElementById('uc-spark-first-time');
-                if (firstTimeEl) {
-                    firstTimeEl.textContent = formatMinSec(validRows.length > 0 ? validRows[0] : null);
-                }
-
-                const lastTimeEl = document.getElementById('uc-spark-last-time');
-                if (lastTimeEl) {
-                    lastTimeEl.textContent = formatMinSec(validRows.length > 0 ? validRows[validRows.length - 1] : null);
-                }
-            }
-
-            buildSparkChart(canvasId, color, labels, values);
+            return { label, color, values };
         });
+
+        const timesRow = document.getElementById('uc-spark-times');
+        if (timesRow) {
+            const picked = pickEvenLabels(longestLabels, 10);
+            timesRow.innerHTML = picked.map(t => `<span>${t || '-'}</span>`).join('');
+        }
+
+        buildMergedSparkChart(longestLabels, datasets);
     }
 
     function updateServerDropdown(list) {
@@ -1941,17 +2091,35 @@
             let dotClass = 'text-body-secondary';
             let dotIcon = 'bi-circle';
             let incomplete = false;
+            // 상태 상수: 다크모드 카드 틴트/배지 클래스(추가시안)와 dot 표시를 함께 결정
+            let state = 'incomplete';
             if (collectStatus === 'FAIL' || errorCnt > 0) {
                 dotClass = 'text-danger';
                 dotIcon = 'bi-circle-fill';
+                state = 'error';
             } else if (warningCnt > 0) {
                 dotClass = 'text-warning';
                 dotIcon = 'bi-circle-fill';
+                state = 'warn';
             } else if (collectStatus === 'SUCCESS') {
                 dotClass = 'text-success';
                 dotIcon = 'bi-circle-fill';
+                state = 'normal';
             } else {
                 incomplete = true;
+            }
+
+            // 우측 상태 배지 클러스터(라이트모드는 CSS로 숨김 → 기존 화면 무변경)
+            let badgeClusterHtml;
+            if (state === 'incomplete') {
+                badgeClusterHtml = `<span class="pc-badge pc-badge-idle">수집 미완료</span>`;
+            } else if (state === 'normal') {
+                badgeClusterHtml = `<span class="pc-badge pc-badge-ok">정상</span>`;
+            } else {
+                badgeClusterHtml = `
+                    <span class="pc-badge pc-badge-err${errorCnt > 0 ? '' : ' is-zero'}">에러 ${formatNumber(errorCnt)}</span>
+                    <span class="pc-badge pc-badge-warn${warningCnt > 0 ? '' : ' is-zero'}">경고 ${formatNumber(warningCnt)}</span>
+                `;
             }
 
             const collectText = formatTimestamp(collectAt);
@@ -1970,14 +2138,14 @@
                     <div class="d-none d-md-flex gap-3 text-body-secondary small flex-wrap">
                         <span>최종 수집: ${collectText}</span>
                         <span>최종 분석: ${analyzeText}</span>
-                        <span>에러: ${formatNumber(errorCnt)}</span>
-                        <span>경고: ${formatNumber(warningCnt)}</span>
+                        <span class="pc-srv-cnt">에러: ${formatNumber(errorCnt)}</span>
+                        <span class="pc-srv-cnt">경고: ${formatNumber(warningCnt)}</span>
                     </div>
                 `;
 
             // 서버 리스트는 모바일에서 2줄만 보이므로, 상태 점은 가장 심각한 레벨을 우선 표시한다.
             const item = document.createElement('div');
-            item.className = 'list-group-item';
+            item.className = `list-group-item pc-srv-row pc-srv-row--${state}`;
             item.innerHTML = `
                 <div class="d-flex align-items-start gap-2 py-0">
                     <i class="bi ${dotIcon} ${dotClass}"></i>
@@ -1992,6 +2160,7 @@
                             <span>분석주기: ${analyzeSchedule}</span>
                         </div>
                     </div>
+                    <div class="pc-srv-badges">${badgeClusterHtml}</div>
                 </div>
             `;
             el.appendChild(item);
@@ -2017,6 +2186,20 @@
     }
 
     function bindEvents() {
+        document.getElementById('tabBtnCheck').addEventListener('click', () => {
+            document.getElementById('tabBtnCheck').classList.add('active');
+            document.getElementById('tabBtnCollect').classList.remove('active');
+            document.getElementById('panelCheck').style.display = '';
+            document.getElementById('panelCollect').style.display = 'none';
+        });
+
+        document.getElementById('tabBtnCollect').addEventListener('click', () => {
+            document.getElementById('tabBtnCollect').classList.add('active');
+            document.getElementById('tabBtnCheck').classList.remove('active');
+            document.getElementById('panelCollect').style.display = '';
+            document.getElementById('panelCheck').style.display = 'none';
+        });
+
         document.getElementById('tabError').addEventListener('click', () => {
             currentTab = 'error';
             currentPage = 1;
@@ -2077,9 +2260,16 @@
         if (window.lucide) {
             window.lucide.createIcons();
         }
+        applyChartTheme();
         startClock();
         startCountdown();
         bindEvents();
+        refreshAll();
+    });
+
+    // 테마 토글 시 차트 색을 갱신하기 위해 전체 데이터를 다시 그린다.
+    window.addEventListener('precheck-theme-change', () => {
+        applyChartTheme();
         refreshAll();
     });
 

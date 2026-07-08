@@ -40,6 +40,10 @@ DevTools가 `src/main/resources/` 변경을 Thymeleaf에 **반영하지 않음**
 
 Java 파일은 DevTools가 자동 재시작. Mapper XML은 수동 복사 후 DevTools가 자동 감지.
 
+**JAR 실행 시 stale 주의**: `java -jar build/libs/*.jar` 는 빌드 시점 리소스를 번들. `src/` 의 html/css/js 를 고쳐도 `gradlew.bat build` 재빌드 없이는 반영 안 됨. "화면 변경이 안 보임" 1순위 의심 대상 — `(Get-Item jar).LastWriteTime` 으로 JAR 신선도부터 확인.
+
+**IDE(Eclipse/STS) Run 시 `bin/main` stale 주의**: IDE로 직접 Run할 땐 `build/resources/main`이 아니라 `bin/main`에서 정적 리소스가 서빙됨. incremental build가 새로 추가한 정적 파일(js/css)을 `bin/main`에 복사 안 하는 경우 있음 — 파일이 통째로 빠져 404, 스크립트 미로드로 이어짐(예: 다크테마 토글 전혀 무반응). 의심되면 `find . -iname "<파일명>*"`로 `bin/main` vs `src/main/resources` vs `build/resources/main` 세 곳 존재·수정시각 비교. 해결은 IDE Project Refresh/Clean, 급하면 파일 수동 복사.
+
 ---
 
 ## 핵심 gotcha
@@ -61,3 +65,6 @@ Java 파일은 DevTools가 자동 재시작. Mapper XML은 수동 복사 후 Dev
 - Java 17, Spring Boot 3.3.12, MyBatis 3.0.3, Thymeleaf + AdminLTE
 - Spring Security 6, BCrypt
 - PostgreSQL (test) / Altibase (prod)
+
+## 참조파일 스코프
+- 현재 프로잭트 디렉토리 하위의 디렉토리 내용만 참고함

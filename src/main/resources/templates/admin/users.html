@@ -9,6 +9,8 @@
     <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
     <link rel="stylesheet" th:href="@{/css/security.css}">
+    <link rel="stylesheet" th:href="@{/css/precheck-theme.css}">
+    <script th:src="@{/js/precheck-theme.js}"></script>
     <style>
         .precheck-header {
             background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
@@ -249,6 +251,9 @@
                 <div class="header-info">
                     <span class="header-info-label" th:text="${loginUserName}"></span>
                 </div>
+                <button type="button" class="header-btn" data-theme-toggle title="테마 전환">
+                    <i class="bi bi-sun"></i><span data-theme-label>라이트</span>
+                </button>
                 <a th:href="@{/password/change}" class="header-btn">
                     <i class="bi bi-key"></i>비밀번호 변경
                 </a>
