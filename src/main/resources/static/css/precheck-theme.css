@@ -67,6 +67,10 @@
     --bs-card-border-color: var(--pc-border);
     --bs-secondary-color: rgba(255, 255, 255, .68);
     --bs-tertiary-color: rgba(255, 255, 255, .46);
+    --bs-danger-text-emphasis: var(--pc-critical);
+    --bs-warning-text-emphasis: var(--pc-warning);
+    --bs-success-text-emphasis: var(--pc-success);
+    --bs-info-text-emphasis: var(--pc-info);
 }
 
 [data-bs-theme=dark] body {
@@ -138,44 +142,22 @@
     background: linear-gradient(90deg, var(--pc-info), var(--pc-success));
 }
 [data-bs-theme=dark] .pc-ratio-pill {
-    background: rgba(95, 220, 192, .16);
-    color: var(--pc-success);
+    background: #5FDCC0;
+    color: #083a30;
 }
 [data-bs-theme=dark] .kpi-card {
     background: var(--pc-card-header);
     border-color: var(--pc-border);
 }
-[data-bs-theme=dark] .kpi-card--error {
-    --kpi-color: var(--pc-critical);
-    background: var(--pc-critical-bg);
-    border-color: var(--pc-critical-border);
-}
-[data-bs-theme=dark] .kpi-card--warn {
-    --kpi-color: var(--pc-warning);
-    background: var(--pc-warning-bg);
-    border-color: var(--pc-warning-border);
-}
-[data-bs-theme=dark] .kpi-card--normal {
-    --kpi-color: var(--pc-success);
-    background: var(--pc-success-bg);
-    border-color: var(--pc-success-border);
-}
-[data-bs-theme=dark] .kpi-card--info {
-    --kpi-color: var(--pc-info);
-    background: var(--pc-info-bg);
-    border-color: var(--pc-info-border);
-}
+[data-bs-theme=dark] .kpi-card--error { --kpi-color: var(--pc-critical); }
+[data-bs-theme=dark] .kpi-card--warn { --kpi-color: var(--pc-warning); }
+[data-bs-theme=dark] .kpi-card--normal { --kpi-color: var(--pc-success); }
+[data-bs-theme=dark] .kpi-card--info { --kpi-color: var(--pc-info); }
 [data-bs-theme=dark] .kpi-card--unknown { --kpi-color: var(--pc-text-3); }
 [data-bs-theme=dark] .kpi-card-label { color: var(--pc-text-2); }
 [data-bs-theme=dark] .kpi-card-pct { color: var(--pc-text-3); }
 [data-bs-theme=dark] .kpi-card-note { color: var(--pc-critical); }
-/* ── 수집 서버 점검 현황: collect-item도 박스형 ─────────────── */
-[data-bs-theme=dark] .collect-item {
-    background: var(--pc-card-header);
-    border: 1px solid var(--pc-border);
-    border-radius: 10px;
-    padding: 12px 16px;
-}
+/* ── 수집 서버 점검 현황: 개별 박스 없이 패널 배경에 평평하게(레퍼런스와 동일) ── */
 [data-bs-theme=dark] .collect-label { color: var(--pc-text-2); }
 [data-bs-theme=dark] .collect-value { color: var(--pc-text); }
 [data-bs-theme=dark] .collect-value.ok { color: var(--pc-success); }
@@ -205,8 +187,8 @@
     color: var(--pc-text-3);
 }
 [data-bs-theme=dark] .tab-btn.active {
-    background: linear-gradient(90deg, var(--pc-info), #3E7FE0);
-    border-color: transparent;
+    background: linear-gradient(180deg, #3A80D9, #1E59CE);
+    border-color: #1E59CE;
     color: #fff;
 }
 [data-bs-theme=dark] .conn-stat { background: var(--pc-card-header); border-color: var(--pc-border); }
@@ -217,6 +199,15 @@
 [data-bs-theme=dark] .live-pill b { color: var(--pc-text-2); }
 [data-bs-theme=dark] .live-pill .val { color: var(--pc-text); }
 [data-bs-theme=dark] .uc-merged-time { color: var(--pc-text-3); }
+[data-bs-theme=dark] .pc-delta {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+}
+[data-bs-theme=dark] .pc-delta.up { background: var(--pc-pill-success-bg); color: var(--pc-pill-success-fg); }
+[data-bs-theme=dark] .pc-delta.down { background: var(--pc-pill-critical-bg); color: var(--pc-pill-critical-fg); }
+[data-bs-theme=dark] .pc-delta.flat { background: transparent; color: var(--pc-text-3); }
 
 /* ── 카테고리 카드(종목/해외/서비스/접속자) ───────────────── */
 [data-bs-theme=dark] .stat-card {
@@ -226,6 +217,10 @@
     box-shadow: 0 1px 6px rgba(0, 0, 0, .4);
 }
 [data-bs-theme=dark] .stat-card__title { color: var(--pc-text); }
+[data-bs-theme=dark] .stat-card__head { border-bottom-color: var(--pc-border); }
+[data-bs-theme=dark] .stat-card__head-left .bar {
+    background: linear-gradient(90deg, var(--pc-info), var(--pc-success));
+}
 /* 종목/해외종목/서비스/접속자 카드 수치: JS가 정상/정보/미분석 값에 부트스트랩 .text-dark를
    그대로 붙이므로 다크모드에서 검게 보인다. 밝은 색으로 교체하고, 괄호 안 최소/최대 기준값은
    본문 대비 한 단계 죽인 회색으로 분리한다. */
@@ -239,8 +234,7 @@
 [data-bs-theme=dark] .stat-label { color: var(--pc-text-2); }
 [data-bs-theme=dark] .stat-value { color: var(--pc-text); }
 [data-bs-theme=dark] .stat-time { color: var(--pc-text-3); }
-[data-bs-theme=dark] .stat-row { border-top: 1px solid rgba(255, 255, 255, .04); }
-[data-bs-theme=dark] .stat-row:nth-child(even) { background: rgba(255, 255, 255, .025); }
+[data-bs-theme=dark] .stat-row { border-bottom-color: var(--pc-border); }
 /* 접속자 스파크 구분선 */
 [data-bs-theme=dark] .stat-card hr { border-color: var(--pc-border); }
 
@@ -337,33 +331,27 @@
     border-radius: 14px;
     padding: 10px 14px;
 }
-/* 상태별 좌측 스트립 + 옅은 배경 틴트 (base 규칙과 동일한 #serverList 특이도로 승) */
+/* 상태별 좌측 스트립만 색상 구분(카드 배경은 단일톤 유지 — 원본 시안과 동일) */
 [data-bs-theme=dark] #serverList .pc-srv-row--error {
-    background: rgba(241, 146, 107, .08);
-    border-color: rgba(241, 146, 107, .28);
     border-left-color: var(--pc-critical);
 }
 [data-bs-theme=dark] #serverList .pc-srv-row--warn {
-    background: rgba(246, 217, 126, .08);
-    border-color: rgba(246, 217, 126, .28);
     border-left-color: var(--pc-warning);
 }
 [data-bs-theme=dark] #serverList .pc-srv-row--normal {
-    background: var(--pc-card-header);
     border-left-color: var(--pc-success);
 }
 [data-bs-theme=dark] #serverList .pc-srv-row--incomplete {
-    background: var(--pc-card-bg);
+    opacity: .55;
     border-style: dashed;
-    border-color: var(--pc-border);
     border-left-color: var(--pc-border);
 }
 
-/* 우측 상태 배지 클러스터 — 라이트모드에서는 완전히 숨김(무변경) */
+/* 우측 상태 배지 클러스터 — 라이트/다크 공통 표시(다크모드와 동일하게), 768px 미만은 기존처럼 숨김 */
 .pc-srv-badges { display: none; }
-[data-bs-theme=dark] .pc-srv-cnt { display: none; }
+.pc-srv-cnt { display: none; }
 @media (min-width: 768px) {
-    [data-bs-theme=dark] .pc-srv-badges {
+    .pc-srv-badges {
         display: flex;
         align-items: center;
         gap: 6px;
@@ -371,38 +359,45 @@
 }
 .pc-badge {
     display: inline-block;
-    padding: 2px 10px;
+    padding: 4px 11px;
     border-radius: 999px;
     border: 1px solid transparent;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     white-space: nowrap;
 }
-[data-bs-theme=dark] .pc-badge-err {
-    background: rgba(241, 146, 107, .14);
-    border-color: rgba(241, 146, 107, .35);
-    color: var(--pc-critical);
+.pc-badge-err {
+    background: #EF7F63;
+    color: #3a1508;
 }
-[data-bs-theme=dark] .pc-badge-warn {
-    background: rgba(246, 217, 126, .14);
-    border-color: rgba(246, 217, 126, .35);
-    color: var(--pc-warning);
+.pc-badge-warn {
+    background: #F6D97E;
+    color: #3a2c08;
 }
-[data-bs-theme=dark] .pc-badge-ok {
-    background: rgba(95, 220, 192, .14);
-    border-color: rgba(95, 220, 192, .35);
-    color: var(--pc-success);
+.pc-badge-ok {
+    background: #5FDCC0;
+    color: #083a30;
 }
-[data-bs-theme=dark] .pc-badge-idle {
-    background: transparent;
-    border-color: var(--pc-border);
-    color: var(--pc-text-3);
+.pc-badge-idle {
+    background: #fff;
+    color: #000;
+    border-color: rgba(0, 0, 0, .15);
 }
 /* 건수 0 배지는 채도를 낮춰 위급 배지와 시각적으로 구분 */
+.pc-badge.is-zero {
+    background: #fff;
+    color: #000;
+    border-color: rgba(0, 0, 0, .15);
+}
+[data-bs-theme=dark] .pc-badge-idle {
+    background: #16305e;
+    color: #7C8CB3;
+    border-color: transparent;
+}
 [data-bs-theme=dark] .pc-badge.is-zero {
-    background: transparent;
-    border-color: var(--pc-border);
-    color: var(--pc-text-3);
+    background: #16305e;
+    color: #7C8CB3;
+    border-color: transparent;
 }
 
 /* ── 도넛 카드: 샘플스타일(3) 참고 — 상태 구분 없이 단일 네이비 배경, 링 색으로만 상태 표시 ── */
@@ -421,28 +416,11 @@
     border-radius: 16px !important;
 }
 
-/* ── 히스토리 라인차트 탭 버튼 / 로그 필터 탭: pill 그룹 ────── */
-[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary {
-    background: var(--pc-card-header);
-    border-color: var(--pc-border);
-    color: var(--pc-text-2);
-}
-[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary:hover {
-    background: rgba(255, 255, 255, .08);
-    color: var(--pc-text);
-}
-[data-bs-theme=dark] .card-header .btn-group .btn-outline-secondary.active {
-    background: var(--pc-info);
+/* ── 히스토리 라인차트 탭 / 로그 필터 탭 pill 그룹은 index.html의 .filter-btn-group 규칙으로 통일 ── */
+[data-bs-theme=dark] #serverFilter {
+    background-color: var(--pc-card-header);
     border-color: var(--pc-info);
-    color: #ffffff;
-}
-[data-bs-theme=dark] .btn-group .btn-outline-secondary:first-child {
-    border-top-left-radius: 999px;
-    border-bottom-left-radius: 999px;
-}
-[data-bs-theme=dark] .btn-group .btn-outline-secondary:last-child {
-    border-top-right-radius: 999px;
-    border-bottom-right-radius: 999px;
+    color: var(--pc-text);
 }
 
 /* ── 페이지네이션: pill 형태(시안 .pager) ──────────────────── */

@@ -44,6 +44,13 @@ Java 파일은 DevTools가 자동 재시작. Mapper XML은 수동 복사 후 Dev
 
 **IDE(Eclipse/STS) Run 시 `bin/main` stale 주의**: IDE로 직접 Run할 땐 `build/resources/main`이 아니라 `bin/main`에서 정적 리소스가 서빙됨. incremental build가 새로 추가한 정적 파일(js/css)을 `bin/main`에 복사 안 하는 경우 있음 — 파일이 통째로 빠져 404, 스크립트 미로드로 이어짐(예: 다크테마 토글 전혀 무반응). 의심되면 `find . -iname "<파일명>*"`로 `bin/main` vs `src/main/resources` vs `build/resources/main` 세 곳 존재·수정시각 비교. 해결은 IDE Project Refresh/Clean, 급하면 파일 수동 복사.
 
+**규칙(무조건 실행)**: `src/main/resources/` 하위 파일(templates/*.html, static/css/*.css, static/js/*.js 등)을 수정할 때마다, 수정 직후 다음 두 곳에 동일 파일을 복사해서 3곳(`src/main/resources`, `build/resources/main`, `bin/main`)을 항상 동기화한다. 사용자가 다시 요청하지 않아도 매번 자동으로 수행할 것.
+```bash
+cp <file> build/resources/main/<상대경로>
+cp <file> bin/main/<상대경로>
+```
+`bin/main` 디렉터리가 없으면(= IDE로 연 적 없는 환경) 그 단계는 건너뛴다.
+
 ---
 
 ## 핵심 gotcha

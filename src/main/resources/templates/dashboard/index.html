@@ -13,6 +13,7 @@
     <script th:src="@{/js/precheck-theme.js}"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/chart-spike.js}"></script>
     <style>
         .summary-strip-item { min-width: 0; }
         .summary-number { font-size: clamp(16px, 4vw, 24px); line-height: 1.1; }
@@ -51,6 +52,17 @@
         }
         .pc-donut--empty {
             opacity: .6;
+        }
+        [data-bs-theme=dark] .pc-donut--empty {
+            opacity: 1;
+            background: #1a3868;
+            border-color: rgba(255, 255, 255, .09) !important;
+            border-style: dashed !important;
+            color: #fff;
+        }
+        [data-bs-theme=dark] .pc-donut--empty .donut-empty {
+            border-color: #7C8CB3;
+            color: #7C8CB3;
         }
         .dot {
             width: 8px;
@@ -238,6 +250,7 @@
         }
         body {
             background-color: #eaf4fc;
+            font-family: "Malgun Gothic", "맑은 고딕", -apple-system, "Segoe UI", sans-serif;
         }
         .mini-nav-sidebar {
             position: absolute;
@@ -315,7 +328,7 @@
         }
         /* ── Status Panel (B Style) ───────────────────────── */
         .stat-card {
-            border-radius: 8px;
+            border-radius: 16px;
             overflow: hidden;
             border: 1px solid #e2e8f0;
             box-shadow: 0 1px 6px rgba(0,0,0,.07);
@@ -328,23 +341,23 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid transparent;
+            border-bottom: 1px solid #e2e8f0;
         }
         .stat-card__head-left {
             display: flex;
             align-items: center;
             gap: 9px;
         }
-        .stat-card__icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            display: grid;
-            place-items: center;
+        .stat-card__head-left .bar {
+            display: inline-block;
+            width: 14px;
+            height: 3px;
+            border-radius: 2px;
+            background: #2563eb;
             flex-shrink: 0;
         }
         .stat-card__title {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: #1e293b;
             letter-spacing: -.01em;
@@ -362,75 +375,62 @@
         .stat-card__body { flex: 1; }
         .stat-row {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             justify-content: space-between;
-            padding: 6px 16px;
+            padding: 7px 16px;
+            gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .stat-row:nth-child(even) { background: #fafbfc; }
+        .stat-row:last-child { border-bottom: none; }
         .stat-row__left {
             display: flex;
-            align-items: center;
-            gap: 9px;
+            align-items: baseline;
+            gap: 7px;
+            min-width: 0;
         }
         .stat-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
+            align-self: center;
             flex-shrink: 0;
         }
-        .stat-label { font-size: 14px; color: #374151; }
+        .stat-label { flex: 0 0 132px; font-size: 13px; color: #374151; white-space: nowrap; }
         .stat-value {
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 15.5px;
+            font-weight: 800;
             color: #1e293b;
             font-variant-numeric: tabular-nums;
-            text-align: right;
         }
-        .stat-time { font-size: 12px; color: #94a3b8; }
+        .stat-time { font-size: 12px; color: #94a3b8; flex-shrink: 0; white-space: nowrap; }
         /* 로그 테이블 */
-        #logTable th,
+        #logTable th { font-size: 10.5px; }
         #logTable td { font-size: 12px; }
-        #logTable .btn { font-size: 12px; }
+        #logTable .btn { font-size: 10px; }
         #logTable .small { font-size: 12px; }
-        #logTable .badge { font-size: 11px; }
+        #logTable .badge { font-size: 10px; }
         /* 서버 리스트 */
-        #serverList .list-group-item { padding: 3px 10px; }
-        #serverList .fw-bold { font-size: 12px; }
-        #serverList .text-body-secondary { font-size: 11px; }
+        #serverList .list-group-item { padding: 10px 14px; }
+        #serverList .fw-bold { font-size: 13px; }
+        #serverList .text-body-secondary { font-size: 10px; }
         /* 원본 로그 모달 - 서버 리스트 스타일 적용 */
         #rawLogMeta .list-group-item { padding: 3px 10px; }
         #rawLogMeta .fw-bold { font-size: 12px; }
         #rawLogMeta .text-body-secondary { font-size: 11px; }
-        /* 카드 색상 테마 */
-        .card--stock .stat-card__head {
-            background: linear-gradient(135deg, rgba(37,99,235,.1) 0%, rgba(37,99,235,.04) 100%);
-            border-bottom-color: rgba(37,99,235,.13);
-        }
-        .card--stock .stat-card__icon { background: rgba(37,99,235,.12); color: #2563eb; }
-        .card--foreign .stat-card__head {
-            background: linear-gradient(135deg, rgba(14,165,233,.1) 0%, rgba(14,165,233,.04) 100%);
-            border-bottom-color: rgba(14,165,233,.13);
-        }
-        .card--foreign .stat-card__icon { background: rgba(14,165,233,.12); color: #0ea5e9; }
-        .card--service .stat-card__head {
-            background: linear-gradient(135deg, rgba(16,185,129,.1) 0%, rgba(16,185,129,.04) 100%);
-            border-bottom-color: rgba(16,185,129,.13);
-        }
-        .card--service .stat-card__icon { background: rgba(16,185,129,.12); color: #10b981; }
         /* ── 오늘의 점검 현황 / 수집 서버 점검 현황 패널 ─────────── */
         .panel-accent-title {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #1e293b;
         }
         .panel-accent-title .bar {
             display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
+            width: 14px;
+            height: 3px;
+            border-radius: 2px;
             background: #2563eb;
         }
         .pc-ratio-pill {
@@ -438,23 +438,23 @@
             font-weight: 700;
             padding: 4px 12px;
             border-radius: 999px;
-            background: rgba(25,135,84,.12);
-            color: #198754;
+            background: #5FDCC0;
+            color: #083a30;
             white-space: nowrap;
         }
         .kpi-card-row {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
         }
         .kpi-card {
-            flex: 1 1 150px;
+            flex: 1 1 180px;
             position: relative;
             overflow: hidden;
             background: var(--bs-tertiary-bg);
             border: 1px solid var(--bs-border-color);
-            border-radius: 14px;
-            padding: 14px 16px;
+            border-radius: 16px;
+            padding: 16px 18px 16px 20px;
         }
         .kpi-card::before {
             content: '';
@@ -469,16 +469,14 @@
         .kpi-card--info { --kpi-color: var(--bs-info); }
         .kpi-card--unknown { --kpi-color: var(--bs-secondary); }
         .kpi-card-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
+            font-size: 15px;
             color: var(--bs-secondary-color);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
-        .kpi-card-pct { font-size: 11px; color: var(--bs-tertiary-color); }
+        .kpi-card-value-row { display: flex; align-items: baseline; justify-content: space-between; }
+        .kpi-card-pct { font-size: 16px; color: var(--bs-tertiary-color); }
         .kpi-card-value {
-            font-size: clamp(22px, 4vw, 30px);
+            font-size: clamp(30px, 4vw, 42px);
             font-weight: 800;
             line-height: 1;
             color: var(--kpi-color, inherit);
@@ -491,43 +489,120 @@
         }
         .collect-item {
             flex: 1 1 140px;
-            background: var(--bs-tertiary-bg);
-            border: 1px solid var(--bs-border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
         }
         .collect-label {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 12px;
+            font-size: 15px;
             color: var(--bs-secondary-color);
             margin-bottom: 8px;
         }
-        .collect-value { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
-        .collect-value.ok { font-size: 17px; color: #198754; }
+        .collect-value { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+        .collect-value.ok { font-size: 18px; color: #198754; }
         /* ── 그룹 구분선 / 3패널 로우 / 탭 / 접속자 패널 (샘플스타일 구조) ─────── */
         .group-title { display: flex; align-items: baseline; gap: 10px; margin: 28px 4px 14px; }
         .group-title:first-of-type { margin-top: 0; }
         .group-title h2 { font-size: 14px; margin: 0; color: var(--bs-emphasis-color); letter-spacing: .5px; text-transform: uppercase; font-weight: 700; }
+        .section-title-lg { font-size: 16px !important; }
         .group-title .sub { font-size: 11px; color: var(--bs-secondary-color); }
         .group-title::after { content: ""; flex: 1; height: 1px; background: var(--bs-border-color); margin-left: 6px; }
         .row-flex { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1rem; }
         .row-flex > .stat-card { flex: 1 1 280px; }
-        .tabs { display: flex; gap: 8px; }
-        .tab-btn { padding: 8px 20px; font-size: 12px; font-weight: 700; border-radius: 999px; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); cursor: pointer; border: 1px solid var(--bs-border-color); }
-        .tab-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+        .tabs { display: flex; gap: 6px; }
+        .tabs-outside { margin-bottom: 0; }
+        .card.detail-card { border-radius: 0 0 16px 16px; overflow: hidden; }
+        .tab-btn { padding: 10px 24px; font-size: 14px; font-weight: 700; border-radius: 14px 14px 0 0; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color); cursor: pointer; border: 1px solid var(--bs-border-color); border-bottom: none; }
+        .tab-btn.active { background: linear-gradient(180deg, #3A80D9, #1E59CE); color: #fff; border-color: #1E59CE; }
+        .filter-btn-group { display: flex; gap: 8px; }
+        .card-header .filter-btn-group { margin-left: auto; }
+        .filter-btn-group .btn { font-size: 11px; padding: 6px 16px; font-weight: 500; border-radius: 999px !important; }
+        #serverFilter { border-radius: 999px; font-size: 11px; font-weight: 700; padding-top: 6px; padding-bottom: 6px; }
+        #pagination .page-link { border-radius: 999px !important; margin: 0 2px; }
+
+        /* ── 메인화면 사각형 밖 전체 배경(다크모드 전용, 라이트는 흰색 유지) ── */
+        [data-bs-theme=dark] body { background: #152d53; }
+        /* ── 디스크 현황 이전 구간(TODAY 현황 ~ 상세 현황) 사각형 밖 배경만 별도 톤 ── */
+        [data-bs-theme=dark] #beforeResourceZone { background: #14305e; }
+
+        /* ── 디스크 현황/접속자 현황/History 카드: 다크모드 전용 진한 배경(라이트는 흰색 유지) ── */
+        [data-bs-theme=dark] #resourceSection,
+        [data-bs-theme=dark] #connStatusCard,
+        [data-bs-theme=dark] #historyCard {
+            background: #102448 !important;
+            border-color: rgba(255, 255, 255, .09) !important;
+        }
+        [data-bs-theme=dark] #resourceSection .pc-donut--error,
+        [data-bs-theme=dark] #resourceSection .pc-donut--warn,
+        [data-bs-theme=dark] #resourceSection .pc-donut--normal,
+        [data-bs-theme=dark] #resourceSection .pc-donut--empty,
+        [data-bs-theme=dark] #connStatusCard .conn-stat,
+        [data-bs-theme=dark] #connStatusCard .live-pill {
+            background: #152d53 !important;
+        }
+
+        /* ── 상세 현황 카드: 필터탭/표/페이지네이션 다크모드 전용 톤(전체 콤보 select는 제외) ── */
+        [data-bs-theme=dark] .card.detail-card { background: linear-gradient(180deg, #26498a, #1f3f78); border-color: rgba(255, 255, 255, .16); box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+        [data-bs-theme=dark] .tab-btn { background: #1a3868; color: #7C8CB3; border-color: rgba(255, 255, 255, .09); }
+        [data-bs-theme=dark] #panelCheck .card-body, [data-bs-theme=dark] .detail-card .card-footer { background: #1c3d75; }
+        [data-bs-theme=dark] .detail-card .card-footer { border-top-color: rgba(255, 255, 255, .09); }
+        [data-bs-theme=dark] .detail-card .card-footer #pageInfo { color: #B7C6E8; }
+        [data-bs-theme=dark] .filter-btn-group .btn.btn-outline-secondary { background: #1a3868; border-color: rgba(255, 255, 255, .09); color: #B7C6E8; }
+        [data-bs-theme=dark] .filter-btn-group .btn.btn-outline-secondary:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+        [data-bs-theme=dark] .filter-btn-group .btn.btn-outline-secondary.active { background: #4B98F7; border-color: #4B98F7; color: #fff; }
+        [data-bs-theme=dark] #logTable {
+            --bs-table-bg: #1c3d75;
+            --bs-table-color: #B7C6E8;
+            --bs-table-border-color: rgba(255, 255, 255, .09);
+            --bs-table-hover-bg: rgba(255, 255, 255, .06);
+            --bs-table-hover-color: #ffffff;
+        }
+        [data-bs-theme=dark] #logTable thead.table-light th { background-color: #1a3868; color: #B7C6E8; border-color: rgba(255, 255, 255, .09); }
+        [data-bs-theme=dark] #logTable tbody tr:nth-of-type(4n+3) > td { background-color: rgba(255, 255, 255, .03); }
+        [data-bs-theme=dark] #logTable .table-danger {
+            --bs-table-color: #B7C6E8;
+            --bs-table-bg: #1c3d75;
+            --bs-table-border-color: rgba(255, 255, 255, .09);
+            --bs-table-hover-color: #ffffff;
+            --bs-table-hover-bg: rgba(255, 255, 255, .06);
+        }
+        [data-bs-theme=dark] #logTable .table-warning {
+            --bs-table-color: #B7C6E8;
+            --bs-table-bg: #1c3d75;
+            --bs-table-border-color: rgba(255, 255, 255, .09);
+            --bs-table-hover-color: #ffffff;
+            --bs-table-hover-bg: rgba(255, 255, 255, .06);
+        }
+        [data-bs-theme=dark] #logTable .table-danger td:first-child { border-left: 3px solid #F1926B; }
+        [data-bs-theme=dark] #logTable .table-warning td:first-child { border-left: 3px solid #F6D97E; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-light { background-color: transparent !important; border: 1px solid rgba(255, 255, 255, .09); color: #B7C6E8 !important; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-danger { background-color: #EF7F63 !important; color: #3a1508 !important; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-warning { background-color: #F6D97E !important; color: #3a2c08 !important; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-success { background-color: #5FDCC0 !important; color: #083a30 !important; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-info { background-color: #4B98F7 !important; color: #ffffff !important; }
+        [data-bs-theme=dark] #logTable .badge.text-bg-secondary { background-color: rgba(255, 255, 255, .12) !important; color: #B7C6E8 !important; }
+        [data-bs-theme=dark] #logTable .btn-outline-secondary { border-color: rgba(255, 255, 255, .24); color: #B7C6E8; background: transparent; }
+        [data-bs-theme=dark] #logTable .btn-outline-secondary:hover { background: rgba(255, 255, 255, .1); color: #fff; border-color: rgba(255, 255, 255, .4); }
+        [data-bs-theme=dark] #pagination .page-link { background: transparent; border-color: transparent; color: #B7C6E8; }
+        [data-bs-theme=dark] #pagination .page-link:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+        [data-bs-theme=dark] #pagination .page-item.active .page-link { background: #4B98F7; border-color: #4B98F7; color: #fff; }
+        [data-bs-theme=dark] #pagination .page-item.disabled .page-link { color: #7C8CB3; background: transparent; }
         .conn-body { display: flex; gap: 24px; flex-wrap: wrap; }
-        .conn-left { flex: 0 0 240px; display: flex; flex-direction: column; gap: 12px; }
-        .conn-stat { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; padding: 12px 16px; }
-        .conn-stat-label { font-size: 11px; color: var(--bs-secondary-color); }
-        .conn-stat-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
-        .conn-stat-min { font-size: 10px; color: var(--bs-tertiary-color); display: block; margin-top: 2px; }
+        .conn-left { flex: 0 0 320px; display: flex; flex-direction: column; gap: 12px; }
+        .conn-stat { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 14px; padding: 16px 18px; }
+        .conn-stat-label { font-size: 14px; color: var(--bs-secondary-color); }
+        .conn-stat-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 4px; }
+        .conn-stat-value { font-size: 22px; font-weight: 800; }
+        .conn-stat-min { font-size: 11px; color: var(--bs-tertiary-color); white-space: nowrap; }
         .conn-right { flex: 1; min-width: 280px; }
         .live-stats { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
         .live-pill { background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; padding: 10px 16px; flex: 1 1 120px; }
-        .live-pill b { font-size: 11px; color: var(--bs-secondary-color); display: block; margin-bottom: 4px; font-weight: 600; }
-        .live-pill .val { font-size: 20px; font-weight: 800; margin-right: 6px; }
+        .live-pill b { font-size: 14px; color: var(--bs-secondary-color); display: block; margin-bottom: 4px; font-weight: 600; }
+        .live-pill .val { font-size: 18px; font-weight: 800; margin-right: 6px; }
+        .pc-delta { font-size: 12px; font-weight: 700; }
+        .pc-delta.up { color: #dc3545; }
+        .pc-delta.down { color: #0d6efd; }
+        .pc-delta.flat { color: #6c757d; }
         .uc-merged-chart-wrap { position: relative; height: 150px; margin-bottom: 22px; }
         .uc-merged-time-row {
             position: absolute; left: 2px; right: 2px; bottom: -22px;
@@ -618,34 +693,35 @@
     <div class="content-wrapper p-3">
         <div class="container-fluid">
 
-            <div class="group-title"><h2>현황</h2><span class="sub">서버 점검 · 종목수 · 상세 · 접속자 현황 · History</span></div>
+            <div id="beforeResourceZone">
+            <div class="group-title"><h2>TODAY 현황</h2><span class="sub"> </span></div>
 
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <span class="panel-accent-title"><span class="bar"></span>오늘의 점검 현황</span>
-                    <span class="pc-ratio-pill ms-auto" id="normRatioPill">정상 비중 0%</span>
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>오늘의 점검 현황</span>
+                    <span class="pc-ratio-pill ms-auto" id="normRatioPill">▲ 정상 비중 0%</span>
                 </div>
                 <div class="card-body">
                     <div class="kpi-card-row">
                         <div class="kpi-card kpi-card--error">
-                            <div class="kpi-card-label"><span>에러</span><span class="kpi-card-pct" id="errRatio">0%</span></div>
-                            <div class="kpi-card-value" id="errCnt">0</div>
+                            <div class="kpi-card-label"><span>에러</span></div>
+                            <div class="kpi-card-value-row"><span class="kpi-card-value" id="errCnt">0</span><span class="kpi-card-pct" id="errRatio">0%</span></div>
                         </div>
                         <div class="kpi-card kpi-card--warn">
-                            <div class="kpi-card-label"><span>경고</span><span class="kpi-card-pct" id="warnRatio">0%</span></div>
-                            <div class="kpi-card-value" id="warnCnt">0</div>
+                            <div class="kpi-card-label"><span>경고</span></div>
+                            <div class="kpi-card-value-row"><span class="kpi-card-value" id="warnCnt">0</span><span class="kpi-card-pct" id="warnRatio">0%</span></div>
                         </div>
                         <div class="kpi-card kpi-card--normal">
-                            <div class="kpi-card-label"><span>정상</span><span class="kpi-card-pct" id="normRatio">0%</span></div>
-                            <div class="kpi-card-value" id="normCnt">0</div>
+                            <div class="kpi-card-label"><span>정상</span></div>
+                            <div class="kpi-card-value-row"><span class="kpi-card-value" id="normCnt">0</span><span class="kpi-card-pct" id="normRatio">0%</span></div>
                         </div>
                         <div class="kpi-card kpi-card--info">
-                            <div class="kpi-card-label"><span>정보</span><span class="kpi-card-pct" id="infoRatio">0%</span></div>
-                            <div class="kpi-card-value" id="infoCnt">0</div>
+                            <div class="kpi-card-label"><span>정보</span></div>
+                            <div class="kpi-card-value-row"><span class="kpi-card-value" id="infoCnt">0</span><span class="kpi-card-pct" id="infoRatio">0%</span></div>
                         </div>
                         <div class="kpi-card kpi-card--unknown">
-                            <div class="kpi-card-label"><span>미분석</span><span class="kpi-card-pct" id="unknRatio">0%</span></div>
-                            <div class="kpi-card-value" id="unknCnt">0</div>
+                            <div class="kpi-card-label"><span>미분석</span></div>
+                            <div class="kpi-card-value-row"><span class="kpi-card-value" id="unknCnt">0</span><span class="kpi-card-pct" id="unknRatio">0%</span></div>
                             <div id="unknownPolicyWarning" class="kpi-card-note d-none">정책 파일 업데이트 필요</div>
                         </div>
                     </div>
@@ -654,7 +730,7 @@
 
             <div class="card mb-3">
                 <div class="card-header">
-                    <span class="panel-accent-title"><span class="bar"></span>서버 점검 현황</span>
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>서버 점검 현황</span>
                 </div>
                 <div class="card-body">
                     <div class="collect-row">
@@ -695,198 +771,118 @@
             <div class="row-flex">
 
                 <!-- 종목 현황 -->
-                <div class="stat-card card--stock h-100">
+                <div class="stat-card">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
-                                <div class="stat-card__icon">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                                        <polyline points="16 7 22 7 22 13"/>
-                                    </svg>
-                                </div>
+                                <span class="bar"></span>
                                 <span class="stat-card__title">종목 현황</span>
+                                <img src="data:image/png;base64,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" alt="한국" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-left:6px;">
                             </div>
                         </div>
                         <div class="stat-card__body">
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#3b82f6"></span><span class="stat-label">주식 종목수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MBSOSI_COUNT">-</span>
-                                    <span class="stat-time" id="t-MBSOSI_COUNT"></span>
-                                    <span class="d-none" id="th-MBSOSI_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#4B98F7"></span><span class="stat-label">주식 종목수</span><span class="stat-value" id="v-MBSOSI_COUNT">-</span></div>
+                                <span class="stat-time" id="t-MBSOSI_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#f59e0b"></span><span class="stat-label">파생 종목수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MBFOSI_COUNT">-</span>
-                                    <span class="stat-time" id="t-MBFOSI_COUNT"></span>
-                                    <span class="d-none" id="th-MBFOSI_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F6D97E"></span><span class="stat-label">파생 종목수</span><span class="stat-value" id="v-MBFOSI_COUNT">-</span></div>
+                                <span class="stat-time" id="t-MBFOSI_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#22c55e"></span><span class="stat-label">상품 종목수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MBCOSI_COUNT">-</span>
-                                    <span class="stat-time" id="t-MBCOSI_COUNT"></span>
-                                    <span class="d-none" id="th-MBCOSI_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#5FDCC0"></span><span class="stat-label">상품 종목수</span><span class="stat-value" id="v-MBCOSI_COUNT">-</span></div>
+                                <span class="stat-time" id="t-MBCOSI_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#ef4444"></span><span class="stat-label">업종 종목수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-MBJISU_COUNT">-</span>
-                                    <span class="stat-time" id="t-MBJISU_COUNT"></span>
-                                    <span class="d-none" id="th-MBJISU_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F1926B"></span><span class="stat-label">업종 종목수</span><span class="stat-value" id="v-MBJISU_COUNT">-</span></div>
+                                <span class="stat-time" id="t-MBJISU_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#94a3b8"></span><span class="stat-label">NXT 종목수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-NXT_COUNT">-</span>
-                                    <span class="stat-time" id="t-NXT_COUNT"></span>
-                                    <span class="d-none" id="th-NXT_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#7C8CB3"></span><span class="stat-label">NXT 종목수</span><span class="stat-value" id="v-NXT_COUNT">-</span></div>
+                                <span class="stat-time" id="t-NXT_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#06b6d4"></span><span class="stat-label">옵션결제월 최대수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OPT_MAX_COUNT">-</span>
-                                    <span class="stat-time" id="t-OPT_MAX_COUNT"></span>
-                                    <span class="d-none" id="th-OPT_MAX_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#4B98F7"></span><span class="stat-label">옵션결제월 최대수</span><span class="stat-value" id="v-OPT_MAX_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OPT_MAX_COUNT"></span>
                             </div>
                         </div>
                     </div>
 
                 <!-- 해외 종목 현황 -->
-                <div class="stat-card card--foreign h-100">
+                <div class="stat-card">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
-                                <div class="stat-card__icon">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="2" y1="12" x2="22" y2="12"/>
-                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                                    </svg>
-                                </div>
+                                <span class="bar"></span>
                                 <span class="stat-card__title">해외 종목 현황</span>
+                                <img src="data:image/png;base64,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" alt="해외" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-left:6px;">
                             </div>
                         </div>
                         <div class="stat-card__body">
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#3b82f6"></span><span class="stat-label">미국주간</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OS_BA_COUNT">-</span>
-                                    <span class="stat-time" id="t-OS_BA_COUNT"></span>
-                                    <span class="d-none" id="th-OS_BA_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#4B98F7"></span><span class="stat-label">미국주간</span><span class="stat-value" id="v-OS_BA_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OS_BA_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#f59e0b"></span><span class="stat-label">미국야간</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OS_NB_COUNT">-</span>
-                                    <span class="stat-time" id="t-OS_NB_COUNT"></span>
-                                    <span class="d-none" id="th-OS_NB_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F6D97E"></span><span class="stat-label">미국야간</span><span class="stat-value" id="v-OS_NB_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OS_NB_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#22c55e"></span><span class="stat-label">홍콩</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OS_HK_COUNT">-</span>
-                                    <span class="stat-time" id="t-OS_HK_COUNT"></span>
-                                    <span class="d-none" id="th-OS_HK_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#5FDCC0"></span><span class="stat-label">홍콩</span><span class="stat-value" id="v-OS_HK_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OS_HK_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#ef4444"></span><span class="stat-label">상해</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OS_SH_COUNT">-</span>
-                                    <span class="stat-time" id="t-OS_SH_COUNT"></span>
-                                    <span class="d-none" id="th-OS_SH_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F1926B"></span><span class="stat-label">상해</span><span class="stat-value" id="v-OS_SH_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OS_SH_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#94a3b8"></span><span class="stat-label">심천</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-OS_SZ_COUNT">-</span>
-                                    <span class="stat-time" id="t-OS_SZ_COUNT"></span>
-                                    <span class="d-none" id="th-OS_SZ_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#7C8CB3"></span><span class="stat-label">심천</span><span class="stat-value" id="v-OS_SZ_COUNT">-</span></div>
+                                <span class="stat-time" id="t-OS_SZ_COUNT"></span>
                             </div>
                         </div>
                     </div>
 
                 <!-- 서비스 현황 -->
-                <div class="stat-card card--service h-100">
+                <div class="stat-card">
                         <div class="stat-card__head">
                             <div class="stat-card__head-left">
-                                <div class="stat-card__icon">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="2" y="3" width="20" height="4" rx="1"/>
-                                        <rect x="2" y="10" width="20" height="4" rx="1"/>
-                                        <rect x="2" y="17" width="20" height="4" rx="1"/>
-                                        <circle cx="18.5" cy="5" r=".85" fill="currentColor" stroke="none"/>
-                                        <circle cx="18.5" cy="12" r=".85" fill="currentColor" stroke="none"/>
-                                        <circle cx="18.5" cy="19" r=".85" fill="currentColor" stroke="none"/>
-                                    </svg>
-                                </div>
+                                <span class="bar"></span>
                                 <span class="stat-card__title">서비스 현황</span>
                             </div>
                         </div>
                         <div class="stat-card__body">
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#3b82f6"></span><span class="stat-label">서버자동주문 계좌수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-AUTO_ORDER_ACNT">-</span>
-                                    <span class="stat-time" id="t-AUTO_ORDER_ACNT"></span>
-                                    <span class="d-none" id="th-AUTO_ORDER_ACNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#4B98F7"></span><span class="stat-label">서버자동주문 계좌수</span><span class="stat-value" id="v-AUTO_ORDER_ACNT">-</span></div>
+                                <span class="stat-time" id="t-AUTO_ORDER_ACNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#f59e0b"></span><span class="stat-label">시세포착1 등록수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-CAP_REG_COUNT">-</span>
-                                    <span class="stat-time" id="t-CAP_REG_COUNT"></span>
-                                    <span class="d-none" id="th-CAP_REG_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F6D97E"></span><span class="stat-label">시세포착1 등록수</span><span class="stat-value" id="v-CAP_REG_COUNT">-</span></div>
+                                <span class="stat-time" id="t-CAP_REG_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#22c55e"></span><span class="stat-label">시세포착2 등록수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-CAP2_REG_COUNT">-</span>
-                                    <span class="stat-time" id="t-CAP2_REG_COUNT"></span>
-                                    <span class="d-none" id="th-CAP2_REG_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#5FDCC0"></span><span class="stat-label">시세포착2 등록수</span><span class="stat-value" id="v-CAP2_REG_COUNT">-</span></div>
+                                <span class="stat-time" id="t-CAP2_REG_COUNT"></span>
                             </div>
                             <div class="stat-row">
-                                <div class="stat-row__left"><span class="stat-dot" style="background:#06b6d4"></span><span class="stat-label">주파수클럽 사용수</span></div>
-                                <div class="d-flex flex-column align-items-end">
-                                    <span class="stat-value" id="v-FREQ_CLUB_COUNT">-</span>
-                                    <span class="stat-time" id="t-FREQ_CLUB_COUNT"></span>
-                                    <span class="d-none" id="th-FREQ_CLUB_COUNT"></span>
-                                </div>
+                                <div class="stat-row__left"><span class="stat-dot" style="background:#F1926B"></span><span class="stat-label">주파수클럽 사용수</span><span class="stat-value" id="v-FREQ_CLUB_COUNT">-</span></div>
+                                <span class="stat-time" id="t-FREQ_CLUB_COUNT"></span>
                             </div>
                         </div>
                     </div>
 
             </div>
 
-            <div class="group-title"><h2>상세 현황</h2><span class="sub">점검현황 상세 · 수집서버 상세 탭 전환</span></div>
-            <div class="card mb-3">
-                <div class="card-header">
-                    <div class="tabs">
-                        <button type="button" class="tab-btn active" id="tabBtnCheck">점검현황 상세</button>
-                        <button type="button" class="tab-btn" id="tabBtnCollect">수집서버 상세</button>
-                    </div>
-                </div>
+            <div class="group-title"><h2 class="section-title-lg">상세 현황</h2><span class="sub"> </span></div>
+            <div class="tabs tabs-outside">
+                <button type="button" class="tab-btn active" id="tabBtnCheck">점검현황 상세</button>
+                <button type="button" class="tab-btn" id="tabBtnCollect">수집서버 상세</button>
+            </div>
+            <div class="card mb-3 detail-card">
                 <div id="panelCheck">
                     <div class="card-body pb-0">
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <select class="form-select form-select-sm" id="serverFilter" style="min-width: 140px; width: 140px;">
                                 <option value="">전체</option>
                             </select>
-                            <div class="btn-group btn-group-sm" role="group">
+                            <div class="filter-btn-group" role="group">
                                 <button type="button" class="btn btn-outline-secondary active" id="tabError">에러/경고</button>
                                 <button type="button" class="btn btn-outline-secondary" id="tabNormal">정상/정보/미분석</button>
                             </div>
@@ -925,41 +921,48 @@
                     </div>
                 </div>
             </div>
+            </div>
 
             <div class="card mb-3" id="resourceSection">
                 <div class="card-header">
-                    <span class="panel-accent-title"><span class="bar"></span>디스크 현황</span>
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>디스크 현황</span>
                 </div>
                 <div class="card-body">
                     <div class="row g-3" id="resourceGrid"></div>
                 </div>
             </div>
 
-            <div class="group-title"><h2>접속자 현황 &amp; 추이</h2><span class="sub">전일 기준 요약 → 실시간 → 60분 추이 순으로 이어서 표시</span></div>
+            <div class="group-title"><h2 class="section-title-lg">접속자 현황 &amp; 추이</h2><span class="sub">전일 기준 요약 → 실시간 → 60분 추이 순으로 이어서 표시</span></div>
 
-            <div class="card mb-3">
+            <div class="card mb-3" id="connStatusCard">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <span class="panel-accent-title"><span class="bar"></span>접속자 현황</span>
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>접속자 현황</span>
                 </div>
                 <div class="card-body">
                     <div class="conn-body">
                         <div class="conn-left">
                             <div class="conn-stat">
                                 <div class="conn-stat-label">전일 최대동시접속</div>
-                                <div class="conn-stat-value" id="v-MAX_CONN_PREV">-</div>
-                                <span class="conn-stat-min" id="t-MAX_CONN_PREV"></span>
+                                <div class="conn-stat-row">
+                                    <div class="conn-stat-value" id="v-MAX_CONN_PREV">-</div>
+                                    <span class="conn-stat-min" id="t-MAX_CONN_PREV"></span>
+                                </div>
                                 <span class="d-none" id="th-MAX_CONN_PREV"></span>
                             </div>
                             <div class="conn-stat">
                                 <div class="conn-stat-label">전일 HTS 최대동시접속</div>
-                                <div class="conn-stat-value" id="v-HTS_MAX_CONN">-</div>
-                                <span class="conn-stat-min" id="t-HTS_MAX_CONN"></span>
+                                <div class="conn-stat-row">
+                                    <div class="conn-stat-value" id="v-HTS_MAX_CONN">-</div>
+                                    <span class="conn-stat-min" id="t-HTS_MAX_CONN"></span>
+                                </div>
                                 <span class="d-none" id="th-HTS_MAX_CONN"></span>
                             </div>
                             <div class="conn-stat">
                                 <div class="conn-stat-label">전일 MTS 최대동시접속</div>
-                                <div class="conn-stat-value" id="v-MTS_MAX_CONN">-</div>
-                                <span class="conn-stat-min" id="t-MTS_MAX_CONN"></span>
+                                <div class="conn-stat-row">
+                                    <div class="conn-stat-value" id="v-MTS_MAX_CONN">-</div>
+                                    <span class="conn-stat-min" id="t-MTS_MAX_CONN"></span>
+                                </div>
                                 <span class="d-none" id="th-MTS_MAX_CONN"></span>
                             </div>
                         </div>
@@ -981,10 +984,10 @@
                 </div>
             </div>
 
-            <div class="card mb-3">
+            <div class="card mb-3" id="historyCard">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
-                    <span class="panel-accent-title"><span class="bar"></span>History</span>
-                    <div class="btn-group btn-group-sm" role="group">
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>History</span>
+                    <div class="filter-btn-group" role="group">
                         <button type="button" class="btn btn-outline-secondary active" id="tabStock">종목수 현황</button>
                         <button type="button" class="btn btn-outline-secondary" id="tabOverseas">해외종목수 현황</button>
                         <button type="button" class="btn btn-outline-secondary" id="tabConn">접속자수 현황</button>
@@ -1308,7 +1311,7 @@
         setText('normRatio', `${data.normalRatio ?? 0}%`);
         setText('infoRatio', `${data.infoRatio ?? 0}%`);
         setText('unknRatio', `${data.unknownRatio ?? 0}%`);
-        setText('normRatioPill', `정상 비중 ${data.normalRatio ?? 0}%`);
+        setText('normRatioPill', `▲ 정상 비중 ${data.normalRatio ?? 0}%`);
 
         const unknownWarn = document.getElementById('unknownPolicyWarning');
         if ((data.unknownCnt ?? 0) > 0) {
@@ -1806,6 +1809,19 @@
         }
     };
 
+    // 히스토리 라인차트 아래 영역을 색상 상단 옅은 틴트 → 투명으로 채우는 그라디언트(샘플스타일 3 참고)
+    function areaGradientFactory(colorHex) {
+        return function(context) {
+            const {chart} = context;
+            const {ctx, chartArea} = chart;
+            if (!chartArea) return colorHex + '00';
+            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            gradient.addColorStop(0, colorHex + '66');
+            gradient.addColorStop(1, colorHex + '00');
+            return gradient;
+        };
+    }
+
     function updateHistory(series) {
         lastHistorySeries = Array.isArray(series) ? series : [];
         const canvas = document.getElementById('historyChart');
@@ -1876,13 +1892,17 @@
                 return value !== undefined ? value : null;
             });
 
+            const lineColor = palette[logId] ?? '#6c757d';
             return {
                 label: logId,
                 data: points,
-                borderColor: palette[logId] ?? '#6c757d',
-                backgroundColor: 'transparent',
+                borderColor: lineColor,
+                backgroundColor: dark ? areaGradientFactory(lineColor) : 'transparent',
+                fill: dark,
                 borderWidth: dark ? 2 : 3,
-                tension: 0.2
+                tension: 0.2,
+                pointRadius: 0,
+                pointHoverRadius: 3
             };
         });
 
@@ -1897,8 +1917,9 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 aspectRatio: 2.86,
+                interaction: {mode: 'index', intersect: false},
                 plugins: {
-                    chartAreaBg: {color: dark ? '#1C3D75' : null},
+                    chartAreaBg: {color: dark ? '#102448' : null},
                     weekendBand: {enabled: false, color: 'rgba(0,0,0,.18)'},
                     legend: {display: true},
                     tooltip: {
@@ -2032,17 +2053,17 @@
                     const diff = last - prev;
                     if (diff > 0) {
                         deltaEl.textContent = '▲ ' + diff.toLocaleString('ko-KR');
-                        deltaEl.style.color = '#dc3545';
+                        deltaEl.className = 'pc-delta up';
                     } else if (diff < 0) {
                         deltaEl.textContent = '▼ ' + Math.abs(diff).toLocaleString('ko-KR');
-                        deltaEl.style.color = '#0d6efd';
+                        deltaEl.className = 'pc-delta down';
                     } else {
                         deltaEl.textContent = '-';
-                        deltaEl.style.color = '#6c757d';
+                        deltaEl.className = 'pc-delta flat';
                     }
                 } else {
                     deltaEl.textContent = '-';
-                    deltaEl.style.color = '#6c757d';
+                    deltaEl.className = 'pc-delta flat';
                 }
             }
 

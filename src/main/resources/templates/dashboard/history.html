@@ -12,6 +12,7 @@
     <link rel="stylesheet" th:href="@{/css/precheck-theme.css}">
     <script th:src="@{/js/precheck-theme.js}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/chart-spike.js}"></script>
     <style>
         body { background-color: #eaf4fc; }
         .precheck-header {
@@ -374,13 +375,6 @@
         Chart.defaults.borderColor = dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.1)';
     }
 
-    function getMaxTicks(canvasWidth) {
-        if (canvasWidth < 380) return 4;
-        if (canvasWidth < 560) return 6;
-        if (canvasWidth < 780) return 9;
-        return 12;
-    }
-
     function pad2(v) { return String(v).padStart(2, '0'); }
 
     function formatNow() {
@@ -463,6 +457,7 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 aspectRatio: 2.5,
+                interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: {
                         display: true,
@@ -488,20 +483,26 @@
                 scales: {
                     x: {
                         type: 'category',
-                        ticks: {
-                            autoSkip: true,
-                            maxTicksLimit: getMaxTicks(canvas.offsetWidth),
-                            font: { size: 11 },
-                            callback: function(value, index, ticks) {
-                                const raw = this.getLabelForValue(value);
-                                if (!raw || raw.length < 6) return raw;
-                                const label = raw.substring(0, 4) + '/' + raw.substring(4, 6);
-                                if (index > 0) {
-                                    const prevRaw = this.getLabelForValue(ticks[index - 1].value);
-                                    const prevLabel = prevRaw ? prevRaw.substring(0, 4) + '/' + prevRaw.substring(4, 6) : '';
-                                    if (label === prevLabel) return '';
+                        // autoSkip은 픽셀 폭 기준으로 임의 간격 인덱스를 골라내므로, 월이 바뀌는
+                        // 지점의 인덱스가 그 안에 안 들면 해당 월 라벨이 통째로 누락된다.
+                        // afterBuildTicks로 "월이 바뀌는 인덱스"만 직접 틱으로 고정해 모든 월이 항상 표시되게 한다.
+                        afterBuildTicks: (scale) => {
+                            const monthTicks = [];
+                            let lastMonth = null;
+                            dates.forEach((d, i) => {
+                                const month = d.substring(0, 6);
+                                if (month !== lastMonth) {
+                                    monthTicks.push({ value: i });
+                                    lastMonth = month;
                                 }
-                                return label;
+                            });
+                            scale.ticks = monthTicks;
+                        },
+                        ticks: {
+                            autoSkip: false,
+                            font: { size: 11 },
+                            callback: function(value) {
+                                return yyyyMMtoLabel(this.getLabelForValue(value));
                             }
                         },
                         grid: { color: gridColor }
