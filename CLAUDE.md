@@ -71,7 +71,7 @@ cp <file> bin/main/<상대경로>
 
 - Java 17, Spring Boot 3.3.12, MyBatis 3.0.3, Thymeleaf + AdminLTE
 - Spring Security 6, BCrypt
-- PostgreSQL (test) / Altibase (prod)
+- PostgreSQL (test/prod)
 
 ## 참조파일 스코프
 - 현재 프로잭트 디렉토리 하위의 디렉토리 내용만 참고함

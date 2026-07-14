@@ -1,9 +1,10 @@
 spring:
   datasource:
-    url: jdbc:Altibase://192.168.x.x:20300/precheck
+    driver-class-name: org.postgresql.Driver
+    # TODO: 실제 운영 PostgreSQL host:port/db, 계정으로 교체
+    url: jdbc:postgresql://prod-db-host:5432/precheck
     username: precheck
-    password: (운영 비밀번호)
-    driver-class-name: Altibase.jdbc.driver.AltibaseDriver
+    password: precheck
     hikari:
       maximum-pool-size: 10
       pool-name: PreCheckPool-Prod
@@ -11,3 +12,7 @@ spring:
 mybatis:
   configuration:
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+precheck:
+  collect-schedule-path: /home/precheck/cfg/PreCheck_CollectLogs_Schedule.conf
+  analyze-schedule-path: /home/precheck/cfg/PreCheck_AnalyzeLogs_Schedule.conf
