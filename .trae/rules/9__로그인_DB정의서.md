@@ -248,6 +248,23 @@ ALTER TABLE TB_ADMIN_USER
     ADD FORCE_PWD_CHANGE_YN CHAR(1) DEFAULT 'N' NOT NULL;
 ```
 
+```sql
+-- ============================================================
+-- v1.2 : FORCE_PWD_CHANGE_YN 운영 반입용 안전 재실행 DDL
+-- ============================================================
+-- 배경: v1.1 DDL만 문서화되고 애플리케이션 코드(DTO/매퍼/서비스)에는
+--       FORCE_PWD_CHANGE_YN 반영이 누락된 채로 배포된 이력이 있었음
+--       (dashboard 신규 계정 생성 시 not-null 위반 에러로 발견, 2026-07-20).
+--       운영 DB에 이미 v1.1이 적용됐는지 불확실한 상황에서도
+--       안전하게 재실행 가능하도록 IF NOT EXISTS + COLUMN 키워드 명시.
+-- 실행 결과: 컬럼이 이미 있으면 스킵, 없으면 DEFAULT 'N'으로 추가
+--           (PostgreSQL 11+ 는 메타데이터 전용 연산 - 테이블 락/풀스캔 없음)
+-- ============================================================
+
+ALTER TABLE TB_ADMIN_USER
+    ADD COLUMN IF NOT EXISTS FORCE_PWD_CHANGE_YN CHAR(1) NOT NULL DEFAULT 'N';
+```
+
 ---
 
 ## 5. 초기 데이터 (SUPER_ADMIN 시드 계정)

@@ -28,6 +28,7 @@ public class AdminUserDto {
     private LocalDateTime lockedAt;
     private LocalDateTime passwordChangedAt;
     private String passwordExpireYn;
+    private String forcePwdChangeYn;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

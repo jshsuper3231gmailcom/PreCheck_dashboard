@@ -14,6 +14,7 @@
             LOCKED_AT,
             PASSWORD_CHANGED_AT,
             PASSWORD_EXPIRE_YN,
+            FORCE_PWD_CHANGE_YN,
             LAST_LOGIN_AT,
             CREATED_AT,
             UPDATED_AT
@@ -33,6 +34,7 @@
             LOCKED_AT,
             PASSWORD_CHANGED_AT,
             PASSWORD_EXPIRE_YN,
+            FORCE_PWD_CHANGE_YN,
             LAST_LOGIN_AT,
             CREATED_AT,
             UPDATED_AT
@@ -52,6 +54,7 @@
             LOCKED_AT,
             PASSWORD_CHANGED_AT,
             PASSWORD_EXPIRE_YN,
+            FORCE_PWD_CHANGE_YN,
             LAST_LOGIN_AT,
             CREATED_AT,
             UPDATED_AT
@@ -66,12 +69,12 @@
         INSERT INTO TB_ADMIN_USER (
             ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
             LOGIN_FAIL_COUNT, LOCKED_AT,
-            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN, FORCE_PWD_CHANGE_YN,
             LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
             #{adminUserId}, #{loginId}, #{password}, #{userName}, #{role}, #{status},
             #{loginFailCount}, #{lockedAt},
-            #{passwordChangedAt}, #{passwordExpireYn},
+            #{passwordChangedAt}, #{passwordExpireYn}, #{forcePwdChangeYn},
             #{lastLoginAt}, #{createdAt}, #{updatedAt}
         )
     </insert>
@@ -83,12 +86,12 @@
         INSERT INTO TB_ADMIN_USER (
             ADMIN_USER_ID, LOGIN_ID, PASSWORD, USER_NAME, ROLE, STATUS,
             LOGIN_FAIL_COUNT, LOCKED_AT,
-            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN,
+            PASSWORD_CHANGED_AT, PASSWORD_EXPIRE_YN, FORCE_PWD_CHANGE_YN,
             LAST_LOGIN_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
             #{adminUserId}, #{loginId}, #{password}, #{userName}, #{role}, #{status},
             #{loginFailCount}, #{lockedAt},
-            #{passwordChangedAt}, #{passwordExpireYn},
+            #{passwordChangedAt}, #{passwordExpireYn}, #{forcePwdChangeYn},
             #{lastLoginAt}, #{createdAt}, #{updatedAt}
         )
     </insert>

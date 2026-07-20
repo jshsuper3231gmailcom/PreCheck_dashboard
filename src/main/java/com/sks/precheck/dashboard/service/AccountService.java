@@ -73,6 +73,7 @@ public class AccountService {
         dto.setLoginFailCount(0);
         dto.setPasswordChangedAt(now.minusDays(PasswordPolicyValidator.FORCE_CHANGE_BACKDATE_DAYS));
         dto.setPasswordExpireYn("Y");
+        dto.setForcePwdChangeYn("Y");
         dto.setCreatedAt(now);
         adminUserMapper.insertAdminUser(dto);
 
