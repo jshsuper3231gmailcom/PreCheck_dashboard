@@ -11,8 +11,8 @@
     <link rel="stylesheet" th:href="@{/css/security.css}">
     <link rel="stylesheet" th:href="@{/css/precheck-theme.css}">
     <script th:src="@{/js/precheck-theme.js}"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/plugins/lucide/lucide.min.js}"></script>
+    <script th:src="@{/plugins/chart.js/chart.min.js}"></script>
     <script th:src="@{/js/chart-spike.js}"></script>
     <style>
         .summary-strip-item { min-width: 0; }
@@ -886,6 +886,7 @@
                                 <button type="button" class="btn btn-outline-secondary active" id="tabError">에러/경고</button>
                                 <button type="button" class="btn btn-outline-secondary" id="tabNormal">정상/정보/미분석</button>
                             </div>
+                            <input type="text" class="form-control form-control-sm" id="searchKeyword" style="min-width: 200px; width: 200px;" placeholder="LOG_ID 또는 분석메세지 검색">
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -1046,6 +1047,8 @@
     let currentPage = 1;
     let currentTab = 'error';
     let currentServerId = '';
+    let currentKeyword = '';
+    let searchDebounceTimer = null;
     let historyChart = null;
     let lastHistorySeries = [];
     let currentGroupType = 'stock';
@@ -1252,8 +1255,8 @@
         const lastUpdatedEl = document.getElementById('lastUpdated');
 
         const listUrl = currentTab === 'error'
-            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`
-            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`;
+            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}&keyword=${encodeURIComponent(currentKeyword)}`
+            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}&keyword=${encodeURIComponent(currentKeyword)}`;
 
         try {
             const [summary, infoData, tableData, resourceData, historyData, serverList, ucSpark] = await Promise.all([
@@ -1639,8 +1642,8 @@
 
     async function refreshTableOnly() {
         const listUrl = currentTab === 'error'
-            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`
-            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}`;
+            ? `/dashboard/api/error-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}&keyword=${encodeURIComponent(currentKeyword)}`
+            : `/dashboard/api/normal-list?serverId=${encodeURIComponent(currentServerId)}&page=${currentPage}&keyword=${encodeURIComponent(currentKeyword)}`;
         try {
             const data = await fetchApi(listUrl);
             updateTable(data);
@@ -2265,6 +2268,16 @@
             currentServerId = e.target.value || '';
             currentPage = 1;
             refreshTableOnly();
+        });
+
+        document.getElementById('searchKeyword').addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                currentKeyword = value;
+                currentPage = 1;
+                refreshTableOnly();
+            }, 400);
         });
     }
 

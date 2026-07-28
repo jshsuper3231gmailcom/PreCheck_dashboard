@@ -251,8 +251,8 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `dashboard` | `AdminUserPrincipal principal, Model model` | `String` | `/dashboard` — 메인 화면 반환, 로그인 사용자명/권한/새로고침주기 모델 바인딩 |
 | `summary` | 없음 | `ApiResponse<SummaryDto>` | `/dashboard/api/summary` — 상단 요약 스트립 |
 | `infoData` | 없음 | `ApiResponse<Map<String,Object>>` | `/dashboard/api/info-data` — 주요 데이터 카드 (LOG_ID별 최신 분석 결과) |
-| `errorList` | `String serverId, int page` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/error-list` — 에러/경고 탭 페이지 목록 |
-| `normalList` | `String serverId, int page` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/normal-list` — 정상/정보/미분석 탭 페이지 목록 |
+| `errorList` | `String serverId, int page, String keyword` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/error-list` — 에러/경고 탭 페이지 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
+| `normalList` | `String serverId, int page, String keyword` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/normal-list` — 정상/정보/미분석 탭 페이지 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
 | `history` | `String groupType` | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/history` — 종목/해외종목/접속자 그래프 시계열 (groupType: stock/overseas/conn) |
 | `resource` | 없음 | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/resource` — 서버별 리소스 도넛차트 데이터 |
 | `serverList` | 없음 | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/server-list` — 서버별 최근 수집/분석 시각 + 에러/경고 건수 |
@@ -326,12 +326,12 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `init` (`@PostConstruct`) | 없음 | `void` | 기동 시 수집/분석 스케줄 conf를 1회 파싱해 서버 수·스케줄 맵 캐싱 |
 | `getSummary` | 없음 | `SummaryDto` | 오늘 분석레벨별 건수/비율 + 스케줄 기준 분모 보정 + 실패/제외 사유 목록 |
 | `formatFailReasons` (private) | `List<Map<String,Object>> rows` | `List<String>` | `서버구분: 실패사유` 문자열 목록으로 변환 |
-| `getErrorWarningList` | `String serverId, int page` | `List<AnalyzeResultDto>` | 에러/경고 탭 목록 (페이지 계산 포함) |
-| `getErrorWarningCount` | `String serverId` | `int` | 에러/경고 탭 전체 건수 |
-| `getErrorWarningPage` | `String serverId, int page` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
-| `getNormalInfoList` | `String serverId, int page` | `List<AnalyzeResultDto>` | 정상/정보/미분석 탭 목록 |
-| `getNormalInfoCount` | `String serverId` | `int` | 정상/정보/미분석 탭 전체 건수 |
-| `getNormalInfoPage` | `String serverId, int page` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
+| `getErrorWarningList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 에러/경고 탭 목록 (페이지 계산 포함), keyword로 LOG_ID/분석메세지 통합 검색 |
+| `getErrorWarningCount` | `String serverId, String keyword` | `int` | 에러/경고 탭 전체 건수 |
+| `getErrorWarningPage` | `String serverId, int page, String keyword` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
+| `getNormalInfoList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 정상/정보/미분석 탭 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
+| `getNormalInfoCount` | `String serverId, String keyword` | `int` | 정상/정보/미분석 탭 전체 건수 |
+| `getNormalInfoPage` | `String serverId, int page, String keyword` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
 | `getServerList` | 없음 | `List<Map<String,Object>>` | 서버별 최근 수집/분석 시각 + 에러/경고 건수 + 캐싱된 스케줄 표시문자열 병합 |
 | `getHistoryData` | `String groupType` | `List<Map<String,Object>>` | stock/overseas/conn 그룹별 LOG_ID 시계열, 날짜별 최신값만 남김 |
 | `getResourceData` | 없음 | `List<Map<String,Object>>` | 서버별 리소스(DISK_HOME) 최신 분석 결과 |
@@ -387,10 +387,10 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `selectSummary` | `String today` | `SummaryDto` | 분석레벨별 집계 + 수집/분석 성공 현황 (3개 서브쿼리 CROSS JOIN) |
 | `selectCollectFailReasons` | `String today, String status` | `List<Map<String,Object>>` | 수집 실패/제외 사유 (FAIL/SKIP) |
 | `selectAnalyzeFailReasons` | `String today, String status` | `List<Map<String,Object>>` | 분석 실패 사유 (FAIL) |
-| `selectErrorWarningList` | `String today, String serverId, int offset, int pageSize` | `List<AnalyzeResultDto>` | 에러/경고 페이지 목록 (databaseId별 LIMIT 문법 분기) |
-| `selectNormalInfoList` | `String today, String serverId, int offset, int pageSize` | `List<AnalyzeResultDto>` | 정상/정보/미분석 페이지 목록 |
-| `countErrorWarning` | `String today, String serverId` | `int` | 에러/경고 전체 건수 |
-| `countNormalInfo` | `String today, String serverId` | `int` | 정상/정보/미분석 전체 건수 |
+| `selectErrorWarningList` | `String today, String serverId, int offset, int pageSize, String keyword` | `List<AnalyzeResultDto>` | 에러/경고 페이지 목록 (databaseId별 LIMIT 문법 분기), keywordFilter fragment로 LOG_ID/분석메세지 통합 검색 |
+| `selectNormalInfoList` | `String today, String serverId, int offset, int pageSize, String keyword` | `List<AnalyzeResultDto>` | 정상/정보/미분석 페이지 목록, keywordFilter fragment로 LOG_ID/분석메세지 통합 검색 |
+| `countErrorWarning` | `String today, String serverId, String keyword` | `int` | 에러/경고 전체 건수 |
+| `countNormalInfo` | `String today, String serverId, String keyword` | `int` | 정상/정보/미분석 전체 건수 |
 | `selectServerList` | `String today` | `List<Map<String,Object>>` | 수집+분석 이력 합집합 기준 서버별 상태 요약 |
 | `selectHistoryData` | `String startDate, String endDate, String serverId, String logId` | `List<AnalyzeResultDto>` | 기간 내 분석 결과 (히스토리 그래프 원본) |
 | `selectResourceData` | `String today` | `List<Map<String,Object>>` | 서버별 DISK_HOME 최신 리소스 수치 |

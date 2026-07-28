@@ -135,22 +135,24 @@ public class DashboardService {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다. 비어 있으면 전체 서버를 조회한다.
      * @param page 대시보드 페이지 번호다. 1보다 작으면 첫 페이지로 보정한다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다. 비어 있으면 전체를 조회한다.
      * @return 에러/경고 레벨만 포함한 오늘 분석 결과 목록이다.
      */
-    public List<AnalyzeResultDto> getErrorWarningList(String serverId, int page) {
+    public List<AnalyzeResultDto> getErrorWarningList(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
         int offset = (resolvedPage - 1) * PAGE_SIZE;
-        return dashboardMapper.selectErrorWarningList(today(), serverId, offset, PAGE_SIZE);
+        return dashboardMapper.selectErrorWarningList(today(), serverId, offset, PAGE_SIZE, keyword);
     }
 
     /**
      * 에러/경고 탭 전체 건수를 반환한다.
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다. 비어 있으면 전체 서버를 조회한다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다. 비어 있으면 전체를 조회한다.
      * @return 현재 필터 조건에 해당하는 오늘 에러/경고 건수다.
      */
-    public int getErrorWarningCount(String serverId) {
-        return dashboardMapper.countErrorWarning(today(), serverId);
+    public int getErrorWarningCount(String serverId, String keyword) {
+        return dashboardMapper.countErrorWarning(today(), serverId, keyword);
     }
 
     /**
@@ -158,11 +160,12 @@ public class DashboardService {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param page 요청 페이지 번호다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 목록과 전체 건수를 함께 담은 페이지 응답이다.
      */
-    public PageResultDto<AnalyzeResultDto> getErrorWarningPage(String serverId, int page) {
+    public PageResultDto<AnalyzeResultDto> getErrorWarningPage(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
-        return new PageResultDto<>(getErrorWarningList(serverId, resolvedPage), resolvedPage, PAGE_SIZE, getErrorWarningCount(serverId));
+        return new PageResultDto<>(getErrorWarningList(serverId, resolvedPage, keyword), resolvedPage, PAGE_SIZE, getErrorWarningCount(serverId, keyword));
     }
 
     /**
@@ -170,22 +173,24 @@ public class DashboardService {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다. 비어 있으면 전체 서버를 조회한다.
      * @param page 대시보드 페이지 번호다. 1보다 작으면 첫 페이지로 보정한다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다. 비어 있으면 전체를 조회한다.
      * @return 정상, 정보, 미분석 레벨만 포함한 오늘 분석 결과 목록이다.
      */
-    public List<AnalyzeResultDto> getNormalInfoList(String serverId, int page) {
+    public List<AnalyzeResultDto> getNormalInfoList(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
         int offset = (resolvedPage - 1) * PAGE_SIZE;
-        return dashboardMapper.selectNormalInfoList(today(), serverId, offset, PAGE_SIZE);
+        return dashboardMapper.selectNormalInfoList(today(), serverId, offset, PAGE_SIZE, keyword);
     }
 
     /**
      * 정상/정보/미분석 탭 전체 건수를 반환한다.
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다. 비어 있으면 전체 서버를 조회한다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다. 비어 있으면 전체를 조회한다.
      * @return 현재 필터 조건에 해당하는 오늘 정상/정보/미분석 건수다.
      */
-    public int getNormalInfoCount(String serverId) {
-        return dashboardMapper.countNormalInfo(today(), serverId);
+    public int getNormalInfoCount(String serverId, String keyword) {
+        return dashboardMapper.countNormalInfo(today(), serverId, keyword);
     }
 
     /**
@@ -193,11 +198,12 @@ public class DashboardService {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param page 요청 페이지 번호다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 목록과 전체 건수를 함께 담은 페이지 응답이다.
      */
-    public PageResultDto<AnalyzeResultDto> getNormalInfoPage(String serverId, int page) {
+    public PageResultDto<AnalyzeResultDto> getNormalInfoPage(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
-        return new PageResultDto<>(getNormalInfoList(serverId, resolvedPage), resolvedPage, PAGE_SIZE, getNormalInfoCount(serverId));
+        return new PageResultDto<>(getNormalInfoList(serverId, resolvedPage, keyword), resolvedPage, PAGE_SIZE, getNormalInfoCount(serverId, keyword));
     }
 
     /**

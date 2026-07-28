@@ -99,15 +99,17 @@ public class DashboardController {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param page 화면 페이징 번호다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 에러/경고 목록과 페이지 정보를 담은 응답이다.
      */
     @ResponseBody
     @GetMapping("/dashboard/api/error-list")
     public ApiResponse<PageResultDto<AnalyzeResultDto>> errorList(
             @RequestParam(value = "serverId", required = false) String serverId,
-            @RequestParam(value = "page", required = false, defaultValue = "1") int page
+            @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return handle("error-list", () -> dashboardService.getErrorWarningPage(serverId, page));
+        return handle("error-list", () -> dashboardService.getErrorWarningPage(serverId, page, keyword));
     }
 
     /**
@@ -115,15 +117,17 @@ public class DashboardController {
      *
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param page 화면 페이징 번호다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 정상/정보/미분석 목록과 페이지 정보를 담은 응답이다.
      */
     @ResponseBody
     @GetMapping("/dashboard/api/normal-list")
     public ApiResponse<PageResultDto<AnalyzeResultDto>> normalList(
             @RequestParam(value = "serverId", required = false) String serverId,
-            @RequestParam(value = "page", required = false, defaultValue = "1") int page
+            @RequestParam(value = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(value = "keyword", required = false) String keyword
     ) {
-        return handle("normal-list", () -> dashboardService.getNormalInfoPage(serverId, page));
+        return handle("normal-list", () -> dashboardService.getNormalInfoPage(serverId, page, keyword));
     }
 
     /**

@@ -60,13 +60,15 @@ public interface DashboardMapper {
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param offset 페이징 시작 위치다.
      * @param pageSize 한 페이지에 보여줄 건수다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 에러/경고 분석 결과 목록이다.
      */
     List<AnalyzeResultDto> selectErrorWarningList(
             @Param("today") String today,
             @Param("serverId") String serverId,
             @Param("offset") int offset,
-            @Param("pageSize") int pageSize
+            @Param("pageSize") int pageSize,
+            @Param("keyword") String keyword
     );
 
     /**
@@ -76,13 +78,15 @@ public interface DashboardMapper {
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param offset 페이징 시작 위치다.
      * @param pageSize 한 페이지에 보여줄 건수다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 정상/정보/미분석 분석 결과 목록이다.
      */
     List<AnalyzeResultDto> selectNormalInfoList(
             @Param("today") String today,
             @Param("serverId") String serverId,
             @Param("offset") int offset,
-            @Param("pageSize") int pageSize
+            @Param("pageSize") int pageSize,
+            @Param("keyword") String keyword
     );
 
     /**
@@ -90,11 +94,13 @@ public interface DashboardMapper {
      *
      * @param today 조회 기준 일자다.
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 에러/경고 전체 건수다.
      */
     int countErrorWarning(
             @Param("today") String today,
-            @Param("serverId") String serverId
+            @Param("serverId") String serverId,
+            @Param("keyword") String keyword
     );
 
     /**
@@ -102,11 +108,13 @@ public interface DashboardMapper {
      *
      * @param today 조회 기준 일자다.
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
+     * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
      * @return 정상/정보/미분석 전체 건수다.
      */
     int countNormalInfo(
             @Param("today") String today,
-            @Param("serverId") String serverId
+            @Param("serverId") String serverId,
+            @Param("keyword") String keyword
     );
 
     /**
