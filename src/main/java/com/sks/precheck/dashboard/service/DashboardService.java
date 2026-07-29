@@ -49,6 +49,12 @@ import java.util.regex.Pattern;
 public class DashboardService {
     private static final DateTimeFormatter YYYYMMDD = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int PAGE_SIZE = 10;
+    /**
+     * 서버 리스트/리소스 도넛의 서버 모수로 인정할 수집·분석 이력 조회 구간이다(오늘 포함 7일).
+     * 오늘 하루로 좁히면 스케줄러 미기동처럼 이력이 아예 없는 장애가 빈 화면으로 감춰지고,
+     * 제한을 두지 않으면 폐기된 서버가 영구히 남는다.
+     */
+    private static final int SERVER_POPULATION_DAYS = 7;
 
     private final DashboardMapper dashboardMapper;
     private final InfoDataConfig infoDataConfig;
@@ -211,9 +217,11 @@ public class DashboardService {
      *
      * 반환값 의미:
      * - 서버구분, 최근 수집/분석 시각, 에러/경고 건수를 함께 담은 화면용 목록이다.
+     * - 모수는 최근 SERVER_POPULATION_DAYS일 내 수집/분석 이력이 있는 서버이며,
+     *   그중 오늘 이력이 없는 서버는 상태값이 비어 화면에서 "수집미완료"로 표시된다.
      */
     public List<Map<String, Object>> getServerList() {
-        List<Map<String, Object>> rows = dashboardMapper.selectServerList(today());
+        List<Map<String, Object>> rows = dashboardMapper.selectServerList(today(), serverPopulationSince());
         for (Map<String, Object> row : rows) {
             String serverId = String.valueOf(row.get("serverId"));
             row.put("collectSchedule", collectScheduleMap.getOrDefault(serverId, "-"));
@@ -335,10 +343,12 @@ public class DashboardService {
      * 서버별 리소스 도넛 차트용 수치를 반환한다.
      *
      * 반환값 의미:
-     * - 오늘 분석 이력이 있는 서버별 최신 리소스 수치와 임계치를 담은 목록이다.
+     * - 서버 모수는 getServerList()와 동일한 기준(최근 SERVER_POPULATION_DAYS일)을 쓴다.
+     * - 모수에 든 서버는 오늘 DISK_HOME 분석 결과가 없어도 수치가 null인 채로 포함되며,
+     *   화면에서 "분석없음"으로 표시된다(도넛 개수와 서버 리스트 카드 개수를 맞추기 위함).
      */
     public List<Map<String, Object>> getResourceData() {
-        return dashboardMapper.selectResourceData(today());
+        return dashboardMapper.selectResourceData(today(), serverPopulationSince());
     }
 
     /**
@@ -485,6 +495,18 @@ public class DashboardService {
      */
     private String today() {
         return LocalDate.now().format(YYYYMMDD);
+    }
+
+    /**
+     * 서버 모수 판정에 사용할 조회 구간 시작 일자를 반환한다.
+     *
+     * 오늘을 포함해 SERVER_POPULATION_DAYS일이 되도록 (SERVER_POPULATION_DAYS - 1)일을 뺀다.
+     * 예: 상수가 7이고 오늘이 20260730이면 20260724를 반환한다(20260724~20260730, 7일).
+     *
+     * @return 조회 구간 시작일의 `yyyyMMdd` 문자열이다.
+     */
+    private String serverPopulationSince() {
+        return LocalDate.now().minusDays(SERVER_POPULATION_DAYS - 1L).format(YYYYMMDD);
     }
 
     /**

@@ -392,9 +392,9 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `selectNormalInfoList` | `String today, String serverId, int offset, int pageSize, String keyword, List<String> excludeLogIds` | `List<AnalyzeResultDto>` | 정상/정보/미분석 페이지 목록, keywordFilter fragment로 LOG_ID/분석메세지 통합 검색, detailExcludeFilter fragment로 특정 LOG_ID 완전 제외 |
 | `countErrorWarning` | `String today, String serverId, String keyword, List<String> excludeLogIds` | `int` | 에러/경고 전체 건수 |
 | `countNormalInfo` | `String today, String serverId, String keyword, List<String> excludeLogIds` | `int` | 정상/정보/미분석 전체 건수 |
-| `selectServerList` | `String today` | `List<Map<String,Object>>` | 수집+분석 이력 합집합 기준 서버별 상태 요약 |
+| `selectServerList` | `String today, String sinceDate` | `List<Map<String,Object>>` | 최근 7일(sinceDate~) 수집+분석 이력 합집합 기준 서버별 상태 요약 |
 | `selectHistoryData` | `String startDate, String endDate, String serverId, String logId` | `List<AnalyzeResultDto>` | 기간 내 분석 결과 (히스토리 그래프 원본) |
-| `selectResourceData` | `String today` | `List<Map<String,Object>>` | 서버별 DISK_HOME 최신 리소스 수치 |
+| `selectResourceData` | `String today, String sinceDate` | `List<Map<String,Object>>` | 서버별 DISK_HOME 최신 리소스 수치 (서버 모수는 `selectServerList`와 동일) |
 | `selectInfoData` | `String today, String serverId, String logId` | `AnalyzeResultDto` | 카드 1건에 대응하는 최신 분석 결과 단건 |
 | `selectUcSparkData` | `String today, String logId` | `List<Map<String,Object>>` | UC 접속자수 최근 60분 시계열 (pmaster2-마스터 고정) |
 | `selectRawLog` | `Long collectLogId` | `CollectLogDto` | 원본 정규화 로그 1건 |

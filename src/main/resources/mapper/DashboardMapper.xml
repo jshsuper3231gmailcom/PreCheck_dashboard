@@ -293,10 +293,15 @@
 
     <!--
         서버 리스트 카드 조회 (화면정의서 7-4 기준).
-        모수는 수집/분석 이력에 한 번이라도 등장한 서버 전체(합집합)다.
+        모수는 최근 sinceDate 이후 수집/분석 이력에 등장한 서버의 합집합이다.
         수집 conf와 분석 conf의 등록 서버 수가 서로 달라도(예: 분석 conf에만 있는 서버)
         6번 리소스 도넛차트와 동일한 서버 모집단을 쓰도록 통일한다.
-        오늘 수집 이력이 없는 서버도 목록에 그대로 나와야 "수집미완료" 상태를 판별할 수 있다.
+        오늘 수집 이력이 없는 서버도 목록에 그대로 나와야 "수집미완료" 상태를 판별할 수 있으므로,
+        모수 조건은 오늘이 아니라 최근 N일 구간으로 잡는다. 오늘로 좁히면 스케줄러 자체가
+        기동하지 않아 이력이 한 건도 없는 장애 상황이 "정상"처럼 보인다.
+        반대로 조건이 아예 없으면 폐기된 서버가 영구히 목록에 남으므로 구간 제한을 둔다.
+        sinceDate는 DashboardService.serverPopulationSince()가 계산하며,
+        구간 길이는 DashboardService.SERVER_POPULATION_DAYS 상수로만 조정한다.
     -->
     <select id="selectServerList" resultType="map">
         SELECT
@@ -308,9 +313,9 @@
             COALESCE(AR.ERROR_CNT, 0)   AS "errorCnt",
             COALESCE(AR.WARNING_CNT, 0) AS "warningCnt"
         FROM (
-            SELECT SERVER_ID FROM TB_COLLECT_HISTORY
+            SELECT SERVER_ID FROM TB_COLLECT_HISTORY WHERE COLLECT_DATE &gt;= #{sinceDate}
             UNION
-            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY
+            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY WHERE ANALYZE_DATE &gt;= #{sinceDate}
         ) S
         LEFT JOIN (
             SELECT
@@ -388,8 +393,9 @@
 
     <!--
         서버별 리소스 도넛 차트 조회.
-        모수는 7번 서버 리스트와 동일하게 수집/분석 이력에 한 번이라도 등장한 서버 전체로 맞춘다
-        (한쪽 conf에만 등록된 서버가 있어도 두 위젯의 서버 모집단이 갈리지 않도록).
+        모수는 7번 서버 리스트(selectServerList)와 동일하게 최근 sinceDate 이후 수집/분석 이력에
+        등장한 서버 합집합으로 맞춘다(한쪽 conf에만 등록된 서버가 있어도 두 위젯의 서버 모집단이
+        갈리지 않도록). 모수 조건을 바꿀 때는 반드시 selectServerList와 함께 바꿔야 한다.
         각 서버의 오늘자 DISK_HOME 최신 수치 1건만 사용하고, 없으면 "분석없음"으로 표시된다.
     -->
     <select id="selectResourceData" resultType="map">
@@ -400,9 +406,9 @@
             AR.THRESHOLD_VALUE AS "thresholdValue",
             AR.LOG_TIMESTAMP AS "logTimestamp"
         FROM (
-            SELECT SERVER_ID FROM TB_COLLECT_HISTORY
+            SELECT SERVER_ID FROM TB_COLLECT_HISTORY WHERE COLLECT_DATE &gt;= #{sinceDate}
             UNION
-            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY
+            SELECT SERVER_ID FROM TB_ANALYZE_HISTORY WHERE ANALYZE_DATE &gt;= #{sinceDate}
         ) S
         LEFT JOIN TB_ANALYZE_RESULT AR
           ON AR.ANALYZE_RESULT_ID = (

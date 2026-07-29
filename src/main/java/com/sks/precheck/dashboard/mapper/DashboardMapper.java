@@ -130,9 +130,13 @@ public interface DashboardMapper {
      * 서버 리스트 카드 표시용 서버별 요약 정보를 조회한다.
      *
      * @param today 조회 기준 일자다.
+     * @param sinceDate 서버 모수에 포함할 최근 수집/분석 이력의 시작 일자다.
      * @return 서버구분, 최근 수집/분석 시각, 에러/경고 건수 목록이다.
      */
-    List<Map<String, Object>> selectServerList(@Param("today") String today);
+    List<Map<String, Object>> selectServerList(
+            @Param("today") String today,
+            @Param("sinceDate") String sinceDate
+    );
 
     /**
      * 히스토리 그래프용 기간 내 분석 결과를 조회한다.
@@ -154,9 +158,13 @@ public interface DashboardMapper {
      * 서버별 리소스 도넛 차트용 최신 분석 결과를 조회한다.
      *
      * @param today 조회 기준 일자다.
+     * @param sinceDate 서버 모수에 포함할 최근 수집/분석 이력의 시작 일자다.
      * @return 서버별 최신 리소스 수치와 임계치 목록이다.
      */
-    List<Map<String, Object>> selectResourceData(@Param("today") String today);
+    List<Map<String, Object>> selectResourceData(
+            @Param("today") String today,
+            @Param("sinceDate") String sinceDate
+    );
 
     /**
      * 주요 데이터 카드 1건에 대응하는 최신 분석 결과를 조회한다.
