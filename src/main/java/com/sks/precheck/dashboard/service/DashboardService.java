@@ -86,7 +86,7 @@ public class DashboardService {
      */
     public SummaryDto getSummary() {
         String today = today();
-        SummaryDto summary = dashboardMapper.selectSummary(today);
+        SummaryDto summary = dashboardMapper.selectSummary(today, infoDataConfig.getDetailExcludeLogIds());
         if (summary == null) {
             summary = new SummaryDto();
         }
@@ -141,7 +141,7 @@ public class DashboardService {
     public List<AnalyzeResultDto> getErrorWarningList(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
         int offset = (resolvedPage - 1) * PAGE_SIZE;
-        return dashboardMapper.selectErrorWarningList(today(), serverId, offset, PAGE_SIZE, keyword);
+        return dashboardMapper.selectErrorWarningList(today(), serverId, offset, PAGE_SIZE, keyword, infoDataConfig.getDetailExcludeLogIds());
     }
 
     /**
@@ -152,7 +152,7 @@ public class DashboardService {
      * @return 현재 필터 조건에 해당하는 오늘 에러/경고 건수다.
      */
     public int getErrorWarningCount(String serverId, String keyword) {
-        return dashboardMapper.countErrorWarning(today(), serverId, keyword);
+        return dashboardMapper.countErrorWarning(today(), serverId, keyword, infoDataConfig.getDetailExcludeLogIds());
     }
 
     /**
@@ -179,7 +179,7 @@ public class DashboardService {
     public List<AnalyzeResultDto> getNormalInfoList(String serverId, int page, String keyword) {
         int resolvedPage = Math.max(page, 1);
         int offset = (resolvedPage - 1) * PAGE_SIZE;
-        return dashboardMapper.selectNormalInfoList(today(), serverId, offset, PAGE_SIZE, keyword);
+        return dashboardMapper.selectNormalInfoList(today(), serverId, offset, PAGE_SIZE, keyword, infoDataConfig.getDetailExcludeLogIds());
     }
 
     /**
@@ -190,7 +190,7 @@ public class DashboardService {
      * @return 현재 필터 조건에 해당하는 오늘 정상/정보/미분석 건수다.
      */
     public int getNormalInfoCount(String serverId, String keyword) {
-        return dashboardMapper.countNormalInfo(today(), serverId, keyword);
+        return dashboardMapper.countNormalInfo(today(), serverId, keyword, infoDataConfig.getDetailExcludeLogIds());
     }
 
     /**

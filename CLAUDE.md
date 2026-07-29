@@ -57,6 +57,7 @@ cp <file> bin/main/<상대경로>
 
 - **SSR + JS 폴링 혼합 구조**: Thymeleaf가 초기 페이지 렌더링, 브라우저가 `/dashboard/api/*` 엔드포인트를 60초 간격 폴링
 - **`precheck.info-data`** (application.yml) 목록이 대시보드 카드 항목 결정 — 변경 후 재기동 필요
+- **`precheck.detail-exclude-log-ids`** (application.yml): 점검현황 상세(에러/경고, 정상/정보/미분석 탭)와 상단 요약 5개 카운트에서 완전히 숨길 LOG_ID 목록(예: UC_TOTAL_COUNT). `@ConfigurationProperties`라 마찬가지로 변경 후 재기동 필요, 수집/분석/스파크라인/카드에는 영향 없음
 - **페이징 쿼리 두 벌**: `DashboardMapper.xml`의 에러/정상 목록 쿼리가 `databaseId="postgresql"`과 `databaseId="altibase"` 별도 존재 — `MyBatisConfig`가 드라이버 클래스명으로 분기
 - **`PasswordExpiryInterceptor`**: 매 요청 시 90일 만료 체크, 만료 시 `/password/change` 강제 리다이렉트. D-7부터 헤더 경고 배너
 - **로그인 잠금**: 5회 실패 → `LOCKED`, 5분 경과 후 다음 로그인 시도 시 자동 해제

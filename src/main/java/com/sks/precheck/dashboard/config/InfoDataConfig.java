@@ -27,6 +27,16 @@ public class InfoDataConfig {
     private List<InfoDataItem> infoData = new ArrayList<>();
 
     /**
+     * 점검현황 상세(에러/경고, 정상/정보/미분석 탭)와 상단 요약 카운트에서
+     * 완전히 제외할 LOG_ID 목록이다.
+     *
+     * 설계 이유:
+     * - 실시간 접속자수처럼 상태 분류(에러/경고/정상/정보/미분석) 판정 자체가 의미 없는
+     *   LOG_ID를 목록/집계에서 숨기기 위함이다. 수집·분석·전용 카드(스파크라인 등) 표시에는 영향을 주지 않는다.
+     */
+    private List<String> detailExcludeLogIds = new ArrayList<>();
+
+    /**
      * 주요 데이터 카드 1건의 표시 대상을 정의한다.
      *
      * 역할:

@@ -8,7 +8,7 @@
         수집/분석 성공 현황은 각 이력 테이블에서 별도로 계산해 한 행으로 묶는다.
         최종 분모 보정은 서비스에서 스케줄 정의서 기준으로 다시 적용한다.
     -->
-    <select id="selectSummary" parameterType="string" resultType="com.sks.precheck.dashboard.dto.SummaryDto">
+    <select id="selectSummary" resultType="com.sks.precheck.dashboard.dto.SummaryDto">
         SELECT
             COALESCE(AR.ERROR_CNT, 0) AS ERROR_CNT,
             COALESCE(AR.WARN_CNT, 0) AS WARN_CNT,
@@ -44,6 +44,7 @@
                     CASE WHEN COUNT(*) = 0 THEN 0 ELSE ROUND(SUM(CASE WHEN ANALYZE_LEVEL = '미분석' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) END AS UNKNOWN_RATIO
                 FROM TB_ANALYZE_RESULT
                 WHERE ANALYZE_DATE = #{today}
+                <include refid="detailExcludeFilter"/>
             ) AR
             CROSS JOIN
             (
@@ -108,6 +109,19 @@
         LOG_ID/분석메세지 통합 키워드 검색 조각.
         부분일치 + 대소문자 무시(UPPER)로 두 컬럼 중 하나만 매칭돼도 노출한다.
     -->
+    <!--
+        점검현황 상세/요약 카운트에서 완전히 숨길 LOG_ID 제외 조각.
+        UC_TOTAL_COUNT 등 상태분류 의미가 없는 LOG_ID를 precheck.detail-exclude-log-ids로 관리한다.
+    -->
+    <sql id="detailExcludeFilter">
+        <if test="excludeLogIds != null and !excludeLogIds.isEmpty()">
+            AND LOG_ID NOT IN
+            <foreach item="logId" collection="excludeLogIds" open="(" separator="," close=")">
+                #{logId}
+            </foreach>
+        </if>
+    </sql>
+
     <sql id="keywordFilter">
         <if test="keyword != null and keyword != ''">
             AND (
@@ -148,6 +162,7 @@
           AND ANALYZE_LEVEL IN ('에러', '경고')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
         ORDER BY
             CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
             LOG_TIMESTAMP DESC
@@ -181,6 +196,7 @@
           AND ANALYZE_LEVEL IN ('에러', '경고')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
         ORDER BY
             CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
             LOG_TIMESTAMP DESC
@@ -194,6 +210,7 @@
           AND ANALYZE_LEVEL IN ('에러', '경고')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
     </select>
 
     <!--
@@ -227,6 +244,7 @@
           AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
         ORDER BY LOG_TIMESTAMP DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
@@ -258,6 +276,7 @@
           AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
         ORDER BY LOG_TIMESTAMP DESC
         LIMIT #{offset}, #{pageSize}
     </select>
@@ -269,6 +288,7 @@
           AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
         <include refid="serverFilter"/>
         <include refid="keywordFilter"/>
+        <include refid="detailExcludeFilter"/>
     </select>
 
     <!--

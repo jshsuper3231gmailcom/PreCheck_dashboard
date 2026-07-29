@@ -223,6 +223,7 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `refreshIntervalSeconds` | `int` (기본 300) | 화면 자동 갱신 주기 (실제 운영값은 `application.yml`에서 60으로 override) |
 | `infoData` | `List<InfoDataItem>` | 주요 데이터 카드 표시 목록 (name/serverId/logId 조합) |
 | `InfoDataItem` (nested `@Data`) | - | 카드 1건: 표시명, 조회 대상 서버구분, LOG_ID |
+| `detailExcludeLogIds` | `List<String>` | 점검현황 상세(에러/경고, 정상/정보/미분석 탭)와 상단 요약 5개 카운트에서 완전히 제외할 LOG_ID 목록(`precheck.detail-exclude-log-ids`, 예: UC_TOTAL_COUNT). 수집/분석/스파크라인/카드 표시엔 영향 없음. yml 변경 시 재기동 필요 |
 
 ### `config/MyBatisConfig.java`
 | 함수명 | 파라미터 | 반환값 | 설명 |
@@ -324,12 +325,12 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | 함수명 | 파라미터 | 반환값 | 설명 |
 |--------|----------|--------|------|
 | `init` (`@PostConstruct`) | 없음 | `void` | 기동 시 수집/분석 스케줄 conf를 1회 파싱해 서버 수·스케줄 맵 캐싱 |
-| `getSummary` | 없음 | `SummaryDto` | 오늘 분석레벨별 건수/비율 + 스케줄 기준 분모 보정 + 실패/제외 사유 목록 |
+| `getSummary` | 없음 | `SummaryDto` | 오늘 분석레벨별 건수/비율 + 스케줄 기준 분모 보정 + 실패/제외 사유 목록. `precheck.detail-exclude-log-ids`(예: UC_TOTAL_COUNT) 대상은 5개 카운트 어디에도 집계 안 됨 |
 | `formatFailReasons` (private) | `List<Map<String,Object>> rows` | `List<String>` | `서버구분: 실패사유` 문자열 목록으로 변환 |
-| `getErrorWarningList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 에러/경고 탭 목록 (페이지 계산 포함), keyword로 LOG_ID/분석메세지 통합 검색 |
+| `getErrorWarningList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 에러/경고 탭 목록 (페이지 계산 포함), keyword로 LOG_ID/분석메세지 통합 검색, `precheck.detail-exclude-log-ids` 대상 LOG_ID는 항상 제외 |
 | `getErrorWarningCount` | `String serverId, String keyword` | `int` | 에러/경고 탭 전체 건수 |
 | `getErrorWarningPage` | `String serverId, int page, String keyword` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
-| `getNormalInfoList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 정상/정보/미분석 탭 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
+| `getNormalInfoList` | `String serverId, int page, String keyword` | `List<AnalyzeResultDto>` | 정상/정보/미분석 탭 목록, keyword로 LOG_ID/분석메세지 통합 검색, `precheck.detail-exclude-log-ids` 대상 LOG_ID는 항상 제외 |
 | `getNormalInfoCount` | `String serverId, String keyword` | `int` | 정상/정보/미분석 탭 전체 건수 |
 | `getNormalInfoPage` | `String serverId, int page, String keyword` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
 | `getServerList` | 없음 | `List<Map<String,Object>>` | 서버별 최근 수집/분석 시각 + 에러/경고 건수 + 캐싱된 스케줄 표시문자열 병합 |
@@ -384,13 +385,13 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 ### `mapper/DashboardMapper.java` (조회 전용)
 | 함수명 | 파라미터 | 반환값 | 설명 |
 |--------|----------|--------|------|
-| `selectSummary` | `String today` | `SummaryDto` | 분석레벨별 집계 + 수집/분석 성공 현황 (3개 서브쿼리 CROSS JOIN) |
+| `selectSummary` | `String today, List<String> excludeLogIds` | `SummaryDto` | 분석레벨별 집계 + 수집/분석 성공 현황 (3개 서브쿼리 CROSS JOIN). excludeLogIds는 `detailExcludeFilter` fragment로 5개 카운트 서브쿼리에서 해당 LOG_ID 완전 제외 |
 | `selectCollectFailReasons` | `String today, String status` | `List<Map<String,Object>>` | 수집 실패/제외 사유 (FAIL/SKIP) |
 | `selectAnalyzeFailReasons` | `String today, String status` | `List<Map<String,Object>>` | 분석 실패 사유 (FAIL) |
-| `selectErrorWarningList` | `String today, String serverId, int offset, int pageSize, String keyword` | `List<AnalyzeResultDto>` | 에러/경고 페이지 목록 (databaseId별 LIMIT 문법 분기), keywordFilter fragment로 LOG_ID/분석메세지 통합 검색 |
-| `selectNormalInfoList` | `String today, String serverId, int offset, int pageSize, String keyword` | `List<AnalyzeResultDto>` | 정상/정보/미분석 페이지 목록, keywordFilter fragment로 LOG_ID/분석메세지 통합 검색 |
-| `countErrorWarning` | `String today, String serverId, String keyword` | `int` | 에러/경고 전체 건수 |
-| `countNormalInfo` | `String today, String serverId, String keyword` | `int` | 정상/정보/미분석 전체 건수 |
+| `selectErrorWarningList` | `String today, String serverId, int offset, int pageSize, String keyword, List<String> excludeLogIds` | `List<AnalyzeResultDto>` | 에러/경고 페이지 목록 (databaseId별 LIMIT 문법 분기), keywordFilter fragment로 LOG_ID/분석메세지 통합 검색, detailExcludeFilter fragment로 특정 LOG_ID 완전 제외 |
+| `selectNormalInfoList` | `String today, String serverId, int offset, int pageSize, String keyword, List<String> excludeLogIds` | `List<AnalyzeResultDto>` | 정상/정보/미분석 페이지 목록, keywordFilter fragment로 LOG_ID/분석메세지 통합 검색, detailExcludeFilter fragment로 특정 LOG_ID 완전 제외 |
+| `countErrorWarning` | `String today, String serverId, String keyword, List<String> excludeLogIds` | `int` | 에러/경고 전체 건수 |
+| `countNormalInfo` | `String today, String serverId, String keyword, List<String> excludeLogIds` | `int` | 정상/정보/미분석 전체 건수 |
 | `selectServerList` | `String today` | `List<Map<String,Object>>` | 수집+분석 이력 합집합 기준 서버별 상태 요약 |
 | `selectHistoryData` | `String startDate, String endDate, String serverId, String logId` | `List<AnalyzeResultDto>` | 기간 내 분석 결과 (히스토리 그래프 원본) |
 | `selectResourceData` | `String today` | `List<Map<String,Object>>` | 서버별 DISK_HOME 최신 리소스 수치 |

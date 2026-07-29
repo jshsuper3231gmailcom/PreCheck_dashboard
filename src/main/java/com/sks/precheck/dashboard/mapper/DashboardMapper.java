@@ -25,9 +25,10 @@ public interface DashboardMapper {
      * 오늘 기준 상단/하단 요약 스트립 집계값을 조회한다.
      *
      * @param today 조회 기준 일자(`yyyyMMdd`)다.
+     * @param excludeLogIds 상태 분류 집계에서 완전히 제외할 LOG_ID 목록이다.
      * @return 분석 레벨별 건수와 수집/분석 현황 집계다.
      */
-    SummaryDto selectSummary(@Param("today") String today);
+    SummaryDto selectSummary(@Param("today") String today, @Param("excludeLogIds") List<String> excludeLogIds);
 
     /**
      * 수집 실패 또는 수집 제외 사유를 서버별로 조회한다.
@@ -61,6 +62,7 @@ public interface DashboardMapper {
      * @param offset 페이징 시작 위치다.
      * @param pageSize 한 페이지에 보여줄 건수다.
      * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
+     * @param excludeLogIds 목록에서 완전히 제외할 LOG_ID 목록이다.
      * @return 에러/경고 분석 결과 목록이다.
      */
     List<AnalyzeResultDto> selectErrorWarningList(
@@ -68,7 +70,8 @@ public interface DashboardMapper {
             @Param("serverId") String serverId,
             @Param("offset") int offset,
             @Param("pageSize") int pageSize,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("excludeLogIds") List<String> excludeLogIds
     );
 
     /**
@@ -79,6 +82,7 @@ public interface DashboardMapper {
      * @param offset 페이징 시작 위치다.
      * @param pageSize 한 페이지에 보여줄 건수다.
      * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
+     * @param excludeLogIds 목록에서 완전히 제외할 LOG_ID 목록이다.
      * @return 정상/정보/미분석 분석 결과 목록이다.
      */
     List<AnalyzeResultDto> selectNormalInfoList(
@@ -86,7 +90,8 @@ public interface DashboardMapper {
             @Param("serverId") String serverId,
             @Param("offset") int offset,
             @Param("pageSize") int pageSize,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("excludeLogIds") List<String> excludeLogIds
     );
 
     /**
@@ -95,12 +100,14 @@ public interface DashboardMapper {
      * @param today 조회 기준 일자다.
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
+     * @param excludeLogIds 목록에서 완전히 제외할 LOG_ID 목록이다.
      * @return 에러/경고 전체 건수다.
      */
     int countErrorWarning(
             @Param("today") String today,
             @Param("serverId") String serverId,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("excludeLogIds") List<String> excludeLogIds
     );
 
     /**
@@ -109,12 +116,14 @@ public interface DashboardMapper {
      * @param today 조회 기준 일자다.
      * @param serverId 특정 서버만 조회할 때 사용하는 서버구분이다.
      * @param keyword LOG_ID/분석메세지 통합 검색 키워드다.
+     * @param excludeLogIds 목록에서 완전히 제외할 LOG_ID 목록이다.
      * @return 정상/정보/미분석 전체 건수다.
      */
     int countNormalInfo(
             @Param("today") String today,
             @Param("serverId") String serverId,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("excludeLogIds") List<String> excludeLogIds
     );
 
     /**

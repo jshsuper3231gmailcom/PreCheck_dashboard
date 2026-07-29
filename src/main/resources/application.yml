@@ -39,6 +39,10 @@ precheck:
   collect-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\collect\schedule_sample\PreCheck_CollectLogs_Schedule.conf
   analyze-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\analyze\schedule_sample\PreCheck_AnalyzeLogs_Schedule.conf
   history-days: 60
+  detail-exclude-log-ids:
+    - UC_TOTAL_COUNT
+    - UC_HTS_COUNT
+    - UC_MTS_COUNT
   info-data:
     - name: 주식종목수
       server-id: dlprem01-테스트개발
