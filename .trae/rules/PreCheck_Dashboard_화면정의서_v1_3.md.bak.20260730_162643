@@ -891,6 +891,10 @@ LIMIT 1;
 |---|---|---|
 | 서버 선택 | 드롭다운 | 전체 / 서버별 목록 (TB_ANALYZE_RESULT DISTINCT SERVER_ID) |
 | 레벨 탭 | 탭 | [에러/경고] [정상/정보/미분석] |
+| 검색어 | 텍스트 입력 | LOG_ID/분석메세지 통합 검색(OR), 부분일치, 입력 중 자동검색(디바운스 400ms), 검색버튼 없음 (2026-07-28 추가) |
+
+> **[2026-07-29 추가] 상태분류 완전 제외 대상**
+> `precheck.detail-exclude-log-ids`(application.yml)에 등록된 LOG_ID(현재 `UC_TOTAL_COUNT`/`UC_HTS_COUNT`/`UC_MTS_COUNT`)는 [에러/경고]·[정상/정보/미분석] 두 탭 어디에도 노출되지 않고, 상단 요약 5개 카운트(에러/경고/정상/정보/미분석) 집계에서도 제외된다. 실시간 접속자수 스파크라인(4-9 하단 참조, `UC_TOTAL_COUNT` 등)과 3번 주요 데이터 카드(`precheck.info-data`)는 이 제외 목록과 무관하게 그대로 표시된다 — 두 기능이 참조하는 쿼리(`selectUcSparkData`, `selectInfoData`)는 LOG_ID를 직접 지정해 조회하는 별도 쿼리이기 때문이다.
 
 ### 4-2-1. 페이징 정책
 
@@ -1174,6 +1178,8 @@ FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('에러', '경고')
   AND SERVER_ID     = #{serverId}   -- '전체' 선택 시 조건 제거
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만, LOG_ID/분석메세지 통합 부분일치 검색 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds})  -- precheck.detail-exclude-log-ids 대상은 항상 제외, 리스트 비어있으면 조건 생략 (2026-07-29 추가)
 ORDER BY
     CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
     LOG_TIMESTAMP DESC
@@ -1201,6 +1207,8 @@ FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('에러', '경고')
   AND SERVER_ID     = #{serverId}   -- '전체' 선택 시 조건 제거
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만, LOG_ID/분석메세지 통합 부분일치 검색 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds})  -- precheck.detail-exclude-log-ids 대상은 항상 제외, 리스트 비어있으면 조건 생략 (2026-07-29 추가)
 ORDER BY
     CASE ANALYZE_LEVEL WHEN '에러' THEN 1 WHEN '경고' THEN 2 END,
     LOG_TIMESTAMP DESC
@@ -1245,7 +1253,9 @@ SELECT COUNT(*)
 FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('에러', '경고')
-  AND SERVER_ID     = #{serverId};
+  AND SERVER_ID     = #{serverId}
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds});  -- precheck.detail-exclude-log-ids 대상 제외 (2026-07-29 추가)
 
 -- 정상/정보/미분석 목록 (페이징 - DB별 LIMIT 문법 분기)
 
@@ -1269,6 +1279,8 @@ FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
   AND SERVER_ID     = #{serverId}
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만, LOG_ID/분석메세지 통합 부분일치 검색 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds})  -- precheck.detail-exclude-log-ids 대상은 항상 제외, 리스트 비어있으면 조건 생략 (2026-07-29 추가)
 ORDER BY LOG_TIMESTAMP DESC
 LIMIT #{offset}, #{pageSize};
 
@@ -1292,6 +1304,8 @@ FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
   AND SERVER_ID     = #{serverId}
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만, LOG_ID/분석메세지 통합 부분일치 검색 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds})  -- precheck.detail-exclude-log-ids 대상은 항상 제외, 리스트 비어있으면 조건 생략 (2026-07-29 추가)
 ORDER BY LOG_TIMESTAMP DESC
 LIMIT #{pageSize} OFFSET #{offset};
 
@@ -1332,7 +1346,9 @@ SELECT COUNT(*)
 FROM TB_ANALYZE_RESULT
 WHERE ANALYZE_DATE  = #{today}
   AND ANALYZE_LEVEL IN ('정상', '정보', '미분석')
-  AND SERVER_ID     = #{serverId};
+  AND SERVER_ID     = #{serverId}
+  AND (UPPER(LOG_ID) LIKE UPPER('%' || #{keyword} || '%') OR UPPER(ANALYZE_MESSAGE) LIKE UPPER('%' || #{keyword} || '%'))  -- keyword 있을 때만 (2026-07-28 추가)
+  AND LOG_ID NOT IN (#{excludeLogIds});  -- precheck.detail-exclude-log-ids 대상 제외 (2026-07-29 추가)
 ```
 
 ### 4-9. NOTIFY_YN 통보 상태 시각화
@@ -1804,6 +1820,7 @@ ORDER BY
 | `date` | 조회 날짜 | 오늘 (서버 기준) | 전체 | `20260602` |
 | `serverId` | 서버 필터 | 전체 (조건 없음) | error-list, normal-list | `dlprem01-테스트개발` |
 | `page` | 페이지 번호 | 1 | error-list, normal-list | `2` |
+| `keyword` | LOG_ID/분석메세지 통합 검색어 (부분일치, 대소문자 무시) | 없음 (조건 없음) | error-list, normal-list | `UC_TOTAL` (2026-07-28 추가) |
 | `logId` | 조회할 LOG_ID | 없음 (필수값) | history | `MBSOSI_COUNT` |
 | `groupType` | 그래프 그룹 구분 | `stock` | history | `stock` (종목수), `conn` (접속자수) |
 

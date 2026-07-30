@@ -11,7 +11,7 @@
 단, 이 원칙에는 예외가 하나 있다 — 대시보드 자체의 **로그인/계정 관리 기능**은 `TB_ADMIN_USER`, `TB_ADMIN_USER_PWD_HISTORY`, `TB_ADMIN_USER_LOG` 3개 테이블에 대해 읽기·쓰기를 모두 수행한다(로그인 성공/실패 카운트 갱신, 계정 잠금/해제, 비밀번호 변경/이력 적재, 감사 로그 적재 등). 즉 "collect/analyze가 쓴 파이프라인 데이터는 읽기만 한다"는 원칙이지, 모듈 전체가 DB에 아무것도 쓰지 않는다는 뜻은 아니다.
 
 화면은 크게 세 갈래다.
-1. **메인 대시보드**(`/dashboard`) — 상단 요약, 주요 데이터 카드, 리소스 도넛차트, 서버 리스트, 에러/경고·정상/정보 탭, UC 실시간 접속자 스파크라인을 60초 주기로 갱신한다.
+1. **메인 대시보드**(`/dashboard`) — 상단 요약, 주요 데이터 카드, 서버별 분석 현황(리소스 바차트), 서버 리스트, 에러/경고·정상/정보 탭, UC 실시간 접속자 스파크라인을 60초 주기로 갱신한다.
 2. **히스토리 페이지**(`/dashboard/history`) — 최근 12개월 월별 시계열(종목/해외종목/서비스/접속자)을 보여준다.
 3. **로그인/계정 관리**(`/login`, `/password/change`, `/admin/users`) — Spring Security 기반 인증, 비밀번호 정책, SUPER_ADMIN 전용 계정관리 화면.
 
@@ -255,7 +255,7 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `errorList` | `String serverId, int page, String keyword` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/error-list` — 에러/경고 탭 페이지 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
 | `normalList` | `String serverId, int page, String keyword` | `ApiResponse<PageResultDto<AnalyzeResultDto>>` | `/dashboard/api/normal-list` — 정상/정보/미분석 탭 페이지 목록, keyword로 LOG_ID/분석메세지 통합 검색 |
 | `history` | `String groupType` | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/history` — 종목/해외종목/접속자 그래프 시계열 (groupType: stock/overseas/conn) |
-| `resource` | 없음 | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/resource` — 서버별 리소스 도넛차트 데이터 |
+| `resource` | 없음 | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/resource` — 서버별 분석 현황(리소스 바차트) 데이터. 서버 1대 = 1건, 안에 `disk`/`mem` 지표 하위 맵 |
 | `serverList` | 없음 | `ApiResponse<List<Map<String,Object>>>` | `/dashboard/api/server-list` — 서버별 최근 수집/분석 시각 + 에러/경고 건수 |
 | `ucSpark` | 없음 | `ApiResponse<Map<String,Object>>` | `/dashboard/api/uc-spark` — UC 접속자수 스파크라인(TOTAL/HTS/MTS) |
 | `history` (오버로드) | `AdminUserPrincipal principal, Model model` | `String` | `/dashboard/history` — 히스토리 화면 반환 |
@@ -335,7 +335,7 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `getNormalInfoPage` | `String serverId, int page, String keyword` | `PageResultDto<AnalyzeResultDto>` | 목록+건수 조합 |
 | `getServerList` | 없음 | `List<Map<String,Object>>` | 서버별 최근 수집/분석 시각 + 에러/경고 건수 + 캐싱된 스케줄 표시문자열 병합 |
 | `getHistoryData` | `String groupType` | `List<Map<String,Object>>` | stock/overseas/conn 그룹별 LOG_ID 시계열, 날짜별 최신값만 남김 |
-| `getResourceData` | 없음 | `List<Map<String,Object>>` | 서버별 리소스(DISK_HOME) 최신 분석 결과 |
+| `getResourceData` | 없음 | `List<Map<String,Object>>` | 서버별 리소스(`DISK_HOME`/`MEM_USAGE`) 최신 분석 결과를 서버 1대 = 1건으로 묶고, `serverId`를 `id`(식별자)/`name`(한글명)으로 분리 + `noData` 판정 |
 | `getAllInfoData` | 없음 | `Map<String,Object>` | `infoData` 설정 목록 전체에 대해 LOG_ID별 최신 분석 결과 조합 (없으면 null 유지) |
 | `getUcSparkData` | 없음 | `Map<String,Object>` | UC_TOTAL/HTS/MTS_COUNT 오늘 시계열 |
 | `getMonthlyHistoryAll` | 없음 | `Map<String,Object>` | 히스토리 페이지용 12개월치 stock/overseas/service/conn 4그룹 월별 데이터 |
@@ -394,7 +394,7 @@ Lombok `@Data`로 getter/setter 자동 생성. `@ConfigurationProperties(prefix 
 | `countNormalInfo` | `String today, String serverId, String keyword, List<String> excludeLogIds` | `int` | 정상/정보/미분석 전체 건수 |
 | `selectServerList` | `String today, String sinceDate` | `List<Map<String,Object>>` | 최근 7일(sinceDate~) 수집+분석 이력 합집합 기준 서버별 상태 요약 |
 | `selectHistoryData` | `String startDate, String endDate, String serverId, String logId` | `List<AnalyzeResultDto>` | 기간 내 분석 결과 (히스토리 그래프 원본) |
-| `selectResourceData` | `String today, String sinceDate` | `List<Map<String,Object>>` | 서버별 DISK_HOME 최신 리소스 수치 (서버 모수는 `selectServerList`와 동일) |
+| `selectResourceData` | `String today, String sinceDate, List<String> logIds` | `List<Map<String,Object>>` | 서버 × 지표(`logIds`) 조합별 최신 리소스 수치. `VALUES` 파생 테이블을 CROSS JOIN 하므로 서버당 지표 수만큼 행이 나온다 (서버 모수는 `selectServerList`와 동일) |
 | `selectInfoData` | `String today, String serverId, String logId` | `AnalyzeResultDto` | 카드 1건에 대응하는 최신 분석 결과 단건 |
 | `selectUcSparkData` | `String today, String logId` | `List<Map<String,Object>>` | UC 접속자수 최근 60분 시계열 (pmaster2-마스터 고정) |
 | `selectRawLog` | `Long collectLogId` | `CollectLogDto` | 원본 정규화 로그 1건 |

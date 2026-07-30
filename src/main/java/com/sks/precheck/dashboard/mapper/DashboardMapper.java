@@ -155,15 +155,17 @@ public interface DashboardMapper {
     );
 
     /**
-     * 서버별 리소스 도넛 차트용 최신 분석 결과를 조회한다.
+     * 서버별 리소스 바차트용 최신 분석 결과를 조회한다.
      *
      * @param today 조회 기준 일자다.
      * @param sinceDate 서버 모수에 포함할 최근 수집/분석 이력의 시작 일자다.
-     * @return 서버별 최신 리소스 수치와 임계치 목록이다.
+     * @param logIds 서버마다 조회할 리소스 지표 LOG_ID 목록이다(서버 × 지표 조합으로 행이 반환된다).
+     * @return 서버·지표별 최신 리소스 수치와 임계치 목록이다.
      */
     List<Map<String, Object>> selectResourceData(
             @Param("today") String today,
-            @Param("sinceDate") String sinceDate
+            @Param("sinceDate") String sinceDate,
+            @Param("logIds") List<String> logIds
     );
 
     /**

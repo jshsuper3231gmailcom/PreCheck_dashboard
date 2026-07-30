@@ -400,20 +400,13 @@
     border-color: transparent;
 }
 
-/* ── 도넛 카드: 샘플스타일(3) 참고 — 상태 구분 없이 단일 네이비 배경, 링 색으로만 상태 표시 ── */
-/* .border 의 --bs-border-color 를 이기기 위해 !important 사용 */
-[data-bs-theme=dark] .pc-donut--error,
-[data-bs-theme=dark] .pc-donut--warn,
-[data-bs-theme=dark] .pc-donut--normal {
+/* ── 서버 리소스 카드: 상태 구분 없이 단일 네이비 배경, 바 색으로만 상태 표시 ── */
+[data-bs-theme=dark] .pc-res-card {
     background: var(--pc-card-header);
-    border-color: var(--pc-border) !important;
-    border-radius: 16px !important;
+    border-color: var(--pc-border);
 }
-[data-bs-theme=dark] .pc-donut--empty {
-    background: var(--pc-card-header);
-    border-style: dashed !important;
-    border-color: var(--pc-border) !important;
-    border-radius: 16px !important;
+[data-bs-theme=dark] .pc-res-card--empty {
+    border-style: dashed;
 }
 
 /* ── 히스토리 라인차트 탭 / 로그 필터 탭 pill 그룹은 index.html의 .filter-btn-group 규칙으로 통일 ── */

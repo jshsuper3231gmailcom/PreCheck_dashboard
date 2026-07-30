@@ -50,11 +50,23 @@ public class DashboardService {
     private static final DateTimeFormatter YYYYMMDD = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int PAGE_SIZE = 10;
     /**
-     * 서버 리스트/리소스 도넛의 서버 모수로 인정할 수집·분석 이력 조회 구간이다(오늘 포함 7일).
+     * 서버 리스트/리소스 바차트의 서버 모수로 인정할 수집·분석 이력 조회 구간이다(오늘 포함 7일).
      * 오늘 하루로 좁히면 스케줄러 미기동처럼 이력이 아예 없는 장애가 빈 화면으로 감춰지고,
      * 제한을 두지 않으면 폐기된 서버가 영구히 남는다.
      */
     private static final int SERVER_POPULATION_DAYS = 7;
+
+    /** 리소스 패널이 서버마다 조회할 지표 LOG_ID다. */
+    private static final List<String> RESOURCE_LOG_IDS = List.of("DISK_HOME", "MEM_USAGE");
+
+    /**
+     * 리소스 지표 LOG_ID를 화면 응답 키로 옮기는 표다. 화면은 LOG_ID가 아니라 이 키(disk/mem)로
+     * 카드 안의 바를 그리므로, 지표를 늘릴 때는 RESOURCE_LOG_IDS와 이 표를 함께 늘려야 한다.
+     */
+    private static final Map<String, String> RESOURCE_METRIC_KEYS = Map.of(
+            "DISK_HOME", "disk",
+            "MEM_USAGE", "mem"
+    );
 
     private final DashboardMapper dashboardMapper;
     private final InfoDataConfig infoDataConfig;
@@ -340,15 +352,78 @@ public class DashboardService {
     }
 
     /**
-     * 서버별 리소스 도넛 차트용 수치를 반환한다.
+     * 서버별 리소스 바차트용 수치를 서버 1대 = 1건으로 묶어 반환한다.
+     *
+     * 설계 이유:
+     * - 조회 쿼리는 서버 × 지표 조합으로 행을 주지만 화면은 서버 단위 카드를 그린다. 화면에서
+     *   행을 다시 묶게 하면 렌더링 코드에 집계 책임이 섞이므로 서비스에서 형태를 맞춰 보낸다.
+     * - serverId는 `ddfep01-해외시세`처럼 식별자와 한글명이 붙어 있어, 카드가 두 줄로 나눠
+     *   표시할 수 있도록 첫 `-` 기준으로 id/name을 분리해 함께 내려준다.
      *
      * 반환값 의미:
      * - 서버 모수는 getServerList()와 동일한 기준(최근 SERVER_POPULATION_DAYS일)을 쓴다.
-     * - 모수에 든 서버는 오늘 DISK_HOME 분석 결과가 없어도 수치가 null인 채로 포함되며,
-     *   화면에서 "분석없음"으로 표시된다(도넛 개수와 서버 리스트 카드 개수를 맞추기 위함).
+     * - 각 건은 serverId, id, name, noData와 지표별 하위 맵(disk/mem)을 가진다.
+     * - 모수에 든 서버는 오늘 분석 결과가 없어도 수치가 null인 채로 포함되며, 화면에서
+     *   "분석없음"으로 표시된다(카드 개수와 서버 리스트 카드 개수를 맞추기 위함).
+     * - 데이터 부재와 값 0을 구분해야 하므로 미조회 지표는 값을 0으로 채우지 않고 null로 남긴다.
      */
     public List<Map<String, Object>> getResourceData() {
-        return dashboardMapper.selectResourceData(today(), serverPopulationSince());
+        List<Map<String, Object>> rows =
+                dashboardMapper.selectResourceData(today(), serverPopulationSince(), RESOURCE_LOG_IDS);
+
+        // ── Step 1. 서버별로 지표 행을 모은다(쿼리가 SERVER_ID 순으로 주므로 입력 순서를 유지한다) ──
+        Map<String, Map<String, Object>> byServer = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            String serverId = row.get("serverId") == null ? "" : String.valueOf(row.get("serverId"));
+            String metricKey = RESOURCE_METRIC_KEYS.get(String.valueOf(row.get("logId")));
+            if (metricKey == null) {
+                continue;
+            }
+
+            Map<String, Object> card = byServer.computeIfAbsent(serverId, id -> {
+                Map<String, Object> created = new LinkedHashMap<>();
+                created.put("serverId", id);
+                // serverId에 `-`가 없으면 전체를 식별자로 보고 표시명은 비운다.
+                int sep = id.indexOf('-');
+                created.put("id", sep < 0 ? id : id.substring(0, sep));
+                created.put("name", sep < 0 ? "" : id.substring(sep + 1));
+                return created;
+            });
+
+            Map<String, Object> metric = new LinkedHashMap<>();
+            metric.put("logId", row.get("logId"));
+            metric.put("logValue", row.get("logValue"));
+            metric.put("analyzeLevel", row.get("analyzeLevel"));
+            metric.put("thresholdValue", row.get("thresholdValue"));
+            metric.put("logTimestamp", row.get("logTimestamp"));
+            card.put(metricKey, metric);
+        }
+
+        // ── Step 2. 누락 지표 자리를 채우고 서버 전체의 데이터 부재 여부를 판정한다 ──
+        // 지표 하위 맵이 아예 없으면 화면이 매번 존재 여부를 확인해야 하므로 값이 null인 껍데기를 넣어둔다.
+        for (Map<String, Object> card : byServer.values()) {
+            boolean noData = true;
+            for (String logId : RESOURCE_LOG_IDS) {
+                String metricKey = RESOURCE_METRIC_KEYS.get(logId);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> metric = (Map<String, Object>) card.get(metricKey);
+                if (metric == null) {
+                    metric = new LinkedHashMap<>();
+                    metric.put("logId", logId);
+                    metric.put("logValue", null);
+                    metric.put("analyzeLevel", null);
+                    metric.put("thresholdValue", null);
+                    metric.put("logTimestamp", null);
+                    card.put(metricKey, metric);
+                }
+                if (metric.get("logValue") != null) {
+                    noData = false;
+                }
+            }
+            card.put("noData", noData);
+        }
+
+        return new ArrayList<>(byServer.values());
     }
 
     /**

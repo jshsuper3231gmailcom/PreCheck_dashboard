@@ -1,8 +1,20 @@
-# PreCheck Dashboard 화면 정의서 v1.6
+# PreCheck Dashboard 화면 정의서 v1.7
 
-> 작성일: 2026-05-29 / 수정일: 2026-06-29  
+> 작성일: 2026-05-29 / 수정일: 2026-07-30  
 > 참조 문서: 프로그램 명세서, 로그포맷정의서, 로그수집DB정의서, 로그분석DB정의서  
 > 사용 기술: Spring Boot 3.x / Thymeleaf / AdminLTE 4.x / Chart.js / Bootstrap 5
+
+> 📌 **v1.7 변경 이력 (2026-07-30)**
+> 1. [변경] **6번 패널 전면 개편** — 패널명 `디스크 현황` → `서버별 분석 현황`,
+>    서버당 도넛차트 1개(DISK_HOME 단독) → **초밀도 리스트형 카드(가로 바 2줄)** 로 전환.
+>    Chart.js 미사용(순수 DOM/CSS), `repeat(auto-fit, minmax(320px,1fr))` 반응형 그리드
+> 2. [신규] **`MEM_USAGE` 수치형 LOG_ID 신설** — 메모리 사용률 2행 바 추가.
+>    기존 `MEM_CHECK`/`MEM_MBSOSI`/`MEM_MINI`는 존재형이라 사용률이 아님(6-2절 경고 참조)
+> 3. [변경] 6-6 조회 SQL — 서버 × 지표 `CROSS JOIN` 구조로 개편(`logIds` 파라미터화)
+> 4. [변경] 6-7 `/dashboard/api/resource` **응답 구조 파괴적 변경** — 평면 행 → 서버 1건 + `disk`/`mem` 하위 객체
+> 5. [명확화] 6-4 상태 판정 — 화면은 `ANALYZE_LEVEL`을 그대로 사용하며 임계치 비율을 재계산하지 않음.
+>    `미분석`은 회색 채움으로 정상색과 구분
+> 6. [신규] 6번 패널에 상단 요약줄 · 하단 범례 · 임계치 hover 툴팁 추가 (심각도순 정렬은 미채택)
 
 > 📌 **v1.6 변경 이력 (2026-06-29)**
 > 1. [신규] **History 페이지** (`/dashboard/history`) 추가 — 좌측 사이드바 메뉴 "History" 항목 신설
@@ -167,20 +179,22 @@
 
 > 서버구분은 `application.yml` `precheck.info-data` 목록을 재사용 (History 전용 설정 불필요)
 
-#### 6번 영역 - 서버별 리소스
+#### 6번 영역 - 서버별 분석 현황 (리소스 바차트)
 
 | 방식 | 내용 |
 |---|---|
-| 서버 목록 | TB_ANALYZE_HISTORY에서 ANALYZE_DATE=오늘 DISTINCT SERVER_ID (코드 고정 아님) |
-| 표시 조건 | 해당 서버에 오늘 `DISK_HOME` LOG_ID 데이터가 존재하면 도넛차트 표시 |
-| 복수 건 처리 | 오늘 `DISK_HOME` 이 여러 건이면 `LOG_TIMESTAMP` 기준 **가장 최신 1건** 사용 |
-| 데이터 없음 | `DISK_HOME` 데이터가 없는 서버는 "분석없음" 표시 |
-| 표시 LOG_ID | `DISK_HOME` 고정 (모든 서버 통일) |
+| 서버 목록 | TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 최근 7일 이력 서버 (코드 고정 아님, 7번과 동일 모수) |
+| 표시 지표 | `DISK_HOME`(1행 DISK) + `MEM_USAGE`(2행 MEM) — 서버당 카드 1개에 가로 바 2줄 |
+| 복수 건 처리 | 지표별로 오늘 데이터가 여러 건이면 `LOG_TIMESTAMP` 최신 → 동일 시각이면 `ANALYZE_RESULT_ID` 최대 **1건** |
+| 데이터 없음 | 지표 값이 없으면 점선 빈 바 + 수치 `-`. 두 지표 모두 없으면 카드 배지 "분석없음" |
+| 상태 판정 | `ANALYZE_LEVEL` 그대로 사용 (화면 재계산 없음). `미분석`은 회색 채움 |
 | 수치 단위 | % (0~100) 고정 |
 
-> ⚠️ **DISK_HOME LOG_ID 통일 원칙**
+> ⚠️ **리소스 LOG_ID 통일 원칙**
 > - axistuja-자동주문 서버의 기존 `DISK_USAGE` → `DISK_HOME` 으로 수집 스크립트 수정 필요
-> - 신규 서버 추가 시 반드시 `DISK_HOME` 으로 LOG_ID 지정
+> - 신규 서버 추가 시 반드시 `DISK_HOME` / `MEM_USAGE` 로 LOG_ID 지정
+> - `MEM_USAGE`는 2026-07-30 신설 수치형 지표다. 기존 `MEM_CHECK`/`MEM_MBSOSI`/`MEM_MINI`는
+>   **존재형**이라 사용률이 아니므로 혼동 금지 (상세는 6-2절)
 
 ### 0-5. 분석 레벨 색상 정의 (전체 화면 공통)
 
@@ -1530,13 +1544,37 @@ GET /dashboard/api/monthly-history
 
 ---
 
-## 6. 서버별 리소스 현황
+## 6. 서버별 분석 현황 (리소스 바차트)
 
-### 6-1. AdminLTE 컴포넌트
-- **사용 컴포넌트**: `card` + `Chart.js Doughnut Chart`
-- **레이아웃**: 서버당 도넛차트 1개, 한 줄에 4개 (`col-lg-3`)
+> ⚠️ **v1.7 변경 (2026-07-30)**: 패널명 `디스크 현황` → **`서버별 분석 현황`**.
+> 서버당 도넛차트 1개(DISK_HOME 단독) → **초밀도 리스트형 카드(가로 바 2줄: DISK + MEM)** 로 전환.
+> 서버 수가 30대 이상으로 늘어나도 세로 공간이 선형으로만 증가하도록 하기 위함이며,
+> 동시에 메모리 사용률(`MEM_USAGE`)을 신규 지표로 추가했다. Chart.js 미사용(순수 DOM/CSS).
 
-### 6-2. 서버 목록 결정 방식
+### 6-1. 컴포넌트 / 레이아웃
+- **사용 컴포넌트**: `card` + CSS Grid (Chart.js 도넛 제거)
+- **패널 그리드**: `grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))`
+  → 패널 폭에 따라 3열 → 2열 → 1열 자동 축소 (별도 미디어쿼리 불필요)
+- **카드 내부 그리드**: `90px 1fr 46px` (서버정보 · 바 영역 · 상태배지), `row-gap 4px` / `column-gap 10px`
+  - 서버정보(1열)와 상태배지(3열)는 `grid-row: 1 / span 2` 로 두 행에 걸쳐 고정
+  - 지표 줄은 2열에 행 단위로 쌓임 (1행 DISK, 2행 MEM)
+
+### 6-2. 표시 지표
+
+| 순서 | 라벨 | LOG_ID | 비고 |
+|------|------|--------|------|
+| 1행 | `DISK` | `DISK_HOME` | 기존 지표 |
+| 2행 | `MEM` | `MEM_USAGE` | **2026-07-30 신설** |
+
+> ⚠️ **`MEM_USAGE`는 신규 수치형 LOG_ID다.**
+> 기존 `MEM_*` LOG_ID(`MEM_CHECK` / `MEM_MBSOSI` / `MEM_MINI`)는 전부 **존재형**이며 사용률이 아니다.
+> 대상 서버 점검 프로그램이 아래 형식으로 로그를 출력해야 하며, 출력 전까지 MEM 바는 "분석없음"으로 표시된다.
+> ```
+> @@@[yyyy/MM/dd HH:mm:ss.SSS][수치][MEM_USAGE]|메모리사용률|$85.3$@@@
+> ```
+> 정책 파일에도 `[<serverId>][MEM_USAGE][수치][<][90][20]` 등록 필요(미등록 시 `ANALYZE_LEVEL='미분석'`).
+
+### 6-3. 서버 목록 결정 방식
 
 > ℹ️ 코드 고정이 아닌 **동적 조회** 방식 사용
 > 서버가 추가되어도 코드 수정 없이 자동으로 반영됨
@@ -1545,93 +1583,151 @@ GET /dashboard/api/monthly-history
 > 등록 서버 수가 달라도 두 위젯이 서로 다른 서버 집합을 보여주는 문제를 막기 위함)
 
 ```
-① TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 에 한 번이라도 등장한 DISTINCT SERVER_ID 목록 조회
-② 각 서버별로 오늘 DISK_HOME LOG_ID 데이터 존재 여부 확인
-③ 데이터 있으면 → 도넛차트 표시
-   데이터 없으면 → "분석없음" 텍스트 표시
+① TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 의 최근 7일 이력 서버 합집합 조회
+② 서버 × 지표(DISK_HOME, MEM_USAGE) 조합으로 오늘자 최신 1건씩 조회
+③ 지표에 값이 있으면 → 색상 채움 바 + 수치 표시
+   지표에 값이 없으면 → 점선 바 + "-" 표시
+④ 두 지표 모두 값이 없으면(noData) → 카드 테두리 점선 + 배지 "분석없음"
 ```
 
-### 6-3. 도넛 차트 표시 규칙
+### 6-4. 상태 판정 규칙
+
+> ⚠️ **판정 주체는 analyze 모듈이다.** 화면은 `TB_ANALYZE_RESULT.ANALYZE_LEVEL`을 그대로 신뢰하며
+> 임계치 비율을 재계산하지 않는다. 재계산하면 서버별 `WARNING_RATIO`가 반영된 4번 상세 현황
+> 테이블의 레벨과 어긋나기 때문이다.
+> (경고 구간 = `[threshold - threshold×WARNING_RATIO/100, threshold)` — 6번 정책정의서 참조)
 
 ```
-[도넛 차트 구성]
-- 사용 영역 : LOG_VALUE % (채워진 색상)
-- 여유 영역 : (100 - LOG_VALUE) % (회색)
-- 중앙 텍스트: N% 표시
+[지표(바) 1건 상태]
+- ANALYZE_LEVEL='에러'        : 에러색  + 채움 바
+- ANALYZE_LEVEL='경고'        : 경고색  + 채움 바
+- ANALYZE_LEVEL='정상'/'정보' : 정상색  + 채움 바
+- ANALYZE_LEVEL='미분석'      : 회색    + 채움 바  ← 수치는 있으나 정책 없음. 정상색 오인 방지
+- LOG_VALUE = NULL            : 회색    + 점선 빈 바 + 수치 "-"
 
-[색상 기준 - ANALYZE_LEVEL 기반]
-- 정상(ANALYZE_LEVEL='정상') : #198754 (초록)
-- 경고(ANALYZE_LEVEL='경고') : #ffc107 (노랑)
-- 에러(ANALYZE_LEVEL='에러') : #dc3545 (빨강)
-- 데이터 없음                : 회색 점선 원 + "분석없음" 텍스트
+[카드 대표 상태(배지)]
+- 지표 중 하나라도 에러      → "에러"
+- 아니면 하나라도 경고       → "경고"
+- 전 지표가 empty(값없음/미분석) → "분석없음"
+- 그 외                      → "정상"
+
+[색상 - 기존 대시보드 테마 유지(가이드 색상 미채택), CSS 변수로 관리]
+                 라이트      다크
+- 정상      : #198754  /  #5FDCC0
+- 경고      : #ffc107  /  #F6D97E
+- 에러      : #dc3545  /  #F1926B
+- 분석없음  : #6c757d  /  #7C8CB3
+- 바 트랙   : #e9ecef  /  #16305e
+- 임계치마커: rgba(0,0,0,.45) / rgba(255,255,255,.55)
+※ 배지 배경은 각 상태색의 15% 틴트, 텍스트는 상태색.
+※ 색상만으로 구분하지 않도록 배지 텍스트(정상/경고/에러/분석없음)를 항상 함께 표시한다.
 ```
 
-### 6-4. 표시 형식
+### 6-5. 표시 형식
 
 ```
-┌────────────────────┐
-│  dlprem01-테스트개발│  ← SERVER_ID
-│   ┌─────────┐     │
-│   │  ████   │     │  ← 도넛차트 (색상=ANALYZE_LEVEL)
-│   │ ██80%██ │     │  ← 중앙: LOG_VALUE%
-│   │  ████   │     │
-│   └─────────┘     │
-│  DISK_HOME  80%   │  ← LOG_ID + LOG_VALUE
-│  임계치: 90%       │  ← THRESHOLD_VALUE
-│  로그: 09:30       │  ← LOG_TIMESTAMP (오늘이면 HH:mm)
-└────────────────────┘
+[패널 헤더]
+■ 서버별 분석 현황          전체 7대 · 에러 2 · 경고 3 · 정상 2 · 분석없음 0
+                            ▲ 요약줄(flex-wrap, 좁은 화면에서 줄바꿈)
 
-[데이터 없는 서버]
-┌────────────────────┐
-│  newserver-신규     │
-│   ┌─────────┐     │
-│   │  - - -  │     │  ← 회색 점선
-│   │분석없음 │     │
-│   └─────────┘     │
-│  DISK_HOME         │
-└────────────────────┘
+[카드 — 정상 데이터]
+┌──────────────────────────────────────────────┐
+│ dlprem01    DISK ██████████▏│░░░░░  62.9%  [정상] │
+│ 테스트개발  MEM  ██████████▏│░░░░░  63.8%       │
+└──────────────────────────────────────────────┘
+  ▲ID(11px)         ▲가로바(높이 7px)  ▲수치   ▲배지
+  ▲한글명(9px)          ▲임계치 마커(2px 세로선, 바 상하 2px 돌출)
+
+[카드 — 데이터 없는 서버] (카드 테두리 점선)
+┌──────────────────────────────────────────────┐
+│ newserver   DISK ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈    -   [분석없음]│
+│ 신규        MEM  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈    -         │
+└──────────────────────────────────────────────┘
+
+[패널 하단 범례 — 고정 표기]
+● 정상  ● 경고  ● 에러  ┈ 분석 없음  │ 임계치 지점
 ```
 
-### 6-5. 조회 SQL
+**표시 세부 규칙**
+| 항목 | 규칙 |
+|------|------|
+| 서버 ID / 한글명 | `SERVER_ID`(`ddfep01-해외시세`)를 **첫 `-` 기준 분리**. `-` 없으면 전체를 ID로 보고 한글명은 공란 |
+| 수치 | `LOG_VALUE`의 불필요한 소수 0 제거 후 `N%` (예: `92.600000` → `92.6%`) |
+| 바 채움 폭 | `LOG_VALUE`를 0~100으로 클램프 |
+| 임계치 마커 | `THRESHOLD_VALUE`가 0 초과 100 이하일 때만 표시. 서버별 임계치가 다르면 마커 위치도 다름 |
+| 툴팁(hover) | `DISK 임계치 90 · 현재 83` / 값 없으면 `DISK 분석 없음` |
+| 정렬 | **`SERVER_ID` 순 유지** (심각도순 정렬 미채택) |
+| 시각 표시 | 카드에 `LOG_TIMESTAMP` 미표시 (밀도 확보 목적, API 응답에는 포함) |
+
+### 6-6. 조회 SQL
+
+서버 모수 × 지표 목록을 `CROSS JOIN` 하여 **서버당 지표 수만큼 행**을 반환하고, 서버 단위 묶음은
+`DashboardService.getResourceData()`가 담당한다.
 
 ```sql
 -- ============================================================
--- STEP 1: 오늘 분석된 서버 목록 조회
+-- 서버 × 지표(logIds) 조합별 오늘자 최신 1건
+--   · 모수는 7번 서버 리스트(selectServerList)와 동일 — 최근 7일 수집/분석 이력 합집합
+--   · 지표는 파라미터(logIds = ['DISK_HOME','MEM_USAGE'])로 주입 → 지표 추가 시 SQL 무수정
+--   · MAX(ANALYZE_RESULT_ID) + MAX(LOG_TIMESTAMP) 이중 압축:
+--     LOG_TIMESTAMP만으로 매칭하면 수집 중복 시 같은 시각 행 수만큼 카드가 중복 표시됨
+--   · VALUES 목록의 바인드 파라미터는 PostgreSQL이 타입 추론을 못 해
+--     "could not determine data type of parameter"로 실패하므로 CAST 명시 필수
 -- ============================================================
-SELECT DISTINCT SERVER_ID
-FROM TB_ANALYZE_HISTORY
-WHERE ANALYZE_DATE = #{today}
-ORDER BY SERVER_ID;
+SELECT
+    S.SERVER_ID AS "serverId",
+    M.LOG_ID    AS "logId",
+    AR.LOG_VALUE, AR.ANALYZE_LEVEL, AR.THRESHOLD_VALUE, AR.LOG_TIMESTAMP
+FROM (
+    SELECT SERVER_ID FROM TB_COLLECT_HISTORY WHERE COLLECT_DATE >= #{sinceDate}
+    UNION
+    SELECT SERVER_ID FROM TB_ANALYZE_HISTORY WHERE ANALYZE_DATE >= #{sinceDate}
+) S
+CROSS JOIN (
+    VALUES (CAST(#{logId} AS VARCHAR)) /* <foreach> 로 지표 수만큼 전개 */
+) AS M(LOG_ID)
+LEFT JOIN TB_ANALYZE_RESULT AR
+  ON AR.ANALYZE_RESULT_ID = (
+        SELECT MAX(ANALYZE_RESULT_ID)
+        FROM TB_ANALYZE_RESULT
+        WHERE ANALYZE_DATE = #{today}
+          AND SERVER_ID    = S.SERVER_ID
+          AND LOG_ID       = M.LOG_ID
+          AND LOG_TYPE     = '수치'
+          AND LOG_TIMESTAMP = (
+                SELECT MAX(LOG_TIMESTAMP)
+                FROM TB_ANALYZE_RESULT
+                WHERE ANALYZE_DATE = #{today}
+                  AND SERVER_ID    = S.SERVER_ID
+                  AND LOG_ID       = M.LOG_ID
+                  AND LOG_TYPE     = '수치'
+          )
+    )
+ORDER BY S.SERVER_ID, M.LOG_ID;
 
--- ============================================================
--- STEP 2: 서버별 DISK_HOME 최신값 조회
--- LOG_ID = 'DISK_HOME' 고정
--- LOG_TYPE = '수치' (DISK_HOME은 반드시 수치형으로 수집)
--- ANALYZE_DATE = 오늘 기준 최신 1건
--- DB별 LIMIT 문법 분기
--- ============================================================
--- [Altibase]
-SELECT LOG_VALUE, ANALYZE_LEVEL, THRESHOLD_VALUE, LOG_TIMESTAMP
-FROM TB_ANALYZE_RESULT
-WHERE ANALYZE_DATE = #{today}
-  AND SERVER_ID    = #{serverId}
-  AND LOG_ID       = 'DISK_HOME'
-  AND LOG_TYPE     = '수치'
-ORDER BY LOG_TIMESTAMP DESC
-LIMIT 1;
-
--- [PostgreSQL]
-SELECT LOG_VALUE, ANALYZE_LEVEL, THRESHOLD_VALUE, LOG_TIMESTAMP
-FROM TB_ANALYZE_RESULT
-WHERE ANALYZE_DATE = #{today}
-  AND SERVER_ID    = #{serverId}
-  AND LOG_ID       = 'DISK_HOME'
-  AND LOG_TYPE     = '수치'
-ORDER BY LOG_TIMESTAMP DESC
-LIMIT 1;
-
--- ※ 결과 없으면(NULL) → 해당 서버는 "분석없음" 표시
+-- ※ AR.* 가 NULL인 행 → 해당 지표는 점선 빈 바
+-- ※ 한 서버의 모든 지표가 NULL → noData=true → 카드 점선 + "분석없음" 배지
 ```
+
+### 6-7. API 응답 형식
+
+> ⚠️ **파괴적 변경**: 기존 "서버 1대 = 1행(DISK_HOME 필드 평면 나열)" 구조에서 아래로 바뀌었다.
+
+```json
+{
+  "serverId": "ddfep01-해외시세",
+  "id": "ddfep01",
+  "name": "해외시세",
+  "noData": false,
+  "disk": { "logId": "DISK_HOME", "logValue": 83.0, "analyzeLevel": "경고",
+            "thresholdValue": 90.0, "logTimestamp": "..." },
+  "mem":  { "logId": "MEM_USAGE", "logValue": 92.6, "analyzeLevel": "에러",
+            "thresholdValue": 90.0, "logTimestamp": "..." }
+}
+```
+
+- 지표 하위 맵(`disk`/`mem`)은 **값이 없어도 키가 항상 존재**한다(화면 분기 제거 목적)
+- 지표 추가 시 `DashboardService.RESOURCE_LOG_IDS` + `RESOURCE_METRIC_KEYS` 두 상수만 함께 늘리면 된다
 
 ---
 
@@ -1684,7 +1780,7 @@ LIMIT 1;
 
 > ⚠️ **v1.4 변경**: 모수를 `TB_COLLECT_HISTORY` 단독에서 `TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY`로
 > 확장했다. 수집 conf와 분석 conf의 등록 서버 수가 다르면(예: 분석 conf에만 있는 서버) 한쪽 이력에만
-> 등장하는 서버가 생기는데, 그런 서버도 누락 없이 목록에 표시되어야 6번 도넛차트와 모집단이 일치한다.
+> 등장하는 서버가 생기는데, 그런 서버도 누락 없이 목록에 표시되어야 6번 리소스 바차트와 모집단이 일치한다.
 
 ```sql
 -- 서버별 상태 종합 조회
@@ -1772,9 +1868,14 @@ ORDER BY
 │ 시각|서버/IP|LOG_ID|타입|레벨|메시지|임계치|원본                   │
 │ ↓ 행 클릭 시 accordion 펼침                                      │
 ├──────────────────────────────────────────────────────────────────┤
-│ [6. 서버별 리소스 현황]             (전체 너비 col-12)  ← 4번 아래│
-│ [dlprem01 도넛] [pwwfep01 도넛] [pamoap01 도넛] [pmaster2 도넛]  │
-│   ▲ DISK_HOME 존재하는 서버만 동적 표시                           │
+│ [6. 서버별 분석 현황]               (전체 너비 col-12)  ← 4번 아래│
+│        전체 N대 · 에러 N · 경고 N · 정상 N · 분석없음 N  ← 요약줄 │
+│ ┌─dlprem01──────────┐ ┌─pwwfep01──────────┐ ┌─pamoap01──────┐  │
+│ │테스트개발 DISK ██▏│ │해외시세  DISK ███▏│ │자동주문 DISK █│  │
+│ │      [정상] MEM ██▏│ │    [에러] MEM ███▏│ │  [경고] MEM ██│  │
+│ └───────────────────┘ └───────────────────┘ └───────────────┘  │
+│   ▲ 3열 → 2열 → 1열 자동 축소 (auto-fit, minmax 320px)          │
+│ ● 정상 ● 경고 ● 에러 ┈ 분석없음 │ 임계치 지점      ← 하단 범례   │
 ├──────────────────────────────────────────────────────────────────┤
 │ [5. 히스토리 그래프]                (전체 너비 col-12)             │
 │ [종목수 현황 탭] [접속자수 현황 탭]                                │
@@ -1807,7 +1908,7 @@ ORDER BY
 | `/dashboard/api/error-list` | GET | 에러/경고 목록 (페이징) | JSON |
 | `/dashboard/api/normal-list` | GET | 정상/정보/미분석 목록 (페이징) | JSON |
 | `/dashboard/api/history` | GET | 히스토리 그래프 데이터 (logId 필수) | JSON |
-| `/dashboard/api/resource` | GET | 리소스 도넛차트 — 전체 서버 일괄 반환 | JSON |
+| `/dashboard/api/resource` | GET | 서버별 분석 현황(리소스 바차트) — 전체 서버 일괄 반환, 서버 1건에 `disk`/`mem` 하위 객체 (v1.7 구조 변경) | JSON |
 | `/dashboard/api/server-list` | GET | 서버 리스트 상태 | JSON |
 | `/dashboard/api/raw-log/{collectLogId}` | GET | 원본 로그 모달 조회 | JSON |
 | `/dashboard/api/uc-spark` | GET | UC 실시간 접속자수 오늘 전체 시계열 (3개 LOG_ID 일괄) | JSON |
@@ -1904,10 +2005,10 @@ Phase 2: 핵심 데이터
      - Bootstrap Icons bi-circle-fill 아이콘 사용
 
 Phase 3: 시각화
-  ⑦ 6번 리소스 도넛차트
+  ⑦ 6번 서버별 분석 현황 (리소스 바차트)
      - TB_COLLECT_HISTORY ∪ TB_ANALYZE_HISTORY 기준 서버 목록 조회 (7번과 동일 모집단)
-     - LOG_TYPE='수치', LOG_ID='DISK_HOME' 조건으로 최신 1건 조회
-     - 분석없음 서버: "분석없음" 텍스트 + 회색 점선 원 표시
+     - LOG_TYPE='수치', LOG_ID IN ('DISK_HOME','MEM_USAGE') 조건으로 지표별 최신 1건 조회
+     - 분석없음 서버: 점선 바 2개 + "분석없음" 배지 표시
   ⑧ 5번 히스토리 그래프 (Line Chart)
      - LOG_TYPE='수치' 조건으로 조회 (정보형 데이터가 수치값을 갖는 구조)
      - groupType=stock: MBSOSI_COUNT~OPT_MAX_COUNT 6개 라인

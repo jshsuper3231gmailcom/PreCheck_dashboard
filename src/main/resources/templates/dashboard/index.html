@@ -18,52 +18,149 @@
         .summary-strip-item { min-width: 0; }
         .summary-number { font-size: clamp(16px, 4vw, 24px); line-height: 1.1; }
         .summary-label { font-size: .85rem; }
-        .donut-empty {
-            width: 100%;
-            max-width: 104px;
-            aspect-ratio: 1 / 1;
-            border: 2px dashed var(--bs-secondary);
-            border-radius: 50%;
-            display: flex;
+        /* ── 서버별 분석 현황: 초밀도 리스트형 바차트 ──
+           상태색을 CSS 변수로 두면 렌더링 JS가 테마를 몰라도 되고, 테마 토글 시 재렌더 없이 색이 따라온다. */
+        #resourceSection {
+            --pc-res-normal: #198754;
+            --pc-res-normal-bg: rgba(25, 135, 84, .15);
+            --pc-res-warn: #ffc107;
+            --pc-res-warn-bg: rgba(255, 193, 7, .15);
+            --pc-res-error: #dc3545;
+            --pc-res-error-bg: rgba(220, 53, 69, .15);
+            --pc-res-empty: #6c757d;
+            --pc-res-empty-bg: rgba(108, 117, 125, .15);
+            --pc-res-track: #e9ecef;
+            --pc-res-marker: rgba(0, 0, 0, .45);
+        }
+        [data-bs-theme=dark] #resourceSection {
+            --pc-res-normal: #5FDCC0;
+            --pc-res-normal-bg: rgba(95, 220, 192, .15);
+            --pc-res-warn: #F6D97E;
+            --pc-res-warn-bg: rgba(246, 217, 126, .15);
+            --pc-res-error: #F1926B;
+            --pc-res-error-bg: rgba(241, 146, 107, .15);
+            --pc-res-empty: #7C8CB3;
+            --pc-res-empty-bg: rgba(124, 140, 179, .15);
+            --pc-res-track: #16305e;
+            --pc-res-marker: rgba(255, 255, 255, .55);
+        }
+        /* auto-fit + minmax이므로 패널 폭에 따라 열 수가 3 → 2 → 1로 자동 축소된다(미디어쿼리 불필요) */
+        .pc-res-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 8px;
+        }
+        /* 서버정보 · 바 영역 · 상태배지 3열, 1행 DISK / 2행 MEM */
+        .pc-res-card {
+            display: grid;
+            grid-template-columns: 90px 1fr 46px;
+            row-gap: 4px;
+            column-gap: 10px;
             align-items: center;
-            justify-content: center;
-            color: var(--bs-secondary);
-            font-size: .7rem;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 8px;
+            padding: 7px 10px;
         }
-        .donut-box {
-            width: 100%;
-            max-width: 104px;
-            aspect-ratio: 1 / 1;
+        .pc-res-card--empty { border-style: dashed; }
+        /* 서버정보/배지는 두 행에 걸쳐 양끝 열에 고정하고, 지표 줄은 가운데 열에서 행이 자동으로 쌓인다.
+           열/행을 명시하지 않으면 자동배치가 배지를 1행 2열에 밀어넣어 레이아웃이 깨진다. */
+        .pc-res-card__server { grid-column: 1; grid-row: 1 / span 2; min-width: 0; }
+        .pc-res-metric { grid-column: 2; }
+        .pc-res-card__id {
+            font-size: 11px;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        /* 도넛 카드 박스 가로 -20% (Bootstrap col 클래스 오버라이드) */
-        #resourceGrid > div { flex: 0 0 auto; width: 40%; }
-        @media (min-width: 576px) { #resourceGrid > div { width: 26.67%; } }
-        @media (min-width: 768px) { #resourceGrid > div { width: 20%; } }
-        @media (min-width: 992px) { #resourceGrid > div { width: 13.33%; } }
-        .donut-box canvas {
-            width: 100% !important;
-            height: 100% !important;
+        .pc-res-card__name {
+            font-size: 9px;
+            color: var(--bs-secondary-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        /* 도넛 카드 모양(샘플스타일 3 참고): 라운드/여백/가운데 정렬 */
-        .pc-donut-card {
-            border-radius: 16px;
-            padding: 14px 10px;
-            text-align: center;
+        .pc-res-metric { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .pc-res-metric__label {
+            flex: 0 0 22px;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--bs-secondary-color);
         }
-        .pc-donut--empty {
-            opacity: .6;
+        .pc-res-bar {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            height: 7px;
+            border-radius: 4px;
+            background: var(--pc-res-track);
         }
-        [data-bs-theme=dark] .pc-donut--empty {
-            opacity: 1;
-            background: #1a3868;
-            border-color: rgba(255, 255, 255, .09) !important;
-            border-style: dashed !important;
-            color: #fff;
+        .pc-res-bar__fill { height: 100%; border-radius: 4px; background: var(--pc-res-color); }
+        /* 임계치 눈금선: 바 상하로 2px씩 돌출시켜 채움 위에서도 위치가 읽히게 한다 */
+        .pc-res-bar__marker {
+            position: absolute;
+            top: -2px;
+            bottom: -2px;
+            width: 2px;
+            margin-left: -1px;
+            background: var(--pc-res-marker);
         }
-        [data-bs-theme=dark] .pc-donut--empty .donut-empty {
-            border-color: #7C8CB3;
-            color: #7C8CB3;
+        .pc-res-metric__value {
+            flex: 0 0 34px;
+            text-align: right;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--pc-res-color);
         }
+        .pc-res-badge {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            justify-self: end;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+            color: var(--pc-res-color);
+            background: var(--pc-res-color-bg);
+        }
+        .pc-res--normal { --pc-res-color: var(--pc-res-normal); --pc-res-color-bg: var(--pc-res-normal-bg); }
+        .pc-res--warn { --pc-res-color: var(--pc-res-warn); --pc-res-color-bg: var(--pc-res-warn-bg); }
+        .pc-res--error { --pc-res-color: var(--pc-res-error); --pc-res-color-bg: var(--pc-res-error-bg); }
+        .pc-res--empty { --pc-res-color: var(--pc-res-empty); --pc-res-color-bg: var(--pc-res-empty-bg); }
+        /* 데이터 미수집 지표는 채움 없이 점선 트랙만 남겨 "값 0"과 구분한다.
+           수치는 있으나 정책이 없어 '미분석'인 경우는 회색 채움으로 남으므로 상태색과 분리해 판정한다. */
+        .pc-res-metric--novalue .pc-res-bar {
+            background: transparent;
+            border: 1px dashed var(--pc-res-color);
+        }
+        .pc-res-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px 10px;
+            font-size: 11px;
+            color: var(--bs-secondary-color);
+        }
+        .pc-res-legend {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 14px;
+            margin-top: 10px;
+            font-size: 10px;
+            color: var(--bs-secondary-color);
+        }
+        .pc-res-legend__swatch {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            margin-right: 4px;
+            vertical-align: middle;
+            background: var(--pc-res-color);
+        }
+        .pc-res-legend__swatch--empty { background: transparent; border: 1px dashed var(--pc-res-empty); }
+        .pc-res-legend__swatch--marker { width: 2px; height: 10px; border-radius: 0; background: var(--pc-res-marker); }
         .dot {
             width: 8px;
             height: 8px;
@@ -522,23 +619,23 @@
 
         /* ── 메인화면 사각형 밖 전체 배경(다크모드 전용, 라이트는 흰색 유지) ── */
         [data-bs-theme=dark] body { background: #152d53; }
-        /* ── 디스크 현황 이전 구간(TODAY 현황 ~ 상세 현황) 사각형 밖 배경만 별도 톤 ── */
+        /* ── 서버별 분석 현황 이전 구간(TODAY 현황 ~ 상세 현황) 사각형 밖 배경만 별도 톤 ── */
         [data-bs-theme=dark] #beforeResourceZone { background: #14305e; }
 
-        /* ── 디스크 현황/접속자 현황/History 카드: 다크모드 전용 진한 배경(라이트는 흰색 유지) ── */
+        /* ── 서버별 분석 현황/접속자 현황/History 카드: 다크모드 전용 진한 배경(라이트는 흰색 유지) ── */
         [data-bs-theme=dark] #resourceSection,
         [data-bs-theme=dark] #connStatusCard,
         [data-bs-theme=dark] #historyCard {
             background: #102448 !important;
             border-color: rgba(255, 255, 255, .09) !important;
         }
-        [data-bs-theme=dark] #resourceSection .pc-donut--error,
-        [data-bs-theme=dark] #resourceSection .pc-donut--warn,
-        [data-bs-theme=dark] #resourceSection .pc-donut--normal,
-        [data-bs-theme=dark] #resourceSection .pc-donut--empty,
+        [data-bs-theme=dark] #resourceSection .pc-res-card,
         [data-bs-theme=dark] #connStatusCard .conn-stat,
         [data-bs-theme=dark] #connStatusCard .live-pill {
             background: #152d53 !important;
+        }
+        [data-bs-theme=dark] #resourceSection .pc-res-card {
+            border-color: rgba(255, 255, 255, .09);
         }
 
         /* ── 상세 현황 카드: 필터탭/표/페이지네이션 다크모드 전용 톤(전체 콤보 select는 제외) ── */
@@ -925,11 +1022,19 @@
             </div>
 
             <div class="card mb-3" id="resourceSection">
-                <div class="card-header">
-                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>디스크 현황</span>
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <span class="panel-accent-title section-title-lg"><span class="bar"></span>서버별 분석 현황</span>
+                    <div class="pc-res-summary" id="resourceSummary"></div>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3" id="resourceGrid"></div>
+                    <div class="pc-res-grid" id="resourceGrid"></div>
+                    <div class="pc-res-legend">
+                        <span class="pc-res--normal"><i class="pc-res-legend__swatch"></i>정상</span>
+                        <span class="pc-res--warn"><i class="pc-res-legend__swatch"></i>경고</span>
+                        <span class="pc-res--error"><i class="pc-res-legend__swatch"></i>에러</span>
+                        <span><i class="pc-res-legend__swatch pc-res-legend__swatch--empty"></i>분석 없음</span>
+                        <span><i class="pc-res-legend__swatch pc-res-legend__swatch--marker"></i>임계치 지점</span>
+                    </div>
                 </div>
             </div>
 
@@ -1180,41 +1285,6 @@
         }
         return totalCount;
     }
-
-    // 리소스 도넛차트는 임계치 자체를 숫자로만 적는 것보다 초과 구간 위치를 함께 보여줘야
-    // 운영자가 어느 서버가 위험 구간에 들어왔는지 한눈에 판단할 수 있다.
-    const thresholdMarkerPlugin = {
-        id: 'thresholdMarker',
-        afterDatasetsDraw(chart, args, pluginOptions) {
-            const threshold = Number(pluginOptions && pluginOptions.threshold);
-            if (!Number.isFinite(threshold)) return;
-
-            const meta = chart.getDatasetMeta(0);
-            if (!meta || !meta.data || meta.data.length === 0) return;
-
-            const arc = meta.data[0];
-            if (!arc) return;
-
-            const startAngle = arc.startAngle;
-            const x = arc.x;
-            const y = arc.y;
-            const innerRadius = arc.innerRadius;
-            const outerRadius = arc.outerRadius;
-
-            const clamped = Math.max(0, Math.min(100, threshold));
-            const angle = startAngle + (Math.PI * 2) * (clamped / 100);
-
-            const ctx = chart.ctx;
-            ctx.save();
-            ctx.strokeStyle = pluginOptions && pluginOptions.color ? pluginOptions.color : '#dc3545';
-            ctx.lineWidth = pluginOptions && pluginOptions.lineWidth ? pluginOptions.lineWidth : 2;
-            ctx.beginPath();
-            ctx.moveTo(x + Math.cos(angle) * innerRadius, y + Math.sin(angle) * innerRadius);
-            ctx.lineTo(x + Math.cos(angle) * outerRadius, y + Math.sin(angle) * outerRadius);
-            ctx.stroke();
-            ctx.restore();
-        }
-    };
 
     async function fetchApi(url) {
         const res = await fetch(url, {headers: {'Accept': 'application/json'}});
@@ -1652,120 +1722,126 @@
         }
     }
 
+    // 카드 안의 바 순서와 라벨. 서버가 내려주는 지표 키(disk/mem)와 1:1로 대응한다.
+    const RESOURCE_METRICS = [
+        {key: 'disk', label: 'DISK'},
+        {key: 'mem', label: 'MEM'}
+    ];
+
+    const RESOURCE_BADGE_TEXT = {error: '에러', warn: '경고', normal: '정상', empty: '분석없음'};
+
+    /**
+     * 지표 1건의 표시 상태를 판정한다.
+     *
+     * 상태는 analyze 모듈이 정책 파일의 서버별 WARNING_RATIO 기준으로 이미 확정해 둔 ANALYZE_LEVEL을
+     * 그대로 신뢰한다. 화면에서 임계치 비율을 다시 계산하면 같은 화면 상세 현황 테이블의 레벨과 어긋난다.
+     * 정책에 없는 LOG_ID는 '미분석'으로 저장되므로, 수치는 있어도 정상색(초록)을 입히지 않는다.
+     */
+    function resourceMetricState(metric) {
+        if (!metric || metric.logValue == null) return 'empty';
+        const level = metric.analyzeLevel || '';
+        if (level === '에러') return 'error';
+        if (level === '경고') return 'warn';
+        if (level === '정상' || level === '정보') return 'normal';
+        return 'empty';
+    }
+
+    /** 카드 대표 상태: 하나라도 에러면 에러, 아니면 경고, 판정 가능한 지표가 하나도 없으면 분석없음. */
+    function resourceCardState(states) {
+        if (states.every((s) => s === 'empty')) return 'empty';
+        if (states.includes('error')) return 'error';
+        if (states.includes('warn')) return 'warn';
+        return 'normal';
+    }
+
+    /** 지표 1건을 "라벨 + 가로 바 + 수치" 한 줄로 만든다. */
+    function buildResourceMetricRow(label, metric, state) {
+        const valueNum = Number(metric ? metric.logValue : null);
+        const hasValue = metric && metric.logValue != null && Number.isFinite(valueNum);
+        const thresholdNum = Number(metric ? metric.thresholdValue : null);
+        const hasThreshold = Number.isFinite(thresholdNum);
+        const percent = hasValue ? Math.max(0, Math.min(100, valueNum)) : 0;
+
+        const row = document.createElement('div');
+        row.className = `pc-res-metric pc-res--${state}${hasValue ? '' : ' pc-res-metric--novalue'}`;
+        // 임계치가 서버마다 다르므로 정확한 수치는 hover로 확인할 수 있게 한다.
+        row.title = hasValue
+            ? `${label} 임계치 ${hasThreshold ? thresholdNum : '-'} · 현재 ${valueNum}`
+            : `${label} 분석 없음`;
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'pc-res-metric__label';
+        labelEl.textContent = label;
+
+        const bar = document.createElement('div');
+        bar.className = 'pc-res-bar';
+        if (hasValue) {
+            const fill = document.createElement('div');
+            fill.className = 'pc-res-bar__fill';
+            fill.style.width = `${percent}%`;
+            bar.appendChild(fill);
+        }
+        if (hasThreshold && thresholdNum > 0 && thresholdNum <= 100) {
+            const marker = document.createElement('div');
+            marker.className = 'pc-res-bar__marker';
+            marker.style.left = `${thresholdNum}%`;
+            bar.appendChild(marker);
+        }
+
+        const valueEl = document.createElement('span');
+        valueEl.className = 'pc-res-metric__value';
+        // BigDecimal이 87.80처럼 내려와도 Number를 거쳐 불필요한 0을 떼고 표시한다.
+        valueEl.textContent = hasValue ? `${valueNum}%` : '-';
+
+        row.append(labelEl, bar, valueEl);
+        return row;
+    }
+
     function updateResource(rows) {
         const grid = document.getElementById('resourceGrid');
+        const summaryEl = document.getElementById('resourceSummary');
         grid.innerHTML = '';
         const safeRows = Array.isArray(rows) ? rows : [];
+        const counts = {error: 0, warn: 0, normal: 0, empty: 0};
 
         for (const row of safeRows) {
-            const col = document.createElement('div');
-            col.className = 'col-6 col-sm-4 col-md-3 col-lg-2';
-            const serverId = row.serverId ?? '-';
-            const logValue = row.logValue;
-            const analyzeLevel = row.analyzeLevel ?? '';
-            const thresholdValue = row.thresholdValue ?? '-';
-            const logTimestamp = row.logTimestamp;
-            const thresholdNum = Number(thresholdValue);
+            const states = RESOURCE_METRICS.map(({key}) => resourceMetricState(row[key]));
+            const cardState = resourceCardState(states);
+            counts[cardState] += 1;
 
-            const valueNum = Number(logValue);
-            const percentRaw = Number.isFinite(valueNum) ? valueNum : 0;
-            const percent = Math.max(0, Math.min(100, percentRaw));
-            const hasThreshold = Number.isFinite(thresholdNum);
-            const threshold = hasThreshold ? Math.max(0, Math.min(100, thresholdNum)) : NaN;
-            const overThreshold = Number.isFinite(threshold) && percent >= threshold;
+            const card = document.createElement('div');
+            card.className = `pc-res-card${row.noData ? ' pc-res-card--empty' : ''}`;
 
-            // 카드 배경은 상태 무관 단일톤(샘플스타일 3), donutState는 링 색상과 empty 여부(점선 테두리)에만 사용: 초과=error, 경고=warn, 미분석/무값=empty, 그 외 normal
-            let donutState = 'normal';
-            if (logValue == null) donutState = 'empty';
-            else if (overThreshold) donutState = 'error';
-            else if ((analyzeLevel || '') === '경고') donutState = 'warn';
+            // 서버 식별자/한글명은 두 행에 걸쳐 왼쪽에 고정한다.
+            const server = document.createElement('div');
+            server.className = 'pc-res-card__server';
+            const idEl = document.createElement('div');
+            idEl.className = 'pc-res-card__id';
+            idEl.textContent = row.id || row.serverId || '-';
+            const nameEl = document.createElement('div');
+            nameEl.className = 'pc-res-card__name';
+            nameEl.textContent = row.name || '';
+            nameEl.title = nameEl.textContent;
+            server.append(idEl, nameEl);
+            card.appendChild(server);
 
-            // 샘플스타일(3) 참고: 서버명만 표시(배지 없음), 시각 표시 없이 임계치·상태를 링 아래 한 줄로 표시
-            const header = `
-                <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${serverId}</div>
-            `;
-
-            // 오늘 분석 결과가 없으면 빈 도넛보다 "분석없음"을 명시하는 편이 미수행 상태 추적에 유리하다.
-            if (logValue == null) {
-                col.innerHTML = `
-                    <div class="border h-100 pc-donut-card pc-donut--${donutState}">
-                        ${header}
-                        <div class="d-flex justify-content-center my-1">
-                            <div class="donut-empty">분석없음</div>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(col);
-                continue;
-            }
-
-            const statusLine = `임계치 ${Number.isFinite(threshold) ? threshold : '-'} · ${analyzeLevel || '-'}`;
-            const canvasId = `donut-${serverId.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}-${Math.random().toString(36).slice(2)}`;
-            col.innerHTML = `
-                <div class="border h-100 pc-donut-card pc-donut--${donutState}">
-                    ${header}
-                    <div class="d-flex justify-content-center my-1 position-relative">
-                        <div class="donut-box">
-                            <canvas id="${canvasId}"></canvas>
-                        </div>
-                    </div>
-                    <div class="text-body-secondary" style="font-size:11px">${statusLine}</div>
-                </div>
-            `;
-            grid.appendChild(col);
-
-            const rest = Math.max(0, 100 - percent);
-            const ctx = document.getElementById(canvasId).getContext('2d');
-
-            const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-            const normalColor = dark ? '#5FDCC0' : '#198754';
-            const warnColor = dark ? '#F6D97E' : '#ffc107';
-            const overColor = dark ? '#F1926B' : '#dc3545';
-            const bg = dark ? '#16305e' : '#e9ecef';
-            // 링 전체를 카드 레벨(정상/경고/에러) 단일색으로 표시한다 (샘플스타일 3 참고: 임계치 초과분만 따로 분리하지 않음).
-            const levelColor = donutState === 'error' ? overColor : donutState === 'warn' ? warnColor : normalColor;
-            const textColor = levelColor;
-
-            const data = [percent, rest];
-            const colors = [levelColor, bg];
-
-            const chart = new Chart(ctx, {
-                type: 'doughnut',
-                plugins: [thresholdMarkerPlugin],
-                data: {
-                    labels: ['사용', '잔여'],
-                    datasets: [{
-                        data,
-                        backgroundColor: colors,
-                        borderWidth: 0,
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    cutout: '80%',
-                    plugins: {
-                        legend: {display: false},
-                        tooltip: {enabled: false},
-                        thresholdMarker: {
-                            threshold: threshold,
-                            color: overColor,
-                            lineWidth: 2
-                        }
-                    }
-                }
+            // 지표 줄은 CSS가 가운데 열에 고정하므로 DOM 순서가 곧 행 순서(1행 DISK, 2행 MEM)다.
+            RESOURCE_METRICS.forEach(({key, label}, i) => {
+                card.appendChild(buildResourceMetricRow(label, row[key], states[i]));
             });
 
-            const centerText = document.createElement('div');
-            centerText.className = 'position-absolute top-50 start-50 translate-middle text-center';
-            centerText.style.zIndex = '1';
-            centerText.innerHTML = `
-                <div class="fw-bold" style="font-size:23px;line-height:1.2;color:${textColor}">${percent}%</div>
-            `;
-            col.querySelector('.position-relative').appendChild(centerText);
-            col.dataset.chart = chart;
+            // 상태 배지도 두 행에 걸쳐 오른쪽에 고정한다. 색상만으로 구분하지 않도록 텍스트를 항상 함께 둔다.
+            const badge = document.createElement('span');
+            badge.className = `pc-res-badge pc-res--${cardState}`;
+            badge.textContent = RESOURCE_BADGE_TEXT[cardState];
+            card.appendChild(badge);
+
+            grid.appendChild(card);
         }
+
+        summaryEl.textContent = safeRows.length === 0
+            ? ''
+            : `전체 ${safeRows.length}대 · 에러 ${counts.error} · 경고 ${counts.warn} · 정상 ${counts.normal} · 분석없음 ${counts.empty}`;
     }
 
     // 차트영역 배경(다크시안): 카드보다 어두운 트랙색(#16305e)을 플롯영역에 깔아 라인 대비 강화

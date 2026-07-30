@@ -392,15 +392,18 @@
     </select>
 
     <!--
-        서버별 리소스 도넛 차트 조회.
+        서버별 리소스 바차트 조회 (서버 × 지표 조합으로 행 반환).
         모수는 7번 서버 리스트(selectServerList)와 동일하게 최근 sinceDate 이후 수집/분석 이력에
         등장한 서버 합집합으로 맞춘다(한쪽 conf에만 등록된 서버가 있어도 두 위젯의 서버 모집단이
         갈리지 않도록). 모수 조건을 바꿀 때는 반드시 selectServerList와 함께 바꿔야 한다.
-        각 서버의 오늘자 DISK_HOME 최신 수치 1건만 사용하고, 없으면 "분석없음"으로 표시된다.
+        지표 목록(logIds)을 파생 테이블로 CROSS JOIN 하므로 서버마다 지표 수만큼 행이 나오며,
+        해당 지표의 오늘자 최신 수치가 없는 행은 값이 null로 남아 화면에서 "분석없음"이 된다.
+        서버 단위 그룹핑은 DashboardService.getResourceData()가 담당한다.
     -->
     <select id="selectResourceData" resultType="map">
         SELECT
             S.SERVER_ID AS "serverId",
+            M.LOG_ID AS "logId",
             AR.LOG_VALUE AS "logValue",
             AR.ANALYZE_LEVEL AS "analyzeLevel",
             AR.THRESHOLD_VALUE AS "thresholdValue",
@@ -410,6 +413,12 @@
             UNION
             SELECT SERVER_ID FROM TB_ANALYZE_HISTORY WHERE ANALYZE_DATE &gt;= #{sinceDate}
         ) S
+        <!-- VALUES 목록의 바인드 파라미터는 타입 추론이 되지 않아 PostgreSQL이
+             "could not determine data type of parameter"로 실패할 수 있으므로 명시 캐스팅한다. -->
+        CROSS JOIN (
+            VALUES
+            <foreach item="logId" collection="logIds" separator=",">(CAST(#{logId} AS VARCHAR))</foreach>
+        ) AS M(LOG_ID)
         LEFT JOIN TB_ANALYZE_RESULT AR
           ON AR.ANALYZE_RESULT_ID = (
                 <!-- LOG_TIMESTAMP만으로 매칭하면 수집 중복 등으로 같은 시각에 여러 행이
@@ -419,18 +428,18 @@
                 FROM TB_ANALYZE_RESULT
                 WHERE ANALYZE_DATE = #{today}
                   AND SERVER_ID = S.SERVER_ID
-                  AND LOG_ID = 'DISK_HOME'
+                  AND LOG_ID = M.LOG_ID
                   AND LOG_TYPE = '수치'
                   AND LOG_TIMESTAMP = (
                         SELECT MAX(LOG_TIMESTAMP)
                         FROM TB_ANALYZE_RESULT
                         WHERE ANALYZE_DATE = #{today}
                           AND SERVER_ID = S.SERVER_ID
-                          AND LOG_ID = 'DISK_HOME'
+                          AND LOG_ID = M.LOG_ID
                           AND LOG_TYPE = '수치'
                   )
             )
-        ORDER BY S.SERVER_ID
+        ORDER BY S.SERVER_ID, M.LOG_ID
     </select>
 
     <select id="selectInfoData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
