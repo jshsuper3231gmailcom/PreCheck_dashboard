@@ -490,25 +490,132 @@
     </select>
 
     <!--
+        접속자 위젯(카드 3수치 / UC 60분 차트 / History 접속자 탭)이 공유할 기준일 산출용 조회.
+
+        설계 이유:
+        - 접속자 데이터는 로그 파일이 하루 늦게 수집되는 경우가 있어 ANALYZE_DATE(수집·분석일)와
+          실제 로그 날짜가 어긋난다. 화면은 "로그 날짜" 기준이어야 하므로 최신 LOG_TIMESTAMP의
+          날짜를 기준일로 삼고, 접속자 위젯 전부가 이 하나의 기준일을 공유해 좌우 수치가 갈리지 않게 한다.
+    -->
+    <select id="selectLatestConnLogTimestamp" resultType="java.time.LocalDateTime">
+        SELECT MAX(LOG_TIMESTAMP)
+        FROM TB_ANALYZE_RESULT
+        WHERE SERVER_ID = #{serverId}
+          AND LOG_ID IN
+        <foreach item="logId" collection="logIds" open="(" separator="," close=")">
+            #{logId}
+        </foreach>
+    </select>
+
+    <!--
+        접속자 카드 3수치(전일 최대동시접속/HTS/MTS) 1건 조회.
+
+        selectInfoData와 달리 ANALYZE_DATE가 아니라 로그 날짜 구간으로 좁힌다.
+        인덱스를 탈 수 있도록 LOG_TIMESTAMP에 함수를 씌우지 않고 반개구간(>= from, < to)으로 비교한다.
+        같은 구간에 동일 LOG_TIMESTAMP가 여러 건이면 ANALYZE_RESULT_ID(PK) 최대값으로 좁혀 항상 1건만 남긴다.
+    -->
+    <select id="selectConnInfoData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
+        SELECT
+            AR.ANALYZE_RESULT_ID,
+            AR.COLLECT_LOG_ID,
+            AR.SERVER_ID,
+            AR.SERVER_IP,
+            AR.LOG_TYPE,
+            AR.LOG_ID,
+            AR.LOG_TIMESTAMP,
+            AR.LOG_CONTENT,
+            AR.LOG_VALUE,
+            AR.ANALYZE_LEVEL,
+            AR.ANALYZE_MESSAGE,
+            AR.THRESHOLD_VALUE,
+            AR.THRESHOLD_OPERATOR,
+            AR.WARNING_RATIO,
+            AR.NOTIFY_YN,
+            AR.NOTIFY_AT,
+            AR.ANALYZE_DATE,
+            AR.ANALYZE_DATETIME,
+            AR.COLLECT_DATE,
+            AR.CREATED_AT
+        FROM TB_ANALYZE_RESULT AR
+        JOIN (
+            SELECT MAX(ANALYZE_RESULT_ID) AS MAX_ID
+            FROM TB_ANALYZE_RESULT
+            WHERE SERVER_ID = #{serverId}
+              AND LOG_ID = #{logId}
+              AND LOG_TIMESTAMP &gt;= #{fromTs}
+              AND LOG_TIMESTAMP &lt; #{toTs}
+              AND LOG_TIMESTAMP = (
+                    SELECT MAX(LOG_TIMESTAMP)
+                    FROM TB_ANALYZE_RESULT
+                    WHERE SERVER_ID = #{serverId}
+                      AND LOG_ID = #{logId}
+                      AND LOG_TIMESTAMP &gt;= #{fromTs}
+                      AND LOG_TIMESTAMP &lt; #{toTs}
+              )
+        ) T
+          ON AR.ANALYZE_RESULT_ID = T.MAX_ID
+    </select>
+
+    <!--
+        접속자 History(일별/월별) 시계열 조회.
+        selectHistoryData의 접속자 전용 대응 쿼리로, 기간을 ANALYZE_DATE가 아니라 로그 날짜로 잡는다.
+    -->
+    <select id="selectConnHistoryData" resultType="com.sks.precheck.dashboard.dto.AnalyzeResultDto">
+        SELECT
+            ANALYZE_RESULT_ID,
+            COLLECT_LOG_ID,
+            SERVER_ID,
+            SERVER_IP,
+            LOG_TYPE,
+            LOG_ID,
+            LOG_TIMESTAMP,
+            LOG_CONTENT,
+            LOG_VALUE,
+            ANALYZE_LEVEL,
+            ANALYZE_MESSAGE,
+            THRESHOLD_VALUE,
+            THRESHOLD_OPERATOR,
+            WARNING_RATIO,
+            NOTIFY_YN,
+            NOTIFY_AT,
+            ANALYZE_DATE,
+            ANALYZE_DATETIME,
+            COLLECT_DATE,
+            CREATED_AT
+        FROM TB_ANALYZE_RESULT
+        WHERE SERVER_ID = #{serverId}
+          AND LOG_ID = #{logId}
+          AND LOG_TIMESTAMP &gt;= #{fromTs}
+          AND LOG_TIMESTAMP &lt; #{toTs}
+        ORDER BY LOG_TIMESTAMP ASC
+    </select>
+
+    <!--
         UC 실시간 접속자수 최근 60분 시계열 조회.
         LOG_TIMESTAMP ASC 정렬로 스파크라인 X축(시간) 순서를 보장한다.
+
+        "60분"은 현재 시각이 아니라 기준일 구간 안의 가장 최신 LOG_TIMESTAMP를 끝점으로 삼은 직전 60분이다.
+        수집이 지연돼 오늘 로그가 없으면 서비스가 기준일 자체를 이전 날짜로 내려 보내므로,
+        이 쿼리는 항상 넘겨받은 구간 안에서만 계산한다(날짜 경계를 넘어 값이 섞이지 않는다).
     -->
     <select id="selectUcSparkData" resultType="map" databaseId="postgresql">
         SELECT
             LOG_TIMESTAMP AS "logTimestamp",
             LOG_VALUE     AS "logValue"
         FROM TB_ANALYZE_RESULT
-        WHERE ANALYZE_DATE = #{today}
-          AND SERVER_ID    = 'pmaster2-마스터'
+        WHERE SERVER_ID    = 'pmaster2-마스터'
           AND LOG_ID       = #{logId}
           AND LOG_TYPE     = '수치'
-          AND LOG_TIMESTAMP >= (
+          AND LOG_TIMESTAMP &gt;= #{fromTs}
+          AND LOG_TIMESTAMP &lt; #{toTs}
+          AND LOG_TIMESTAMP &gt;= (
                 SELECT MAX(LOG_TIMESTAMP) - INTERVAL '60 minutes'
                 FROM TB_ANALYZE_RESULT
-                WHERE ANALYZE_DATE = #{today}
-                  AND SERVER_ID    = 'pmaster2-마스터'
+                WHERE SERVER_ID    = 'pmaster2-마스터'
                   AND LOG_ID       = #{logId}
                   AND LOG_TYPE     = '수치'
+                  AND LOG_TIMESTAMP &gt;= #{fromTs}
+                  AND LOG_TIMESTAMP &lt; #{toTs}
           )
         ORDER BY LOG_TIMESTAMP ASC
     </select>
@@ -518,17 +625,19 @@
             LOG_TIMESTAMP AS "logTimestamp",
             LOG_VALUE     AS "logValue"
         FROM TB_ANALYZE_RESULT
-        WHERE ANALYZE_DATE = #{today}
-          AND SERVER_ID    = 'pmaster2-마스터'
+        WHERE SERVER_ID    = 'pmaster2-마스터'
           AND LOG_ID       = #{logId}
           AND LOG_TYPE     = '수치'
-          AND LOG_TIMESTAMP >= (
+          AND LOG_TIMESTAMP &gt;= #{fromTs}
+          AND LOG_TIMESTAMP &lt; #{toTs}
+          AND LOG_TIMESTAMP &gt;= (
                 SELECT MAX(LOG_TIMESTAMP) - INTERVAL 60 MINUTE
                 FROM TB_ANALYZE_RESULT
-                WHERE ANALYZE_DATE = #{today}
-                  AND SERVER_ID    = 'pmaster2-마스터'
+                WHERE SERVER_ID    = 'pmaster2-마스터'
                   AND LOG_ID       = #{logId}
                   AND LOG_TYPE     = '수치'
+                  AND LOG_TIMESTAMP &gt;= #{fromTs}
+                  AND LOG_TIMESTAMP &lt; #{toTs}
           )
         ORDER BY LOG_TIMESTAMP ASC
     </select>

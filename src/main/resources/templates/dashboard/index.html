@@ -1048,7 +1048,7 @@
                     <div class="conn-body">
                         <div class="conn-left">
                             <div class="conn-stat">
-                                <div class="conn-stat-label">전일 최대동시접속</div>
+                                <div class="conn-stat-label">전일 최대동시접속 <span class="stat-card__badge d-none" id="d-MAX_CONN_PREV"></span></div>
                                 <div class="conn-stat-row">
                                     <div class="conn-stat-value" id="v-MAX_CONN_PREV">-</div>
                                     <span class="conn-stat-min" id="t-MAX_CONN_PREV"></span>
@@ -1056,7 +1056,7 @@
                                 <span class="d-none" id="th-MAX_CONN_PREV"></span>
                             </div>
                             <div class="conn-stat">
-                                <div class="conn-stat-label">전일 HTS 최대동시접속</div>
+                                <div class="conn-stat-label">전일 HTS 최대동시접속 <span class="stat-card__badge d-none" id="d-HTS_MAX_CONN"></span></div>
                                 <div class="conn-stat-row">
                                     <div class="conn-stat-value" id="v-HTS_MAX_CONN">-</div>
                                     <span class="conn-stat-min" id="t-HTS_MAX_CONN"></span>
@@ -1064,7 +1064,7 @@
                                 <span class="d-none" id="th-HTS_MAX_CONN"></span>
                             </div>
                             <div class="conn-stat">
-                                <div class="conn-stat-label">전일 MTS 최대동시접속</div>
+                                <div class="conn-stat-label">전일 MTS 최대동시접속 <span class="stat-card__badge d-none" id="d-MTS_MAX_CONN"></span></div>
                                 <div class="conn-stat-row">
                                     <div class="conn-stat-value" id="v-MTS_MAX_CONN">-</div>
                                     <span class="conn-stat-min" id="t-MTS_MAX_CONN"></span>
@@ -1079,7 +1079,7 @@
                                 <div class="live-pill"><b>MTS</b><span class="val" id="uc-val-mts">-</span><span id="uc-delta-mts">-</span></div>
                             </div>
                             <div class="d-flex justify-content-end mb-1">
-                                <span class="stat-card__badge">TODAY (60분)</span>
+                                <span class="stat-card__badge" id="ucSparkBadge">(60분)</span>
                             </div>
                             <div class="uc-merged-chart-wrap">
                                 <canvas id="ucSparkMerged"></canvas>
@@ -1454,6 +1454,25 @@
         }
     }
 
+    // 접속자 위젯 배지용 `MM/DD HH:mm` 문자열. 로그 시각이 없으면 빈 문자열이다.
+    // 접속자 데이터는 오늘이 아닌 날짜일 수 있어 날짜를 항상 붙인다(formatTimestamp는 오늘이면 시각만 준다).
+    function formatBaseTimestampBadge(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '';
+        return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    // 접속자 카드 3수치는 하루 1건만 생성돼 오늘 값이 아직 없을 수 있다. 어느 시점 값인지 배지로 명시한다.
+    function updateConnCardBadge(logId, ts) {
+        const el = document.getElementById(`d-${logId}`);
+        if (!el) return false;
+        const label = formatBaseTimestampBadge(ts);
+        el.textContent = label;
+        el.classList.toggle('d-none', label === '');
+        return true;
+    }
+
     function updateInfoData(data) {
         if (!data) return;
         for (const [logId, v] of Object.entries(data)) {
@@ -1486,7 +1505,13 @@
                 valueEl.appendChild(thSpan);
             }
 
-            timeEl.textContent = formatTimestamp(v ? v.logTimestamp : null);
+            // 접속자 카드는 시각을 배지(MM/DD HH:mm)로 옮겨 표시하므로 기존 시각 자리는 비운다.
+            const ts = v ? v.logTimestamp : null;
+            if (updateConnCardBadge(logId, ts)) {
+                timeEl.textContent = '';
+            } else {
+                timeEl.textContent = formatTimestamp(ts);
+            }
             const level = v && v.analyzeLevel != null ? String(v.analyzeLevel) : '';
 
             if (thresholdEl) {
@@ -2103,6 +2128,23 @@
     function updateUcSpark(data) {
         if (!data) return;
         const d = data || {};
+
+        // 60분 구간은 현재 시각이 아니라 기준일(최신 로그 날짜) 안의 마지막 60분이므로 끝점 일시를 함께 보여준다.
+        const badgeEl = document.getElementById('ucSparkBadge');
+        if (badgeEl) {
+            let latestTs = null;
+            for (const logId of ['UC_TOTAL_COUNT', 'UC_HTS_COUNT', 'UC_MTS_COUNT']) {
+                const rows = Array.isArray(d[logId]) ? d[logId] : [];
+                for (const r of rows) {
+                    if (r && r.logTimestamp && (latestTs === null || r.logTimestamp > latestTs)) {
+                        latestTs = r.logTimestamp;
+                    }
+                }
+            }
+            const baseLabel = formatBaseTimestampBadge(latestTs);
+            badgeEl.textContent = baseLabel ? `${baseLabel} (60분)` : '(60분)';
+        }
+
         const configs = [
             { logId: 'UC_TOTAL_COUNT', valId: 'uc-val-total', deltaId: 'uc-delta-total', color: '#3b82f6', label: '전체' },
             { logId: 'UC_HTS_COUNT',   valId: 'uc-val-hts',   deltaId: 'uc-delta-hts',   color: '#f59e0b', label: 'HTS' },

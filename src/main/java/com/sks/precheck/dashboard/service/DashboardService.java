@@ -54,7 +54,7 @@ public class DashboardService {
      * 오늘 하루로 좁히면 스케줄러 미기동처럼 이력이 아예 없는 장애가 빈 화면으로 감춰지고,
      * 제한을 두지 않으면 폐기된 서버가 영구히 남는다.
      */
-    private static final int SERVER_POPULATION_DAYS = 7;
+    private static final int SERVER_POPULATION_DAYS = 3;
 
     /** 리소스 패널이 서버마다 조회할 지표 LOG_ID다. */
     private static final List<String> RESOURCE_LOG_IDS = List.of("DISK_HOME", "MEM_USAGE");
@@ -67,6 +67,21 @@ public class DashboardService {
             "DISK_HOME", "disk",
             "MEM_USAGE", "mem"
     );
+
+    /** 접속자 카드 3수치(전일 최대동시접속/HTS/MTS)의 LOG_ID다. */
+    private static final List<String> CONN_CARD_LOG_IDS = List.of("MAX_CONN_PREV", "HTS_MAX_CONN", "MTS_MAX_CONN");
+
+    /** UC 실시간 접속자수 60분 차트의 LOG_ID다. */
+    private static final List<String> UC_SPARK_LOG_IDS = List.of("UC_TOTAL_COUNT", "UC_HTS_COUNT", "UC_MTS_COUNT");
+
+    /**
+     * 접속자 LOG_ID가 info-data 설정에 없을 때 사용할 서버구분이다.
+     * UC 실시간 3종은 카드 항목이 아니라 설정에서 서버를 못 찾는 경우가 있어 기본값이 필요하다.
+     */
+    private static final String CONN_DEFAULT_SERVER_ID = "pmaster2-마스터";
+
+    /** History 접속자 탭 월별 그래프가 거슬러 올라가는 개월 수다(기준일 포함 12개월). */
+    private static final int MONTHLY_HISTORY_MONTHS = 11;
 
     private final DashboardMapper dashboardMapper;
     private final InfoDataConfig infoDataConfig;
@@ -258,10 +273,6 @@ public class DashboardService {
      * @return 그래프 시리즈별 데이터 목록이다.
      */
     public List<Map<String, Object>> getHistoryData(String groupType) {
-        String today = today();
-        String startDate = LocalDate.parse(today, YYYYMMDD).minusDays(infoDataConfig.getHistoryDays() - 1L).format(YYYYMMDD);
-        String endDate = today;
-
         List<InfoDataConfig.InfoDataItem> items = new ArrayList<>();
         // ── Step 1. 그룹별 대상 LOG_ID 확정 ──
         // 정보성 카드는 업무상 의미가 다른 묶음으로 나뉘므로, 화면 탭에 맞는 LOG_ID만 선별해야
@@ -285,9 +296,8 @@ public class DashboardService {
                 }
             }
         } else if ("conn".equalsIgnoreCase(groupType)) {
-            Set<String> targets = Set.of("MAX_CONN_PREV", "HTS_MAX_CONN", "MTS_MAX_CONN");
             for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
-                if (targets.contains(item.getLogId())) {
+                if (CONN_CARD_LOG_IDS.contains(item.getLogId())) {
                     items.add(item);
                 }
             }
@@ -295,21 +305,36 @@ public class DashboardService {
             return List.of();
         }
 
+        // ── Step 1-2. 조회 기준일 확정 ──
+        // 접속자 탭만 수집·분석일이 아니라 로그 날짜를 기준으로 삼는다. 접속자 로그는 어제 파일이
+        // 오늘 수집되는 경우가 있어, 수집일 기준으로 잡으면 어제 값이 오늘 지점에 찍힌다.
+        boolean isConn = "conn".equalsIgnoreCase(groupType);
+        LocalDate baseDate = isConn ? connCardBaseDate() : LocalDate.parse(today(), YYYYMMDD);
+        if (baseDate == null) {
+            return List.of();
+        }
+        LocalDate startDate = baseDate.minusDays(infoDataConfig.getHistoryDays() - 1L);
+
         List<Map<String, Object>> result = new ArrayList<>();
         for (InfoDataConfig.InfoDataItem item : items) {
-            List<AnalyzeResultDto> rows = dashboardMapper.selectHistoryData(
-                    startDate,
-                    endDate,
-                    item.getServerId(),
-                    item.getLogId()
-            );
+            List<AnalyzeResultDto> rows = isConn
+                    ? dashboardMapper.selectConnHistoryData(
+                            item.getServerId(),
+                            item.getLogId(),
+                            startOfDay(startDate),
+                            startOfNextDay(baseDate))
+                    : dashboardMapper.selectHistoryData(
+                            startDate.format(YYYYMMDD),
+                            baseDate.format(YYYYMMDD),
+                            item.getServerId(),
+                            item.getLogId());
 
             // ── Step 2. 날짜별 대표값 선정 ──
             // 같은 날짜에 여러 번 분석되더라도 히스토리 그래프는 일자별 대표값 1건만 보여줘야
             // 화면이 과밀해지지 않고 운영자가 마지막 분석 상태를 빠르게 확인할 수 있다.
             Map<String, AnalyzeResultDto> latestByDate = new TreeMap<>();
             for (AnalyzeResultDto row : rows) {
-                String date = row.getAnalyzeDate();
+                String date = isConn ? logDateOf(row) : row.getAnalyzeDate();
                 if (date == null) {
                     continue;
                 }
@@ -335,10 +360,11 @@ public class DashboardService {
             // ── Step 3. 화면 전송 형식으로 변환 ──
             // 차트 컴포넌트는 날짜와 수치만 필요하므로 상세 필드를 줄여 응답을 단순하게 유지한다.
             List<Map<String, Object>> data = new ArrayList<>();
-            for (AnalyzeResultDto row : latestByDate.values()) {
+            for (Map.Entry<String, AnalyzeResultDto> dateEntry : latestByDate.entrySet()) {
+                AnalyzeResultDto row = dateEntry.getValue();
                 Map<String, Object> point = new LinkedHashMap<>();
                 point.put("logValue", row.getLogValue());
-                point.put("logDate", row.getAnalyzeDate());
+                point.put("logDate", dateEntry.getKey());
                 point.put("logTimestamp", row.getLogTimestamp());
                 data.add(point);
             }
@@ -440,9 +466,17 @@ public class DashboardService {
      */
     public Map<String, Object> getAllInfoData() {
         String today = today();
+        // 접속자 카드 3수치만 수집일이 아니라 로그 날짜 기준으로 조회한다(나머지 카드는 기존 기준 유지).
+        LocalDate connBase = connCardBaseDate();
         Map<String, Object> result = new LinkedHashMap<>();
         for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
-            AnalyzeResultDto row = dashboardMapper.selectInfoData(today, item.getServerId(), item.getLogId());
+            AnalyzeResultDto row;
+            if (CONN_CARD_LOG_IDS.contains(item.getLogId())) {
+                row = connBase == null ? null : dashboardMapper.selectConnInfoData(
+                        item.getServerId(), item.getLogId(), startOfDay(connBase), startOfNextDay(connBase));
+            } else {
+                row = dashboardMapper.selectInfoData(today, item.getServerId(), item.getLogId());
+            }
             Map<String, Object> value = new HashMap<>();
             // ── Step 1. 조회 결과 정규화 ──
             // 화면은 데이터 부재와 값 0을 구분해야 하므로, 미조회 상태는 명시적으로 null을 유지한다.
@@ -465,18 +499,25 @@ public class DashboardService {
     }
 
     /**
-     * UC 실시간 접속자수 오늘 전체 시계열을 3개 LOG_ID 기준으로 반환한다.
+     * UC 실시간 접속자수 시계열을 3개 LOG_ID 기준으로 반환한다.
+     *
+     * 처리 순서:
+     * - 접속자 기준일(최신 로그 날짜)을 구한다.
+     * - 그 하루 구간 안에서만 LOG_ID별 시계열을 조회한다(구간 안 최신 시각 기준 직전 60분).
      *
      * 반환값 의미:
      * - key는 LOG_ID(`UC_TOTAL_COUNT` / `UC_HTS_COUNT` / `UC_MTS_COUNT`),
-     *   value는 오늘 시간순 정렬된 `{logTimestamp, logValue}` 목록이다.
+     *   value는 시간순 정렬된 `{logTimestamp, logValue}` 목록이다.
+     * - 화면 배지에 쓰는 기준 일시는 마지막 지점의 `logTimestamp`이므로 별도 필드로 내리지 않는다.
      */
     public Map<String, Object> getUcSparkData() {
-        String today = today();
+        LocalDate baseDate = ucBaseDate();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("UC_TOTAL_COUNT", dashboardMapper.selectUcSparkData(today, "UC_TOTAL_COUNT"));
-        result.put("UC_HTS_COUNT",   dashboardMapper.selectUcSparkData(today, "UC_HTS_COUNT"));
-        result.put("UC_MTS_COUNT",   dashboardMapper.selectUcSparkData(today, "UC_MTS_COUNT"));
+        for (String logId : UC_SPARK_LOG_IDS) {
+            result.put(logId, baseDate == null
+                    ? List.of()
+                    : dashboardMapper.selectUcSparkData(logId, startOfDay(baseDate), startOfNextDay(baseDate)));
+        }
         return result;
     }
 
@@ -484,9 +525,13 @@ public class DashboardService {
      * History 페이지용 전체 그룹 월별 시계열 데이터를 반환한다.
      *
      * 처리 순서:
-     * - 오늘 기준 11개월 전 1일부터 오늘까지(최대 12개월)를 조회 기간으로 확정한다.
+     * - 그룹별 기준일에서 11개월 전 1일부터 기준일까지(최대 12개월)를 조회 기간으로 확정한다.
      * - stock / overseas / service / conn 4개 그룹 각각에 대해 infoData 항목을 선별한다.
      * - 각 LOG_ID별 DB 조회 결과를 월(YYYYMM) 단위로 집계하고, 같은 달 내 최신 LOG_TIMESTAMP 기준 1건만 남긴다.
+     *
+     * 기준일 차이:
+     * - conn 그룹만 로그 날짜(접속자 최신 LOG_TIMESTAMP의 날짜)를 기준일로 쓴다. 나머지 3개 그룹은
+     *   기존대로 오늘 날짜와 ANALYZE_DATE 기준을 유지한다.
      *
      * 반환값 구조:
      * - key: 그룹명("stock"/"overseas"/"service"/"conn")
@@ -494,32 +539,48 @@ public class DashboardService {
      */
     public Map<String, Object> getMonthlyHistoryAll() {
         String today = today();
-        String startDate = LocalDate.parse(today, YYYYMMDD).minusMonths(11).withDayOfMonth(1).format(YYYYMMDD);
+        String startDate = LocalDate.parse(today, YYYYMMDD).minusMonths(MONTHLY_HISTORY_MONTHS).withDayOfMonth(1).format(YYYYMMDD);
+
+        // 접속자 그룹 전용 기준일과 조회 구간(로그 날짜 기준). 접속자 데이터가 없으면 null이다.
+        LocalDate connBase = connCardBaseDate();
+        LocalDate connStart = connBase == null
+                ? null
+                : connBase.minusMonths(MONTHLY_HISTORY_MONTHS).withDayOfMonth(1);
 
         Map<String, Set<String>> groups = new LinkedHashMap<>();
         groups.put("stock",    new HashSet<>(Set.of("MBSOSI_COUNT", "MBFOSI_COUNT", "MBCOSI_COUNT", "MBJISU_COUNT", "NXT_COUNT", "OPT_MAX_COUNT")));
         groups.put("overseas", new HashSet<>(Set.of("OS_BA_COUNT", "OS_NB_COUNT", "OS_HK_COUNT", "OS_SH_COUNT", "OS_SZ_COUNT")));
         groups.put("service",  new HashSet<>(Set.of("AUTO_ORDER_ACNT", "CAP_REG_COUNT", "CAP2_REG_COUNT", "FREQ_CLUB_COUNT")));
-        groups.put("conn",     new HashSet<>(Set.of("MAX_CONN_PREV", "HTS_MAX_CONN", "MTS_MAX_CONN")));
+        groups.put("conn",     new HashSet<>(CONN_CARD_LOG_IDS));
 
         Map<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<String, Set<String>> entry : groups.entrySet()) {
             String groupName = entry.getKey();
             Set<String> targets = entry.getValue();
+            boolean isConn = "conn".equals(groupName);
 
             List<Map<String, Object>> seriesList = new ArrayList<>();
             for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
                 if (!targets.contains(item.getLogId())) {
                     continue;
                 }
+                if (isConn && connBase == null) {
+                    continue;
+                }
 
-                List<AnalyzeResultDto> rows = dashboardMapper.selectHistoryData(
-                        startDate, today, item.getServerId(), item.getLogId());
+                List<AnalyzeResultDto> rows = isConn
+                        ? dashboardMapper.selectConnHistoryData(
+                                item.getServerId(),
+                                item.getLogId(),
+                                startOfDay(connStart),
+                                startOfNextDay(connBase))
+                        : dashboardMapper.selectHistoryData(
+                                startDate, today, item.getServerId(), item.getLogId());
 
                 // 일별 최신 1건 선정 (같은 날짜, 최신 LOG_TIMESTAMP 우선)
                 Map<String, AnalyzeResultDto> latestByDate = new TreeMap<>();
                 for (AnalyzeResultDto row : rows) {
-                    String date = row.getAnalyzeDate();
+                    String date = isConn ? logDateOf(row) : row.getAnalyzeDate();
                     if (date == null || date.length() < 8) {
                         continue;
                     }
@@ -536,10 +597,10 @@ public class DashboardService {
                 }
 
                 List<Map<String, Object>> data = new ArrayList<>();
-                for (AnalyzeResultDto row : latestByDate.values()) {
+                for (Map.Entry<String, AnalyzeResultDto> dateEntry : latestByDate.entrySet()) {
                     Map<String, Object> point = new LinkedHashMap<>();
-                    point.put("logValue", row.getLogValue());
-                    point.put("exactDate", row.getAnalyzeDate());
+                    point.put("logValue", dateEntry.getValue().getLogValue());
+                    point.put("exactDate", dateEntry.getKey());
                     data.add(point);
                 }
 
@@ -570,6 +631,104 @@ public class DashboardService {
      */
     private String today() {
         return LocalDate.now().format(YYYYMMDD);
+    }
+
+    /**
+     * 접속자 카드 3수치(전일 최대동시접속/HTS/MTS)의 기준일을 반환한다.
+     *
+     * 설계 이유:
+     * - 카드 3종은 하루 1건만 생성되는 반면 UC 실시간 3종은 분 단위로 쌓인다. 두 묶음을 하나의
+     *   기준일로 묶으면 UC가 기준일을 오늘로 끌어올려, 오늘치 카드 로그가 아직 안 들어온 시간대에
+     *   카드가 통째로 빈 값이 된다. 그래서 기준일을 묶음별로 나눠 산출한다.
+     * - 카드 3종끼리는 같은 기준일을 공유하므로 카드 안에서 수치별 날짜가 갈리지 않는다.
+     *
+     * @return 카드 3종의 최신 로그 날짜이며, 해당 분석 결과가 없으면 null이다.
+     */
+    private LocalDate connCardBaseDate() {
+        return latestLogDate(CONN_CARD_LOG_IDS);
+    }
+
+    /**
+     * UC 실시간 접속자수 60분 차트의 기준일을 반환한다.
+     *
+     * @return UC 3종의 최신 로그 날짜이며, 해당 분석 결과가 없으면 null이다.
+     */
+    private LocalDate ucBaseDate() {
+        return latestLogDate(UC_SPARK_LOG_IDS);
+    }
+
+    /**
+     * 주어진 LOG_ID 묶음의 최신 로그 날짜를 반환한다.
+     *
+     * 설계 이유:
+     * - 수집·분석일(ANALYZE_DATE)이 아니라 로그 날짜를 화면 기준으로 삼기 위한 공통 계산이다.
+     *   오늘 로그가 아직 없으면 자연히 어제(또는 그 이전)가 기준일이 되고, 새 로그가 들어오는
+     *   즉시 기준일이 그날로 넘어간다.
+     * - 조회 쿼리는 서버 1개 단위로 받으므로, info-data 설정에서 서버가 갈려 있어도 계산이 깨지지
+     *   않도록 서버별로 묶어 각각 조회한 뒤 최댓값을 취한다(보통 1개 서버로 묶인다).
+     *
+     * @param logIds 기준일 산출 대상 LOG_ID 목록이다.
+     * @return 최신 `LOG_TIMESTAMP`의 날짜이며, 조회 결과가 없으면 null이다.
+     */
+    private LocalDate latestLogDate(List<String> logIds) {
+        LocalDateTime latest = null;
+        for (Map.Entry<String, List<String>> entry : logIdsByServer(logIds).entrySet()) {
+            LocalDateTime candidate =
+                    dashboardMapper.selectLatestConnLogTimestamp(entry.getKey(), entry.getValue());
+            if (candidate != null && (latest == null || candidate.isAfter(latest))) {
+                latest = candidate;
+            }
+        }
+        return latest == null ? null : latest.toLocalDate();
+    }
+
+    /**
+     * LOG_ID 목록을 info-data 설정의 서버구분별로 묶어 반환한다.
+     *
+     * @param logIds 묶을 대상 LOG_ID 목록이다.
+     * @return 서버구분을 키, 해당 서버의 LOG_ID 목록을 값으로 하는 맵이다.
+     */
+    private Map<String, List<String>> logIdsByServer(List<String> logIds) {
+        Map<String, String> serverIdByLogId = new HashMap<>();
+        for (InfoDataConfig.InfoDataItem item : infoDataConfig.getInfoData()) {
+            serverIdByLogId.put(item.getLogId(), item.getServerId());
+        }
+
+        Map<String, List<String>> grouped = new LinkedHashMap<>();
+        for (String logId : logIds) {
+            String serverId = serverIdByLogId.getOrDefault(logId, CONN_DEFAULT_SERVER_ID);
+            grouped.computeIfAbsent(serverId, key -> new ArrayList<>()).add(logId);
+        }
+        return grouped;
+    }
+
+    /**
+     * 로그 날짜 하루를 반개구간 [00:00, 다음날 00:00)으로 변환한 시작 시각을 반환한다.
+     *
+     * 설계 이유:
+     * - `TO_CHAR(LOG_TIMESTAMP, 'YYYYMMDD') = ?` 처럼 컬럼에 함수를 씌우면 인덱스를 못 타므로,
+     *   조회 조건은 항상 시각 범위 비교로 만든다.
+     */
+    private LocalDateTime startOfDay(LocalDate date) {
+        return date.atStartOfDay();
+    }
+
+    /**
+     * 로그 날짜 하루 구간의 끝 시각(다음 날 00:00, 미포함)을 반환한다.
+     */
+    private LocalDateTime startOfNextDay(LocalDate date) {
+        return date.plusDays(1).atStartOfDay();
+    }
+
+    /**
+     * 분석 결과의 로그 시각에서 로그 날짜(`yyyyMMdd`)를 뽑아낸다.
+     *
+     * @param row 분석 결과 1건이다.
+     * @return 로그 날짜 문자열이며, 로그 시각이 없으면 null이다.
+     */
+    private String logDateOf(AnalyzeResultDto row) {
+        LocalDateTime timestamp = row.getLogTimestamp();
+        return timestamp == null ? null : timestamp.toLocalDate().format(YYYYMMDD);
     }
 
     /**

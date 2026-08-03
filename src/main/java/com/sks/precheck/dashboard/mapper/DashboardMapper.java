@@ -6,6 +6,7 @@ import com.sks.precheck.dashboard.dto.SummaryDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -183,15 +184,61 @@ public interface DashboardMapper {
     );
 
     /**
-     * UC 실시간 접속자수 오늘 전체 시계열을 조회한다.
+     * 접속자 위젯이 공유할 기준일 산출용 최신 로그 시각을 조회한다.
      *
-     * @param today 조회 기준 일자(`yyyyMMdd`)다.
+     * @param serverId 조회 대상 서버구분이다.
+     * @param logIds 접속자 카드 3종과 UC 실시간 3종을 합친 LOG_ID 목록이다.
+     * @return 해당 LOG_ID들 중 가장 늦은 `LOG_TIMESTAMP`이며, 데이터가 없으면 null이다.
+     */
+    LocalDateTime selectLatestConnLogTimestamp(
+            @Param("serverId") String serverId,
+            @Param("logIds") List<String> logIds
+    );
+
+    /**
+     * 접속자 카드 1건에 대응하는 기준일 구간 내 최신 분석 결과를 조회한다.
+     *
+     * @param serverId 조회 대상 서버구분이다.
+     * @param logId 조회 대상 LOG_ID다.
+     * @param fromTs 기준일 00:00:00이다(구간 시작, 포함).
+     * @param toTs 기준일 다음 날 00:00:00이다(구간 끝, 미포함).
+     * @return 카드 표시용 최신 분석 결과 1건이다.
+     */
+    AnalyzeResultDto selectConnInfoData(
+            @Param("serverId") String serverId,
+            @Param("logId") String logId,
+            @Param("fromTs") LocalDateTime fromTs,
+            @Param("toTs") LocalDateTime toTs
+    );
+
+    /**
+     * 접속자 History 그래프용 로그 날짜 구간 내 분석 결과를 조회한다.
+     *
+     * @param serverId 조회 대상 서버구분이다.
+     * @param logId 조회 대상 LOG_ID다.
+     * @param fromTs 조회 구간 시작 시각이다(포함).
+     * @param toTs 조회 구간 끝 시각이다(미포함).
+     * @return 시계열 그래프 계산에 사용할 분석 결과 목록이다.
+     */
+    List<AnalyzeResultDto> selectConnHistoryData(
+            @Param("serverId") String serverId,
+            @Param("logId") String logId,
+            @Param("fromTs") LocalDateTime fromTs,
+            @Param("toTs") LocalDateTime toTs
+    );
+
+    /**
+     * UC 실시간 접속자수 시계열을 기준일 구간 안에서 조회한다.
+     *
      * @param logId `UC_TOTAL_COUNT`, `UC_HTS_COUNT`, `UC_MTS_COUNT` 중 하나다.
+     * @param fromTs 기준일 00:00:00이다(구간 시작, 포함).
+     * @param toTs 기준일 다음 날 00:00:00이다(구간 끝, 미포함).
      * @return 시간순 정렬된 시계열 포인트 목록이다.
      */
     List<Map<String, Object>> selectUcSparkData(
-            @Param("today") String today,
-            @Param("logId") String logId
+            @Param("logId") String logId,
+            @Param("fromTs") LocalDateTime fromTs,
+            @Param("toTs") LocalDateTime toTs
     );
 
     /**
