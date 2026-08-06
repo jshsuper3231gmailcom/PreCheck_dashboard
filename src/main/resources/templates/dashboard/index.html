@@ -706,6 +706,12 @@
             display: flex; justify-content: space-between;
             font-size: 13px; font-weight: 600; color: var(--bs-body-color); line-height: 1;
         }
+        .collect-fail-tooltip .tooltip-inner {
+            max-width: 480px;
+            text-align: left;
+            font-size: 11px;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body th:attr="data-username=${loginUserName}">
@@ -1444,6 +1450,7 @@
             el.setAttribute('data-bs-toggle', 'tooltip');
             el.setAttribute('data-bs-html', 'true');
             el.setAttribute('data-bs-placement', 'top');
+            el.setAttribute('data-bs-custom-class', 'collect-fail-tooltip');
             el.setAttribute('title', reasons.join('<br>'));
             new bootstrap.Tooltip(el);
             el.style.cursor = 'help';
