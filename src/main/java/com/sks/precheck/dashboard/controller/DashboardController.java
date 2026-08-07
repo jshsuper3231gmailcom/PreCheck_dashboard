@@ -7,8 +7,12 @@ import com.sks.precheck.dashboard.dto.PageResultDto;
 import com.sks.precheck.dashboard.dto.SummaryDto;
 import com.sks.precheck.dashboard.security.AdminUserPrincipal;
 import com.sks.precheck.dashboard.service.DashboardService;
+import com.sks.precheck.dashboard.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +21,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -38,7 +45,10 @@ import java.util.function.Supplier;
 @Controller
 @RequiredArgsConstructor
 public class DashboardController {
+    private static final DateTimeFormatter REPORT_FILE_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+
     private final DashboardService dashboardService;
+    private final ReportService reportService;
     private final InfoDataConfig infoDataConfig;
 
     /**
@@ -206,5 +216,28 @@ public class DashboardController {
     @GetMapping("/dashboard/api/raw-log/{id}")
     public ApiResponse<CollectLogDto> rawLog(@PathVariable("id") Long id) {
         return handle("raw-log", () -> dashboardService.getRawLog(id));
+    }
+
+    /**
+     * TODAY 현황 기준 점검 보고서를 텍스트 파일로 즉시 다운로드한다.
+     *
+     * @return 생성된 보고서를 UTF-8 텍스트 첨부파일로 담은 응답이다.
+     */
+    @GetMapping("/dashboard/api/report/download")
+    public ResponseEntity<byte[]> downloadReport() {
+        try {
+            byte[] body = reportService.generateDailyReport().getBytes(StandardCharsets.UTF_8);
+            String filename = "PreCheck_Report_" + LocalDateTime.now().format(REPORT_FILE_TIMESTAMP) + ".txt";
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType("text/plain; charset=UTF-8"))
+                    .body(body);
+        } catch (Exception e) {
+            log.error("[DashboardController] report-download 생성 중 오류", e);
+            byte[] errorBody = "보고서 생성 중 오류가 발생했습니다.".getBytes(StandardCharsets.UTF_8);
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.parseMediaType("text/plain; charset=UTF-8"))
+                    .body(errorBody);
+        }
     }
 }

@@ -797,7 +797,12 @@
         <div class="container-fluid">
 
             <div id="beforeResourceZone">
-            <div class="group-title"><h2>TODAY 현황</h2><span class="sub"> </span></div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="group-title flex-grow-1"><h2>TODAY 현황</h2><span class="sub"> </span></div>
+                <a href="/dashboard/api/report/download" id="reportDownloadBtn" class="btn btn-sm btn-outline-primary rounded-pill flex-shrink-0">
+                    <i class="bi bi-file-earmark-text"></i> 보고서 생성
+                </a>
+            </div>
 
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -1377,6 +1382,20 @@
         el.style.width = `${Math.max(0, Math.min(100, r))}%`;
     }
 
+    // 보고서 생성 버튼은 TODAY 현황 제목줄, 정상 비중 배지는 그 아래 카드 헤더에 있어
+    // 좌우 여백이 서로 달라 단순 flex 정렬만으로는 두 요소의 중앙이 맞지 않는다.
+    // 배지 텍스트(비율)가 바뀌면 폭도 바뀌므로 매번 실측해서 버튼을 이동시킨다.
+    function alignReportButtonToBadge() {
+        const btn = document.getElementById('reportDownloadBtn');
+        const badge = document.getElementById('normRatioPill');
+        if (!btn || !badge) return;
+        btn.style.transform = 'none';
+        const btnRect = btn.getBoundingClientRect();
+        const badgeRect = badge.getBoundingClientRect();
+        const offset = (badgeRect.left + badgeRect.width / 2) - (btnRect.left + btnRect.width / 2);
+        btn.style.transform = `translateX(${offset}px)`;
+    }
+
     function updateSummary(data) {
         // 미분석은 정책 누락을 뜻하므로 단순 건수보다 운영자 조치 필요 여부를 먼저 드러낸다.
         setText('errCnt', formatNumber(data.errorCnt ?? 0));
@@ -1391,6 +1410,7 @@
         setText('infoRatio', `${data.infoRatio ?? 0}%`);
         setText('unknRatio', `${data.unknownRatio ?? 0}%`);
         setText('normRatioPill', `▲ 정상 비중 ${data.normalRatio ?? 0}%`);
+        alignReportButtonToBadge();
 
         const unknownWarn = document.getElementById('unknownPolicyWarning');
         if ((data.unknownCnt ?? 0) > 0) {
@@ -2433,6 +2453,7 @@
     });
 
     window.addEventListener('resize', () => {
+        alignReportButtonToBadge();
         if (historyResizeTimer) {
             clearTimeout(historyResizeTimer);
         }
