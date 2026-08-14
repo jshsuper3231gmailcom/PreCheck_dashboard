@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="omelette-owns-print" content="true">
+<title>로그분석 스케쥴 작성 가이드</title>
+<style>
+:root{
+  --bg:#ffffff; --bg-elev:#f6f7fa; --border:#dde1e9; --border-soft:#e8ebf1;
+  --text:#232833; --text-dim:#5f6878; --heading:#0e1218;
+  --accent:#4f39c9; --accent-soft:#f0edfd;
+  --mono-bg:#f4f5f9;
+  --t-text:#f5c451; --t-numeric:#34d399; --t-date:#a78bfa; --t-exist:#f87171;
+  --t-info:#60a5fa; --t-compare:#fb923c; --t-time:#22d3ee;
+  --lv-error:#e0362c; --lv-warn:#d98004; --lv-normal:#1d9c54; --lv-info:#0f8fc4; --lv-unanal:#6b7280;
+}
+*{box-sizing:border-box}
+html{background:#e9ebf0}
+body{
+  background:#e9ebf0; color:var(--text); margin:0;
+  font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:11pt; line-height:1.6; text-wrap:pretty;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.sheet{background:var(--bg); max-width:900px; margin:24px auto; padding:26mm 18mm; box-shadow:0 2px 14px rgba(20,26,40,.13)}
+code,.mono{font-family:ui-monospace,"Cascadia Code","D2Coding",Consolas,monospace; font-size:.92em}
+code{background:var(--mono-bg); border:1px solid var(--border-soft); border-radius:4px; padding:0 4px}
+h1,h2,h3,h4{color:var(--heading); font-weight:700; text-wrap:balance}
+a{color:var(--accent); text-decoration:none}
+a:hover{color:#3524a8}
+b{color:var(--heading)}
+
+.cover{border-bottom:2px solid var(--heading); padding-bottom:26px; margin-bottom:26px}
+.cover .kicker{font-size:.8rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700}
+.cover h1{font-size:2.5rem; line-height:1.2; margin:14px 0 8px}
+.cover .sub{color:var(--text-dim); font-size:1.02rem; margin:0}
+.cover .meta{display:flex; gap:28px; flex-wrap:wrap; margin-top:22px; font-size:.82rem; color:var(--text-dim)}
+.cover .meta b{color:var(--heading); font-weight:600}
+.toc{list-style:none; margin:0 0 4px; padding:0; display:flex; flex-direction:column; gap:2px}
+.toc li a{display:flex; align-items:baseline; gap:14px; padding:11px 4px; border-bottom:1px solid var(--border-soft); color:var(--text)}
+.toc-n{font-family:ui-monospace,monospace; color:var(--accent); font-weight:700; font-size:.82rem}
+.toc-t{font-weight:600; color:var(--heading); font-size:1rem; display:flex; flex-direction:column}
+.toc-t em{font-style:normal; font-weight:400; color:var(--text-dim); font-size:.78rem; letter-spacing:.02em}
+.toc-v{margin-left:auto; font-size:.75rem; color:var(--text-dim); font-family:ui-monospace,monospace}
+.toc-note{margin-top:18px; font-size:.84rem; color:var(--text-dim)}
+
+.chapter{padding-top:6px}
+.chap-tag{display:inline-block; background:var(--accent); color:#fff; font-weight:700; font-size:.74rem;
+  letter-spacing:.04em; padding:4px 11px; border-radius:5px; margin-bottom:6px}
+.doc-header{padding:6px 0 22px; border-bottom:1px solid var(--border); margin-bottom:26px}
+.badge-v{display:inline-block; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:.74rem;
+  padding:2px 9px; border-radius:5px; margin-right:9px}
+.eyebrow{color:var(--text-dim); font-size:.8rem; letter-spacing:.03em}
+h1.title{font-size:1.85rem; margin:12px 0 5px}
+.subtitle{color:var(--text-dim); font-size:.95rem; margin:0 0 16px}
+.lead{color:var(--text); font-size:.97rem; max-width:74ch}
+.scope-box{margin-top:18px; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px;
+  padding:14px 16px; display:flex; flex-direction:column; gap:7px}
+.scope-row{display:flex; gap:10px; font-size:.85rem}
+.scope-label{color:var(--text-dim); min-width:92px; flex-shrink:0}
+.scope-val{color:var(--heading)}
+hr.divider{border:none; border-top:1px solid var(--border); margin:30px 0}
+
+.sec-head{display:flex; align-items:baseline; gap:12px; margin:0 0 16px; padding-bottom:7px; border-bottom:2px solid var(--heading)}
+.sec-num{color:var(--accent); font-weight:700; font-size:.85rem; font-family:ui-monospace,monospace}
+.sec-title{font-size:1.2rem; margin:0}
+.sec-en{color:var(--text-dim); font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; margin-left:auto}
+section{margin-bottom:34px}
+
+.chain{display:flex; flex-wrap:wrap; gap:7px; align-items:center; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:8px; padding:16px; margin-bottom:10px}
+.chain-tok{background:#fff; border:1px solid var(--border); border-radius:5px; padding:5px 9px; font-size:.83rem;
+  font-family:ui-monospace,monospace}
+.chain-tok.hi{border-color:var(--accent); color:var(--accent)}
+.chain-tok.opt{border-style:dashed; color:var(--text-dim)}
+.chain-sep{color:var(--text-dim)}
+.chain-labels{display:flex; flex-direction:column; gap:4px; font-size:.76rem; color:var(--text-dim); margin-bottom:4px}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+.card{background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:15px 17px}
+.card h4{margin:0 0 8px; font-size:.93rem}
+.card p{margin:0; font-size:.85rem; color:var(--text-dim)}
+
+.type-badge{display:inline-block; font-weight:700; font-size:.76rem; padding:2px 9px; border-radius:5px; color:#1a1005}
+.type-문구{background:var(--t-text)} .type-수치{background:var(--t-numeric)} .type-날짜{background:var(--t-date)}
+.type-존재{background:var(--t-exist)} .type-정보{background:var(--t-info)} .type-비교{background:var(--t-compare)}
+.type-시간{background:var(--t-time)}
+.pill{display:inline-block; font-weight:700; font-size:.76rem; padding:2px 9px; border-radius:5px; color:#1a1005}
+.pill.batch{background:#fb923c} .pill.period{background:#34d399}
+.badge-auto,.badge-manual,.badge-none{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 8px; border-radius:5px; color:#fff}
+.badge-auto{background:var(--lv-normal)} .badge-manual{background:var(--lv-warn)} .badge-none{background:var(--lv-unanal)}
+.badge-lv{display:inline-block; font-size:.72rem; font-weight:700; padding:1px 7px; border-radius:4px; color:#fff; margin-right:3px}
+.badge-lv.error{background:var(--lv-error)} .badge-lv.warn{background:var(--lv-warn)} .badge-lv.normal{background:var(--lv-normal)}
+.badge-lv.info{background:var(--lv-info)} .badge-lv.unanal{background:var(--lv-unanal)}
+
+.type-block{background:#fff; border:1px solid var(--border); border-radius:10px; padding:17px 19px; margin-bottom:14px}
+.type-block-head{display:flex; align-items:center; gap:11px; margin-bottom:5px; flex-wrap:wrap}
+.type-block-head .fmt{color:var(--text-dim); font-size:.76rem; margin-left:auto; font-family:ui-monospace,monospace}
+.type-block h4{margin:2px 0 10px; font-size:.98rem}
+.rule-table{width:100%; border-collapse:collapse; font-size:.85rem; margin-bottom:10px}
+.rule-table th,.rule-table td{border-bottom:1px solid var(--border-soft); text-align:left; padding:6px 9px; vertical-align:top}
+.rule-table th{color:var(--text-dim); font-weight:600; font-size:.78rem; width:120px}
+
+.codebox{background:var(--mono-bg); border:1px solid var(--border); border-radius:6px; padding:12px 14px;
+  font-family:ui-monospace,"D2Coding",Consolas,monospace; font-size:.78rem; line-height:1.55; margin:0;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; color:#1f2430}
+.codebox .accent{color:var(--accent); font-weight:600}
+.codebox .dim{color:var(--text-dim)}
+.codebox .ok{color:var(--lv-normal)}
+.codebox .err{color:var(--lv-error)}
+.codebox .tok{color:#0f7a4a}
+.example-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px}
+.example-label{font-size:.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px}
+
+.wide-table{width:100%; border-collapse:collapse; font-size:.85rem; margin-top:8px}
+.wide-table th,.wide-table td{border-bottom:1px solid var(--border-soft); text-align:left; padding:8px 10px; vertical-align:top}
+.wide-table th{color:var(--text-dim); font-weight:600; font-size:.78rem; background:var(--bg-elev); border-bottom:1px solid var(--border)}
+.wide-table td.step{color:var(--accent); font-family:ui-monospace,monospace; font-weight:700; width:38px}
+
+.zone-bar{display:flex; height:32px; border-radius:5px; overflow:hidden; font-size:.72rem; font-weight:700; margin:10px 0}
+.zone-bar div{display:flex; align-items:center; justify-content:center; color:#fff; text-align:center; padding:0 4px}
+.zone-error{background:var(--lv-error)} .zone-warn{background:var(--lv-warn)} .zone-normal{background:var(--lv-normal)}
+
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 7px 7px 0; padding:11px 15px; font-size:.86rem}
+.callout.warn{border-left-color:var(--lv-warn); background:#fdf5e6}
+.callout.err{border-left-color:var(--lv-error); background:#fdeeed}
+.callout-title{font-weight:700; color:var(--heading); font-size:.85rem; margin-bottom:3px}
+
+.checklist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.checklist li{position:relative; font-size:.87rem; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:7px; padding:10px 13px 10px 30px; display:block}
+.checklist li::before{content:"✓"; color:var(--lv-normal); font-weight:700; position:absolute; left:12px; top:10px}
+
+.mistake-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.mistake{background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px 16px; border-left:3px solid var(--lv-warn)}
+.mistake h4{margin:0 0 5px; font-size:.89rem}
+.mistake p{margin:0; font-size:.83rem; color:var(--text-dim)}
+
+.flow{display:flex; flex-direction:column; gap:0; margin:12px 0}
+.flow-step{background:var(--bg-elev); border:1px solid var(--border); border-radius:7px; padding:11px 15px; font-size:.86rem}
+.flow-step .step-num{color:var(--accent); font-weight:700; font-family:ui-monospace,monospace; margin-right:7px}
+.flow-step .step-detail{color:var(--text-dim); font-size:.81rem; margin-top:3px}
+.flow-arrow{text-align:center; color:var(--text-dim); font-size:.85rem; padding:2px 0}
+.flow-branch{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+
+.decision{background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:10px}
+.decision .q{color:var(--accent); font-weight:700; font-size:.85rem; margin-bottom:5px}
+.decision .a{font-size:.85rem}
+
+@media print{
+  @page{ size:A4; margin:16mm 14mm 18mm }
+  html,body{background:#fff}
+  body{font-size:10.2pt}
+  .sheet{max-width:none; margin:0; padding:0; box-shadow:none}
+  a{color:inherit}
+  .chapter{break-before:page; page-break-before:always}
+  .cover{break-after:page; page-break-after:always; border-bottom:none}
+  .doc-header,.sec-head,h1,h2,h3,h4,.example-label,.chap-tag{break-after:avoid; page-break-after:avoid}
+  .card,.type-block,.callout,.mistake,.decision,.flow-step,.flow-branch,.example-row,.chain,
+  .zone-bar,.checklist li,.scope-box,.codebox,tr,.toc li{break-inside:avoid; page-break-inside:avoid}
+  section{break-inside:auto}
+  .wide-table th{background:#f2f3f7 !important}
+}
+
+@media print{ .chapter{break-before:auto; page-break-before:auto} }
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="chapter">
+<div class="chap-tag">가이드 03 · v1.0</div>
+
+
+
+
+<div class="doc-header">
+  <span class="eyebrow"><span class="badge-v">v1.0</span>PreCheck Log Analysis System</span>
+  <h1 class="title">로그분석 스케쥴 작성 가이드</h1>
+  <p class="subtitle">Analyze Schedule Configuration Guide</p>
+  <p class="lead">analyze 서버가 어떤 서버의 수집 로그를, 언제, 어떤 방식으로 분석할지 정의하는 스케줄 설정 파일 작성 가이드입니다. collect 스케줄과 형식이 유사하지만 서버 IP·SFTP 개념이 없고 파일경로가 선택 항목이라는 차이가 있습니다.</p>
+  <div class="scope-box">
+    <div class="scope-row"><span class="scope-label">파일 위치</span><span class="scope-val mono">~/cfg/PreCheck_AnalyzeLogs_Schedule.conf</span></div>
+    <div class="scope-row"><span class="scope-label">파싱 주체</span><span class="scope-val mono">analyze/parser/AnalyzeScheduleParser.java</span></div>
+    <div class="scope-row"><span class="scope-label">폴링 주체</span><span class="scope-val mono">analyze/scheduler/AnalyzeScheduler.java (60초 간격 폴링)</span></div>
+  </div>
+</div>
+
+
+
+<!-- 01 -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">공통 포맷 — collect와 다른 점</h2><span class="sec-en">Common Format</span></div>
+  <div class="chain">
+    <span class="chain-sep">[</span><span class="chain-tok hi">서버ID</span><span class="chain-sep">][</span><span class="chain-tok opt">수집대상파일경로</span><span class="chain-sep">][</span><span class="chain-tok hi">스케줄표현식</span><span class="chain-sep">]</span>
+  </div>
+  <div class="chain-labels">
+    <span>서버ID — 필수, collect 스케줄의 서버ID와 동일 값 사용</span>
+    <span>수집대상파일경로 — <b>선택</b>(점선 토큰). 생략 시 3토큰 <code>[서버ID][스케줄표현식]</code> 형태</span>
+    <span>스케줄표현식 — collect와 동일 문법(배치|주기)</span>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h4>파일경로가 왜 선택인가</h4>
+      <p>analyze는 파일을 직접 읽지 않고 collect가 이미 적재한 <code>TB_COLLECT_LOG</code>를 <b>서버ID</b> 기준으로 조회합니다. 파일경로는 이력 구분/표시 용도로만 쓰이므로 생략 가능합니다(2토큰 또는 3토큰 모두 허용).</p>
+    </div>
+    <div class="card">
+      <h4>중복 키 — 마지막 정의가 우선</h4>
+      <p><code>서버ID + 파일경로</code> 조합이 파일 내에 중복되면, <code>LinkedHashMap</code>의 remove→put 방식으로 <b>마지막에 등장한 라인</b>이 최종 적용됩니다(가이드4의 정책 파일과 동일한 규칙).</p>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">스케줄표현식 — 배치 vs 주기</h2><span class="sec-en">Schedule Expression by Mode</span></div>
+
+  <div class="type-block">
+    <div class="type-block-head"><span class="pill batch">배치</span><h4 style="margin:0">BATCH — 지정 요일 지정 시각에 하루 1회 분석</h4><span class="fmt">배치|요일|시작시각(HHmmss)</span></div>
+    <table class="rule-table">
+      <tr><th>동작</th><td>지정 요일의 시작시각이 되면 그 시점까지 쌓인 미분석 <code>TB_COLLECT_LOG</code>를 한 번에 분석</td></tr>
+      <tr><th>적합한 경우</th><td>실시간성이 필요 없고 하루 한 번 마감성 분석이면 충분한 서버(예: 주문체결 마감 점검)</td></tr>
+    </table>
+    <div class="codebox">[dcoodb01-주문체결][<span class="accent">배치|1-5|180000</span>]
+<span class="dim">→ 평일(1-5) 18:00:00에 1회 분석</span></div>
+  </div>
+
+  <div class="type-block">
+    <div class="type-block-head"><span class="pill period">주기</span><h4 style="margin:0">PERIODIC — 시작~종료 사이 간격(분)마다 증분 분석(기본 동작)</h4><span class="fmt">주기|요일|시작시각|간격(분)|종료시각</span></div>
+    <table class="rule-table">
+      <tr><th>동작</th><td>매 간격마다 <code>TB_ANALYZE_HISTORY.lastAnalyzeLogId</code> 이후로 새로 쌓인 <code>TB_COLLECT_LOG</code>만 분석(중복 분석 방지)</td></tr>
+      <tr><th>유효성</th><td>시작시각 &lt; 종료시각이어야 함. 같거나 크면(예: <code>180001|10|090001</code>) 파싱 실패로 라인 무시</td></tr>
+    </table>
+    <div class="codebox">[dlprem01-테스트개발][<span class="accent">주기|*|000501|1|230501</span>]
+<span class="dim">→ 매일 00:05:01부터 23:05:01까지 1분 간격으로 증분 분석</span></div>
+  </div>
+</section>
+
+<!-- 03 실행 판정 로직 -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">스케줄러 실행 판정</h2><span class="sec-en">Scheduler Execution Logic</span></div>
+  <table class="wide-table">
+    <tr><th>항목</th><th>동작</th></tr>
+    <tr><td>폴링 주기</td><td><code>@Scheduled(fixedDelay=60000)</code> — 60초마다 스케줄 목록 검사(collect의 1초보다 훨씬 느슨함)</td></tr>
+    <tr><td>실행 판정 폭</td><td>주기 구간의 첫 60초(pollWindowSeconds) 안에만 실행 트리거 — 60초 폴링 주기와 맞물려 간격을 1분 미만으로 짧게 잡아도 매 폴링마다 1회씩만 실행됨</td></tr>
+    <tr><td>요일 판정</td><td><code>*</code>(매일), 단일 숫자(0=일~6=토), 범위(<code>1-5</code>=평일) — collect와 동일 문법</td></tr>
+    <tr><td>중복 실행 방지</td><td>배치는 "오늘 실행했는지", 주기는 "이번 간격 구간(runIndex)에 실행했는지"를 서버ID+파일경로+스케줄값 조합 키로 기록</td></tr>
+    <tr><td>재로딩 주기</td><td>스케줄 파일은 최대 60초(<code>precheck.analyze.scheduler.reload-interval-ms</code>) 캐싱, 수정 후 재기동 불필요</td></tr>
+  </table>
+</section>
+
+<!-- 04 증분 분석 -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">증분 분석 기준</h2><span class="sec-en">Incremental Analysis Basis</span></div>
+  <div class="callout">
+    <div class="callout-title">TB_ANALYZE_HISTORY.lastAnalyzeLogId</div>
+    "주기" 분석은 이 값 이후로 신규 적재된 <code>TB_COLLECT_LOG</code> 행만 조회해 분석합니다. collect의 <code>LAST_LINE_NUMBER</code>(파일 내 라인번호)와는 별개 개념으로, <b>COLLECT_LOG_ID(PK) 기준</b>의 진행 위치입니다. 분석 시작 직전 <code>STATUS=FAIL, FAIL_REASON=IN_PROGRESS</code>로 이력을 선등록하므로, JVM이 비정상 종료돼도 "어디까지 처리했는지"가 DB에 남습니다(재기동 시 자동 재처리는 안 되며 수동 확인 필요).
+  </div>
+</section>
+
+<!-- 05 체크리스트 -->
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">작성 체크리스트 · 주의사항</h2><span class="sec-en">Checklist & Common Mistakes</span></div>
+  <ul class="checklist" style="margin-bottom:20px">
+    <li>서버ID는 collect 스케줄 파일의 서버ID와 <b>정확히 동일한 문자열</b>이어야 함(다르면 해당 서버 로그가 전혀 분석되지 않음)</li>
+    <li>새 서버를 collect에 추가했다면 analyze 스케줄에도 반드시 등록 — collect만 등록하면 로그는 쌓이는데 분석·판정은 되지 않음</li>
+    <li>주기 분석의 간격(분)을 지나치게 짧게 잡아도 실제로는 60초 폴링 주기에 종속되므로 1분 미만으로 촘촘히 잡을 실익이 적음</li>
+    <li>시작시각 ≥ 종료시각인 라인은 조용히 무효 처리되니, 스케줄 등록 후 로그(<code>[[[주기 분석 실행 결정]]]</code>)로 실제 트리거 여부를 확인할 것</li>
+  </ul>
+
+  <div class="mistake-grid">
+    <div class="mistake">
+      <h4>collect에만 서버 등록</h4>
+      <p>수집은 되지만 <code>PreCheck_AnalyzeLogs_Schedule.conf</code>에 서버ID가 없으면 <code>TB_COLLECT_LOG</code>에 로그만 쌓이고 <code>TB_ANALYZE_RESULT</code>는 전혀 생성되지 않습니다.</p>
+    </div>
+    <div class="mistake">
+      <h4>같은 서버ID를 중복 등록하며 값이 다름</h4>
+      <p>마지막 라인이 최종 적용되므로, 실수로 위쪽에 다른 스케줄을 남겨두면 "설정했는데 반영이 안 된다"고 오인하기 쉽습니다. 중복 등록 여부를 먼저 확인하세요.</p>
+    </div>
+    <div class="mistake">
+      <h4>파일경로 표기 불일치를 문제로 착각</h4>
+      <p>analyze는 파일을 직접 읽지 않으므로 파일경로 값 자체는 분석 결과에 영향을 주지 않습니다. 분석이 안 될 때는 파일경로가 아니라 서버ID 일치 여부를 먼저 점검하세요.</p>
+    </div>
+    <div class="mistake">
+      <h4>배치와 주기를 혼동</h4>
+      <p>배치는 하루 1회, 주기는 반복 실행입니다. 실시간에 가까운 감시가 필요한 서버에 배치를 쓰면 하루 종일 지연 발생 시에도 다음 배치 시각까지 알 수 없습니다.</p>
+    </div>
+  </div>
+</section>
+
+
+
+
+</div>
+</div>
+</body>
+</html>

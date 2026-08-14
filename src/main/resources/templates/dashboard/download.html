@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>PreCheck Dashboard - Download</title>
+    <link rel="stylesheet" th:href="@{/plugins/bootstrap-icons/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/css/adminlte.min.css}">
+    <link rel="stylesheet" th:href="@{/css/security.css}">
+    <link rel="stylesheet" th:href="@{/css/precheck-theme.css}">
+    <script th:src="@{/js/precheck-theme.js}"></script>
+    <style>
+        body { background-color: #eaf4fc; }
+        .precheck-header {
+            background: linear-gradient(90deg, #a8ccf0 0%, #bdd8f5 30%, #d0e6f8 65%, #e0eff9 100%);
+            border-bottom: 1px solid #90b8e0;
+            box-shadow: 0 2px 12px rgba(30, 80, 160, .12);
+            height: 96px;
+            min-height: 96px;
+            position: relative;
+            overflow: hidden;
+            padding: 0 28px;
+        }
+        .precheck-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                repeating-linear-gradient(45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px),
+                repeating-linear-gradient(-45deg, rgba(20, 80, 160, .09) 0 1px, transparent 1px 12px);
+            pointer-events: none;
+        }
+        .precheck-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 500px 120px at 0% 50%, rgba(255, 255, 255, .45), transparent 70%),
+                radial-gradient(ellipse 300px 100px at 100% 50%, rgba(210, 235, 255, .30), transparent 70%);
+            pointer-events: none;
+        }
+        .db-header-line {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #7ab8ee 0%, #aed4f5 50%, transparent 100%);
+            opacity: .6; z-index: 3;
+        }
+        .precheck-header .container-fluid { position: relative; z-index: 2; }
+        .precheck-banner-content {
+            position: relative; z-index: 2;
+            display: flex; align-items: center; gap: 16px; min-width: 0;
+        }
+        .brand-icon {
+            width: 52px; height: 52px; border-radius: 11px;
+            background: linear-gradient(160deg, #2c86df 0%, #1660b8 100%);
+            box-shadow: 0 4px 14px rgba(22, 96, 184, .30);
+            display: grid; place-items: center; flex-shrink: 0; color: #fff;
+        }
+        .brand-icon svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.18)); }
+        .precheck-banner-title {
+            color: #1a2c3d; font-size: 1.5rem; font-weight: 800;
+            letter-spacing: -.025em; margin: 0; white-space: nowrap; line-height: 1;
+        }
+        .precheck-banner-title .sub {
+            font-size: 1.0625rem; font-weight: 500; color: #3a5470;
+            margin-left: 8px; letter-spacing: normal;
+        }
+        .precheck-header-meta { position: relative; z-index: 2; }
+        .header-info { font-size: 1rem; color: #3a5470; }
+        .header-info .header-info-label { color: #4a6080; font-weight: 700; }
+        .header-btn {
+            display: inline-flex; align-items: center; gap: 0.3rem;
+            padding: 0.3rem 0.85rem; border-radius: 7px; font-size: 0.85rem;
+            font-weight: 500; text-decoration: none; cursor: pointer;
+            white-space: nowrap; line-height: 1.5; transition: background 0.15s, box-shadow 0.15s;
+            border: 1px solid rgba(26, 44, 61, 0.22);
+            background: rgba(255, 255, 255, 0.38); color: #1a2c3d;
+        }
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.62); color: #1a2c3d;
+            box-shadow: 0 2px 8px rgba(22, 96, 184, 0.18); text-decoration: none;
+        }
+        .header-btn-logout {
+            border-color: rgba(140, 40, 30, 0.25);
+            background: rgba(255, 235, 232, 0.35); color: #6b2418;
+        }
+        .header-btn-logout:hover {
+            background: rgba(255, 215, 210, 0.58); color: #6b2418;
+            box-shadow: 0 2px 8px rgba(180, 40, 30, 0.15);
+        }
+        .mini-nav-sidebar {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 52px; overflow: hidden;
+            transition: width 0.22s ease; z-index: 10;
+        }
+        .mini-nav-sidebar:hover { width: 200px; }
+        .mini-nav-sidebar nav ul { padding-left: 0; padding-right: 0; }
+        .mini-nav-sidebar .nav-link {
+            display: flex; align-items: center; justify-content: center;
+            padding: 0.5rem 0; white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-link { justify-content: flex-start; padding: 0.5rem 0.75rem; }
+        .mini-nav-sidebar .nav-link i { flex-shrink: 0; font-size: 1.1rem; width: 20px; text-align: center; }
+        .mini-nav-sidebar .nav-text {
+            width: 0; overflow: hidden; opacity: 0;
+            transition: width 0.22s ease, opacity 0.12s ease;
+            pointer-events: none; white-space: nowrap;
+        }
+        .mini-nav-sidebar:hover .nav-text {
+            width: auto; max-width: 160px; opacity: 1;
+            margin-left: 0.55rem; pointer-events: auto;
+        }
+        .download-card {
+            background: #fff; border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 6px rgba(0,0,0,.07);
+        }
+        .download-card-head {
+            padding: 12px 16px;
+            background: #475569;
+            border-bottom: 1px solid #64748b;
+        }
+        .download-breadcrumb { margin-bottom: 0; font-size: 13.5px; }
+        .download-breadcrumb .breadcrumb-item + .breadcrumb-item::before { content: '/'; color: #94a3b8; }
+        .download-breadcrumb .breadcrumb-item a { color: #e2e8f0; text-decoration: none; }
+        .download-breadcrumb .breadcrumb-item a:hover { color: #ffffff; text-decoration: underline; }
+        .download-breadcrumb .breadcrumb-item.active { color: #f8fafc; font-weight: 600; }
+        .download-table th { font-size: 12.5px; color: #64748b; font-weight: 600; }
+        .download-table td { font-size: 13.5px; vertical-align: middle; }
+        .loading-msg { color: #94a3b8; font-size: 13px; text-align: center; padding: 40px 0; }
+        .download-alert { margin: 16px; }
+        @media (max-width: 991.98px) {
+            .precheck-header { padding: 0 1.5rem; }
+            .precheck-banner-title { font-size: 1.25rem; }
+            .precheck-header-meta { gap: .75rem !important; flex-wrap: wrap; justify-content: flex-end; }
+        }
+        @media (max-width: 767.98px) {
+            .precheck-header { height: auto; min-height: 96px; padding: .75rem 1rem; }
+            .precheck-header .container-fluid { align-items: flex-start !important; gap: .75rem; }
+            .precheck-banner-content { gap: .75rem; }
+            .brand-icon { width: 44px; height: 44px; }
+            .precheck-banner-title { white-space: normal; line-height: 1.25; }
+            .precheck-banner-title .sub { display: block; margin-left: 0; }
+            .header-info { font-size: .88rem; }
+            .precheck-header-meta { width: 100%; justify-content: flex-start !important; }
+        }
+    </style>
+</head>
+<body th:attr="data-username=${loginUserName}">
+<div class="wrapper">
+    <nav class="app-header navbar navbar-expand precheck-header">
+        <div class="db-header-line"></div>
+        <div class="container-fluid d-flex align-items-center justify-content-between gap-3 flex-wrap flex-md-nowrap">
+            <div class="precheck-banner-content">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="10" width="20" height="5" rx="1.5"/>
+                        <rect x="2" y="17" width="20" height="5" rx="1.5"/>
+                        <circle cx="18.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="18.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="5.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="12.5" r=".9" fill="currentColor" stroke="none"/>
+                        <circle cx="15.5" cy="19.5" r=".9" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <h1 class="precheck-banner-title"><span class="title">채널 서버 점검</span><span class="sub">Dashboard</span></h1>
+            </div>
+            <div class="d-flex align-items-center gap-3 precheck-header-meta">
+                <div class="header-info">
+                    <span id="currentTime">-</span>
+                </div>
+                <div class="header-info">
+                    <span class="header-info-label" th:text="${loginUserName}"></span>
+                </div>
+                <button type="button" class="header-btn" data-theme-toggle title="테마 전환">
+                    <i class="bi bi-sun"></i><span data-theme-label>라이트</span>
+                </button>
+                <a th:href="@{/password/change}" class="header-btn">
+                    <i class="bi bi-key"></i>비밀번호 변경
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0">
+                    <button type="submit" class="header-btn header-btn-logout">
+                        <i class="bi bi-box-arrow-right"></i>로그아웃
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div th:if="${pwdExpireWarningDays != null}" class="alert alert-warning rounded-0 m-0 py-2 px-4 border-start-0 border-end-0">
+        비밀번호가 <strong th:text="${pwdExpireWarningDays}"></strong>일 후 만료됩니다.
+        <a th:href="@{/password/change}" class="ms-1">지금 변경하기</a>
+    </div>
+
+    <div style="position: relative; min-height: calc(100vh - 96px);">
+        <aside class="bg-dark mini-nav-sidebar">
+            <nav class="pt-3">
+                <ul class="nav flex-column px-2 gap-1">
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-speedometer2"></i><span class="nav-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard/history}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-graph-up"></i><span class="nav-text">History</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard/download}" class="nav-link text-white rounded fw-semibold" style="background: rgba(255,255,255,.15);">
+                            <i class="bi bi-download"></i><span class="nav-text">Download</span>
+                        </a>
+                    </li>
+                    <li class="nav-item" th:if="${loginUserRole == 'SUPER_ADMIN'}">
+                        <a th:href="@{/admin/users}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-people"></i><span class="nav-text">계정관리</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <div style="margin-left: 52px; min-width: 0;">
+            <div class="content-wrapper p-3">
+                <div class="container-fluid">
+
+                    <div class="d-flex align-items-center mb-3 gap-2">
+                        <i class="bi bi-download text-primary" style="font-size:1.2rem;"></i>
+                        <h5 class="mb-0 fw-bold">Download</h5>
+                    </div>
+
+                    <div class="download-card">
+                        <div class="download-card-head">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb download-breadcrumb" id="downloadBreadcrumb"></ol>
+                            </nav>
+                        </div>
+                        <div id="downloadAlert" class="alert alert-warning download-alert" style="display:none;"></div>
+                        <div class="table-responsive" id="downloadTableWrap">
+                            <table class="table table-hover align-middle mb-0 download-table">
+                                <thead>
+                                    <tr>
+                                        <th>이름</th>
+                                        <th style="width:120px;">크기</th>
+                                        <th style="width:170px;">수정일시</th>
+                                        <th style="width:70px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="downloadTableBody">
+                                    <tr><td colspan="4" class="loading-msg">데이터 로딩 중...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/plugins/bootstrap/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/adminlte.min.js}"></script>
+<script th:src="@{/js/download.js}"></script>
+<script th:src="@{/js/security.js}"></script>
+</body>
+</html>

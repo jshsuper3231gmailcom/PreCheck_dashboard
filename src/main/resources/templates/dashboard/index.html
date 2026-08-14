@@ -783,6 +783,11 @@
                             <i class="bi bi-graph-up"></i><span class="nav-text">History</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a th:href="@{/dashboard/download}" class="nav-link text-white-50 rounded">
+                            <i class="bi bi-download"></i><span class="nav-text">Download</span>
+                        </a>
+                    </li>
                     <li class="nav-item" th:if="${loginUserRole == 'SUPER_ADMIN'}">
                         <a th:href="@{/admin/users}" class="nav-link text-white-50 rounded">
                             <i class="bi bi-people"></i><span class="nav-text">계정관리</span>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="omelette-owns-print" content="true">
+<title>정규화 로그 작성 가이드</title>
+<style>
+:root{
+  --bg:#ffffff; --bg-elev:#f6f7fa; --border:#dde1e9; --border-soft:#e8ebf1;
+  --text:#232833; --text-dim:#5f6878; --heading:#0e1218;
+  --accent:#4f39c9; --accent-soft:#f0edfd;
+  --mono-bg:#f4f5f9;
+  --t-text:#f5c451; --t-numeric:#34d399; --t-date:#a78bfa; --t-exist:#f87171;
+  --t-info:#60a5fa; --t-compare:#fb923c; --t-time:#22d3ee;
+  --lv-error:#e0362c; --lv-warn:#d98004; --lv-normal:#1d9c54; --lv-info:#0f8fc4; --lv-unanal:#6b7280;
+}
+*{box-sizing:border-box}
+html{background:#e9ebf0}
+body{
+  background:#e9ebf0; color:var(--text); margin:0;
+  font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:11pt; line-height:1.6; text-wrap:pretty;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.sheet{background:var(--bg); max-width:900px; margin:24px auto; padding:26mm 18mm; box-shadow:0 2px 14px rgba(20,26,40,.13)}
+code,.mono{font-family:ui-monospace,"Cascadia Code","D2Coding",Consolas,monospace; font-size:.92em}
+code{background:var(--mono-bg); border:1px solid var(--border-soft); border-radius:4px; padding:0 4px}
+h1,h2,h3,h4{color:var(--heading); font-weight:700; text-wrap:balance}
+a{color:var(--accent); text-decoration:none}
+a:hover{color:#3524a8}
+b{color:var(--heading)}
+
+.cover{border-bottom:2px solid var(--heading); padding-bottom:26px; margin-bottom:26px}
+.cover .kicker{font-size:.8rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700}
+.cover h1{font-size:2.5rem; line-height:1.2; margin:14px 0 8px}
+.cover .sub{color:var(--text-dim); font-size:1.02rem; margin:0}
+.cover .meta{display:flex; gap:28px; flex-wrap:wrap; margin-top:22px; font-size:.82rem; color:var(--text-dim)}
+.cover .meta b{color:var(--heading); font-weight:600}
+.toc{list-style:none; margin:0 0 4px; padding:0; display:flex; flex-direction:column; gap:2px}
+.toc li a{display:flex; align-items:baseline; gap:14px; padding:11px 4px; border-bottom:1px solid var(--border-soft); color:var(--text)}
+.toc-n{font-family:ui-monospace,monospace; color:var(--accent); font-weight:700; font-size:.82rem}
+.toc-t{font-weight:600; color:var(--heading); font-size:1rem; display:flex; flex-direction:column}
+.toc-t em{font-style:normal; font-weight:400; color:var(--text-dim); font-size:.78rem; letter-spacing:.02em}
+.toc-v{margin-left:auto; font-size:.75rem; color:var(--text-dim); font-family:ui-monospace,monospace}
+.toc-note{margin-top:18px; font-size:.84rem; color:var(--text-dim)}
+
+.chapter{padding-top:6px}
+.chap-tag{display:inline-block; background:var(--accent); color:#fff; font-weight:700; font-size:.74rem;
+  letter-spacing:.04em; padding:4px 11px; border-radius:5px; margin-bottom:6px}
+.doc-header{padding:6px 0 22px; border-bottom:1px solid var(--border); margin-bottom:26px}
+.badge-v{display:inline-block; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:.74rem;
+  padding:2px 9px; border-radius:5px; margin-right:9px}
+.eyebrow{color:var(--text-dim); font-size:.8rem; letter-spacing:.03em}
+h1.title{font-size:1.85rem; margin:12px 0 5px}
+.subtitle{color:var(--text-dim); font-size:.95rem; margin:0 0 16px}
+.lead{color:var(--text); font-size:.97rem; max-width:74ch}
+.scope-box{margin-top:18px; background:var(--bg-elev); border:1px solid var(--border); border-radius:8px;
+  padding:14px 16px; display:flex; flex-direction:column; gap:7px}
+.scope-row{display:flex; gap:10px; font-size:.85rem}
+.scope-label{color:var(--text-dim); min-width:92px; flex-shrink:0}
+.scope-val{color:var(--heading)}
+hr.divider{border:none; border-top:1px solid var(--border); margin:30px 0}
+
+.sec-head{display:flex; align-items:baseline; gap:12px; margin:0 0 16px; padding-bottom:7px; border-bottom:2px solid var(--heading)}
+.sec-num{color:var(--accent); font-weight:700; font-size:.85rem; font-family:ui-monospace,monospace}
+.sec-title{font-size:1.2rem; margin:0}
+.sec-en{color:var(--text-dim); font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; margin-left:auto}
+section{margin-bottom:34px}
+
+.chain{display:flex; flex-wrap:wrap; gap:7px; align-items:center; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:8px; padding:16px; margin-bottom:10px}
+.chain-tok{background:#fff; border:1px solid var(--border); border-radius:5px; padding:5px 9px; font-size:.83rem;
+  font-family:ui-monospace,monospace}
+.chain-tok.hi{border-color:var(--accent); color:var(--accent)}
+.chain-tok.opt{border-style:dashed; color:var(--text-dim)}
+.chain-sep{color:var(--text-dim)}
+.chain-labels{display:flex; flex-direction:column; gap:4px; font-size:.76rem; color:var(--text-dim); margin-bottom:4px}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+.card{background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:15px 17px}
+.card h4{margin:0 0 8px; font-size:.93rem}
+.card p{margin:0; font-size:.85rem; color:var(--text-dim)}
+
+.type-badge{display:inline-block; font-weight:700; font-size:.76rem; padding:2px 9px; border-radius:5px; color:#1a1005}
+.type-문구{background:var(--t-text)} .type-수치{background:var(--t-numeric)} .type-날짜{background:var(--t-date)}
+.type-존재{background:var(--t-exist)} .type-정보{background:var(--t-info)} .type-비교{background:var(--t-compare)}
+.type-시간{background:var(--t-time)}
+.pill{display:inline-block; font-weight:700; font-size:.76rem; padding:2px 9px; border-radius:5px; color:#1a1005}
+.pill.batch{background:#fb923c} .pill.period{background:#34d399}
+.badge-auto,.badge-manual,.badge-none{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 8px; border-radius:5px; color:#fff}
+.badge-auto{background:var(--lv-normal)} .badge-manual{background:var(--lv-warn)} .badge-none{background:var(--lv-unanal)}
+.badge-lv{display:inline-block; font-size:.72rem; font-weight:700; padding:1px 7px; border-radius:4px; color:#fff; margin-right:3px}
+.badge-lv.error{background:var(--lv-error)} .badge-lv.warn{background:var(--lv-warn)} .badge-lv.normal{background:var(--lv-normal)}
+.badge-lv.info{background:var(--lv-info)} .badge-lv.unanal{background:var(--lv-unanal)}
+
+.type-block{background:#fff; border:1px solid var(--border); border-radius:10px; padding:17px 19px; margin-bottom:14px}
+.type-block-head{display:flex; align-items:center; gap:11px; margin-bottom:5px; flex-wrap:wrap}
+.type-block-head .fmt{color:var(--text-dim); font-size:.76rem; margin-left:auto; font-family:ui-monospace,monospace}
+.type-block h4{margin:2px 0 10px; font-size:.98rem}
+.rule-table{width:100%; border-collapse:collapse; font-size:.85rem; margin-bottom:10px}
+.rule-table th,.rule-table td{border-bottom:1px solid var(--border-soft); text-align:left; padding:6px 9px; vertical-align:top}
+.rule-table th{color:var(--text-dim); font-weight:600; font-size:.78rem; width:120px}
+
+.codebox{background:var(--mono-bg); border:1px solid var(--border); border-radius:6px; padding:12px 14px;
+  font-family:ui-monospace,"D2Coding",Consolas,monospace; font-size:.78rem; line-height:1.55; margin:0;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; color:#1f2430}
+.codebox .accent{color:var(--accent); font-weight:600}
+.codebox .dim{color:var(--text-dim)}
+.codebox .ok{color:var(--lv-normal)}
+.codebox .err{color:var(--lv-error)}
+.codebox .tok{color:#0f7a4a}
+.example-row{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px}
+.example-label{font-size:.72rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px}
+
+.wide-table{width:100%; border-collapse:collapse; font-size:.85rem; margin-top:8px}
+.wide-table th,.wide-table td{border-bottom:1px solid var(--border-soft); text-align:left; padding:8px 10px; vertical-align:top}
+.wide-table th{color:var(--text-dim); font-weight:600; font-size:.78rem; background:var(--bg-elev); border-bottom:1px solid var(--border)}
+.wide-table td.step{color:var(--accent); font-family:ui-monospace,monospace; font-weight:700; width:38px}
+
+.zone-bar{display:flex; height:32px; border-radius:5px; overflow:hidden; font-size:.72rem; font-weight:700; margin:10px 0}
+.zone-bar div{display:flex; align-items:center; justify-content:center; color:#fff; text-align:center; padding:0 4px}
+.zone-error{background:var(--lv-error)} .zone-warn{background:var(--lv-warn)} .zone-normal{background:var(--lv-normal)}
+
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 7px 7px 0; padding:11px 15px; font-size:.86rem}
+.callout.warn{border-left-color:var(--lv-warn); background:#fdf5e6}
+.callout.err{border-left-color:var(--lv-error); background:#fdeeed}
+.callout-title{font-weight:700; color:var(--heading); font-size:.85rem; margin-bottom:3px}
+
+.checklist{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.checklist li{position:relative; font-size:.87rem; background:var(--bg-elev); border:1px solid var(--border);
+  border-radius:7px; padding:10px 13px 10px 30px; display:block}
+.checklist li::before{content:"✓"; color:var(--lv-normal); font-weight:700; position:absolute; left:12px; top:10px}
+
+.mistake-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.mistake{background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px 16px; border-left:3px solid var(--lv-warn)}
+.mistake h4{margin:0 0 5px; font-size:.89rem}
+.mistake p{margin:0; font-size:.83rem; color:var(--text-dim)}
+
+.flow{display:flex; flex-direction:column; gap:0; margin:12px 0}
+.flow-step{background:var(--bg-elev); border:1px solid var(--border); border-radius:7px; padding:11px 15px; font-size:.86rem}
+.flow-step .step-num{color:var(--accent); font-weight:700; font-family:ui-monospace,monospace; margin-right:7px}
+.flow-step .step-detail{color:var(--text-dim); font-size:.81rem; margin-top:3px}
+.flow-arrow{text-align:center; color:var(--text-dim); font-size:.85rem; padding:2px 0}
+.flow-branch{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+
+.decision{background:var(--bg-elev); border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:10px}
+.decision .q{color:var(--accent); font-weight:700; font-size:.85rem; margin-bottom:5px}
+.decision .a{font-size:.85rem}
+
+@media print{
+  @page{ size:A4; margin:16mm 14mm 18mm }
+  html,body{background:#fff}
+  body{font-size:10.2pt}
+  .sheet{max-width:none; margin:0; padding:0; box-shadow:none}
+  a{color:inherit}
+  .chapter{break-before:page; page-break-before:always}
+  .cover{break-after:page; page-break-after:always; border-bottom:none}
+  .doc-header,.sec-head,h1,h2,h3,h4,.example-label,.chap-tag{break-after:avoid; page-break-after:avoid}
+  .card,.type-block,.callout,.mistake,.decision,.flow-step,.flow-branch,.example-row,.chain,
+  .zone-bar,.checklist li,.scope-box,.codebox,tr,.toc li{break-inside:avoid; page-break-inside:avoid}
+  section{break-inside:auto}
+  .wide-table th{background:#f2f3f7 !important}
+}
+
+@media print{ .chapter{break-before:auto; page-break-before:auto} }
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="chapter">
+<div class="chap-tag">가이드 01 · v1.4</div>
+
+
+
+
+<div class="doc-header">
+  <span class="eyebrow"><span class="badge-v">v1.4</span>PreCheck Log Collection System</span>
+  <h1 class="title">정규화 로그 작성 가이드</h1>
+  <p class="subtitle">Log Normalization Format Authoring Guide</p>
+  <p class="lead">장전 서버 점검 자동화 시스템(PreCheck)이 인식하는 정규화 로그(<code>@@@...@@@</code>) 포맷을 정의합니다. 대상 서버 애플리케이션에서 이 포맷으로 로그를 남기면 collect 서버가 파싱하여 <code>TB_COLLECT_LOG</code>에 적재하고, analyze 서버가 이를 분석합니다.</p>
+  <div class="scope-box">
+    <div class="scope-row"><span class="scope-label">적용 대상</span><span class="scope-val">수집 대상 서버(dlprem01, pamoap01 등)의 애플리케이션 로그 출력부</span></div>
+    <div class="scope-row"><span class="scope-label">파싱 주체</span><span class="scope-val mono">collect/parser/LogNormalizeParser.java</span></div>
+    <div class="scope-row"><span class="scope-label">저장 테이블</span><span class="scope-val mono">TB_COLLECT_LOG (LOG_TYPE, LOG_ID, LOG_TIMESTAMP, LOG_CONTENT, LOG_VALUE)</span></div>
+  </div>
+</div>
+
+
+
+<!-- 01 공통 포맷 구조 -->
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">공통 포맷 구조</h2><span class="sec-en">Common Format</span></div>
+
+  <div class="chain">
+    <span class="chain-tok hi">@@@</span><span class="chain-sep">[</span><span class="chain-tok">yyyy/MM/dd HH:mm:ss.SSS</span><span class="chain-sep">][</span><span class="chain-tok">입력타입</span><span class="chain-sep">][</span><span class="chain-tok">LOG_ID</span><span class="chain-sep">]|</span><span class="chain-tok">content</span><span class="chain-sep">|</span><span class="chain-tok">$값토큰$...</span><span class="chain-sep">@@@</span>
+  </div>
+  <div class="chain-labels">
+    <span>TIMESTAMP — 로그 발생 시각</span>
+    <span>LOG_TYPE — 문구/수치/날짜/존재/정보/비교/시간</span>
+    <span>LOG_ID — 로그 식별자</span>
+    <span>CONTENT — 로그 설명(자유 텍스트)</span>
+    <span>VALUE TOKEN — 타입별 값($...$)</span>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card">
+      <h4>한 라인 = 로그 1건</h4>
+      <p>한 줄에 <code>@@@</code>가 3개 이상 나오면(=로그가 2건 이상 섞임) 파서가 해당 라인 전체를 무시합니다. 애플리케이션은 반드시 한 줄에 하나의 정규화 로그만 출력해야 합니다.</p>
+    </div>
+    <div class="card">
+      <h4>구분자는 정확히 2개</h4>
+      <p>헤더(<code>[timestamp][type][id]</code>) 뒤에는 파이프(<code>|</code>)가 정확히 2개 있어야 하며, content는 그 사이(1~2번째 파이프)에, tail은 두 번째 파이프 뒤에 옵니다. 파이프가 3개 이상이면 무시됩니다.</p>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <div class="callout-title">값 토큰은 content·tail 어느 쪽에 있어도 인식됩니다</div>
+    파서는 content 영역과 tail 영역 <b>양쪽 모두</b>에서 <code>$...$</code> 토큰을 찾아 합산한 뒤 타입별 개수 규칙을 검사합니다. 그래서 <code>|home디스크|$92.7$@@@</code>(토큰이 tail에 있음)와 <code>|home디스크 $92.7$|@@@</code>(토큰이 content 안에 있고 tail은 비어 있음) 둘 다 유효하고 결과도 동일합니다. 다만 <b>tail 영역은 토큰이 아닌 문자가 섞이면 안 됩니다</b>(토큰을 다 제거하고 남는 글자가 있으면 무시) — content 영역은 이 제약이 없어 자유 텍스트와 토큰을 섞어 써도 됩니다. 03번(값 토큰 판별 규칙)·04번(타입별 작성법) 예시가 두 위치를 모두 보여줍니다.
+  </div>
+</section>
+
+<!-- 02 헤더 필드 규칙 -->
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">헤더 필드 규칙</h2><span class="sec-en">Header Fields</span></div>
+
+  <div class="grid3">
+    <div class="card">
+      <h4>TIMESTAMP</h4>
+      <p><code>yyyy/MM/dd HH:mm:ss.SSS</code> 형식 고정(밀리초 3자리 필수). 예: <code>2026/07/16 08:01:56.777</code>. 형식이 다르면 파싱 실패로 라인 전체 무시.</p>
+    </div>
+    <div class="card">
+      <h4>LOG_TYPE</h4>
+      <p>7종 중 하나만 허용: <code>문구·수치·날짜·존재·정보·비교·시간</code>. 목록에 없는 값이면 무시됩니다(오타 주의, 공백 불가).</p>
+    </div>
+    <div class="card">
+      <h4>LOG_ID</h4>
+      <p>정규식 <code>^[A-Za-z0-9_]{1,30}$</code>. 영문 대소문자·숫자·언더스코어만, 최대 30자. 한글·공백·특수문자 사용 시 무시됩니다.</p>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    <div class="callout-title">LOG_TYPE 7종 요약</div>
+    <span class="type-badge type-문구">문구</span>
+    <span class="type-badge type-수치">수치</span>
+    <span class="type-badge type-날짜">날짜</span>
+    <span class="type-badge type-존재">존재</span>
+    <span class="type-badge type-정보">정보</span>
+    <span class="type-badge type-비교">비교</span>
+    <span class="type-badge type-시간">시간</span>
+    &nbsp;&nbsp;— 값은 <code>CollectConstants</code>의 상수와 완전히 일치해야 합니다(대소문자·공백 포함).
+  </div>
+</section>
+
+<!-- 03 값 토큰 규칙 -->
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">값 토큰($...$) 판별 규칙</h2><span class="sec-en">Value Token Rules</span></div>
+  <p class="lead" style="margin-bottom:16px">파서는 값 토큰의 <b>내용</b>을 보고 종류를 스스로 판별합니다. LOG_TYPE과 실제 토큰 내용이 어긋나면 무시되므로, 아래 판별 순서를 반드시 지켜야 합니다.</p>
+
+  <table class="rule-table">
+    <tr><th>토큰 형태</th><td>판별 기준</td></tr>
+    <tr><th>콜론(:) 포함</th><td>시간값으로 간주 — <code>HH:mm</code> (2자리:2자리) 형식만 유효, 시:00~23, 분:00~59</td></tr>
+    <tr><th>yyyy/MM/dd 또는<br>yyyy-MM-dd</th><td>날짜값으로 간주 — 구분자는 토큰 하나 안에서 혼용 불가(<code>2026/07-16</code> 불가), 실재하는 날짜여야 함(<code>ResolverStyle.STRICT</code>)</td></tr>
+    <tr><th>그 외</th><td>수치값으로 간주 — <code>BigDecimal</code> 파싱 가능한 정수/실수만 허용(Float/Double 사용 금지)</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <div class="callout-title">타입별 허용 토큰 개수는 다릅니다</div>
+    수치·시간형은 값 토큰 <b>정확히 1개</b>, 비교형은 <b>정확히 2개</b>, 날짜형은 <b>1개 이상</b>, 문구·존재·정보형은 <b>0개</b>(있으면 무시)여야 합니다. 개수가 맞지 않으면 파싱 실패로 처리됩니다.
+  </div>
+</section>
+
+<!-- 04 타입별 작성법 -->
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">타입별 작성법</h2><span class="sec-en">Format by Log Type</span></div>
+
+  <!-- 수치 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-수치">수치</span><h4 style="margin:0">NUMERIC — 값 토큰 1개, 시간 토큰(:) 불가</h4><span class="fmt">@@@[TS][수치][LOG_ID]|content|$숫자$@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>정확히 1개. 콜론(:)이 있으면 시간 토큰으로 오인되어 거부됨</td></tr>
+      <tr><th>토큰 위치</th><td>content 끝(케이스 A, <code>|home디스크|$92.7$</code>) 또는 content 중간(케이스 B, <code>|PROCESS 갯수 $4$ 처리중|</code>) 어디든 가능 — 위 01번 "값 토큰은 content·tail 어느 쪽에 있어도 인식" 참조</td></tr>
+      <tr><th>저장</th><td><code>LOG_VALUE</code>(BigDecimal)에 저장, <code>LOG_CONTENT</code>는 토큰 제거 후 공백 정리된 문자열</td></tr>
+      <tr><th>용도</th><td>디스크 사용률, 종목수, 접속자수, 큐 크기 등 임계치 비교 대상 수치</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">정상 예시 — 케이스 A(토큰이 tail에, 즉 content 끝)</div>
+        <div class="codebox">@@@[2026/07/16 08:19:10.446][수치][DISK_HOME]|home디스크|$92.7$@@@
+@@@[2026/07/16 08:01:56.777][수치][MBSOSI_COUNT]|주식종목수|$2078$@@@
+@@@[2026/07/16 08:05:00.010][수치][CPU_LOAD]|CPU 로드율|$0.873421$@@@
+@@@[2026/07/16 08:05:00.010][수치][PROC_MIN]|최소 프로세스수|$-3$@@@ <span class="dim">← 음수도 허용(BigDecimal 파싱 가능하면 통과)</span></div>
+      </div>
+      <div>
+        <div class="example-label">정상 예시 — 케이스 B(토큰이 content 중간)</div>
+        <div class="codebox">@@@[2026/05/28 13:01:09.555][수치][PROC_AO_TR]|ao_tr_pro_nm PROCESS 갯수 $4$ 처리중|@@@
+@@@[2026/07/16 08:05:00.010][수치][DISK_HOME]|home디스크 $92.7$|@@@ <span class="dim">← 위 케이스 A와 결과 완전히 동일(logValue=92.7)</span></div>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <div class="example-label">거부되는 예시</div>
+      <div class="codebox">@@@[..][수치][DISK_HOME]|home디스크|$08:30$@@@ <span class="err">← 시간 토큰(:) 포함, 거부</span>
+@@@[..][수치][DISK_HOME]|home디스크|$92.7$$91.0$@@@ <span class="err">← 토큰 2개, 거부</span>
+@@@[..][수치][DISK_HOME]|home디스크|$92.7%$@@@ <span class="err">← 단위 문자(%) 혼입, BigDecimal 파싱 실패로 거부</span></div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <div class="callout-title">지수표기(1E10 등)는 파싱은 되지만 비권장</div>
+      <code>BigDecimal</code>은 <code>1.5E10</code> 같은 과학적 표기도 파싱에 성공하지만, 로그 가독성과 analyze 임계치 비교 시 혼동을 줄 수 있어 항상 일반 십진 표기(<code>15000000000</code>)로 출력할 것을 권장합니다.
+    </div>
+  </div>
+
+  <!-- 비교 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-비교">비교</span><h4 style="margin:0">COMPARE — 값 토큰 정확히 2개(A, B)</h4><span class="fmt">@@@[TS][비교][LOG_ID]|content|$A$$B$@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>정확히 2개. 순서상 첫 번째=A(수신/집계값), 두 번째=B(처리/기준값)로 간주되어 analyze의 <code>ComparePolicy</code>가 A와 B를 비교. 로그 포맷은 정책 모드와 무관하게 항상 동일(<code>$A$$B$</code>) — 판정 방식(대칭/연산자)은 analyze 쪽 정책 설정만으로 갈림</td></tr>
+      <tr><th>제약</th><td>두 토큰 모두 콜론(:) 불가(시간값 사용 시 거부)</td></tr>
+      <tr><th>용도</th><td>수신 건수 vs 처리 건수, 전일 대비 금일 값 등 두 수치를 대조하는 항목(예: <code>JUCHE_DIFF_8</code>)</td></tr>
+    </table>
+    <div class="callout" style="margin-bottom:14px">
+      <div class="callout-title">판정 결과는 analyze 정책 모드에 따라 다름(2026-08-06 신설)</div>
+      로그 포맷(<code>$A$$B$</code> 2토큰)은 그대로지만, analyze의 <code>PreCheck_AnalyzePolicy.conf</code>에 등록된 비교형 정책이 <b>대칭모드</b>(<code>[비교][허용값%]</code>)인지 <b>연산자모드</b>(<code>[비교][연산자][허용오차%]</code>)인지에 따라 같은 로그도 판정 결과가 갈릴 수 있음 — 대칭모드는 정상/경고/에러 3단계, 연산자모드는 정상/에러 2단계(경고 없음). 상세 판정식은 가이드4(로그 분석 정책 가이드) 4-6절 참조.
+    </div>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시</div>
+        <div class="codebox">@@@[2026/07/16 09:00:00.000][비교][JUCHE_DIFF_8]|수신처리비교|$1523$$1523$@@@
+@@@[2026/07/16 09:00:05.000][비교][FREQ_CLUB_COUNT1]|전일대비비교|$980$$1000$@@@
+@@@[2026/07/16 09:00:10.000][비교][JUCHE_DIFF_8]|수신처리비교|$1400$$1523$@@@ <span class="dim">← A가 B보다 많이 작음(결측 의심)</span>
+@@@[2026/07/16 09:00:15.000][비교][DISK_YEST_DIFF]|전일대비|$454$$456$@@@ <span class="dim">← A가 B보다 살짝 작음(정상 오차 범위)</span></div>
+      </div>
+      <div>
+        <div class="example-label">해석 (예: 대칭모드, 허용값 5%)</div>
+        <div class="codebox">A=1523, B=1523 → 일치, 정상
+A=980, B=1000  → 차이 20 ≤ 50(=1000×5%) → 경고
+A=1400, B=1523 → 차이 123 > 76(=1523×5%) → 에러
+
+동일 A=980,B=1000 로그를 연산자모드([>=][5])로 판정하면
+컷오프=1000-50=950, A=980≥950 → 정상 (경고 없이 바로 정상)</div>
+      </div>
+    </div>
+    <div class="example-row" style="margin-top:14px">
+      <div>
+        <div class="example-label">연산자모드 방향 비교 — 정책 [비교][&lt;=][2], 로그 $454$$456$</div>
+        <div class="codebox">delta = 456×2% = 9.12
+컷오프(상한) = 456+9.12 = 465.12
+A=454 ≤ 465.12 → 정상</div>
+      </div>
+      <div>
+        <div class="example-label">같은 로그를 [비교][&gt;=][2]로 정책만 바꾸면</div>
+        <div class="codebox">delta = 456×2% = 9.12
+컷오프(하한) = 456-9.12 = 446.88
+A=454 ≥ 446.88 → 정상 (연산자 방향에 따라
+완화되는 쪽이 반대로 바뀔 뿐, 로그 포맷은 무관)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 시간 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-시간">시간</span><h4 style="margin:0">TIME — 값 토큰 1개, 반드시 HH:mm(콜론 포함)</h4><span class="fmt">@@@[TS][시간][LOG_ID]|content|$HH:mm$@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>정확히 1개, <code>HH:mm</code> 형식(2자리:2자리) 고정. 콜론 없으면 수치 토큰으로 오인되어 거부</td></tr>
+      <tr><th>저장</th><td>분(minute) 단위로 환산되어 <code>LOG_VALUE</code>에 저장(예: 08:07 → 487)</td></tr>
+      <tr><th>용도</th><td>배치/수신 완료 시각이 기준 시각 이전인지 확인(예: <code>CHEK_TIME</code>, <code>MOMRV_H_1</code>)</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시</div>
+        <div class="codebox">@@@[2026/07/16 08:07:35.000][시간][CHEK_TIME]|처리시각|$08:07$@@@
+@@@[2026/07/16 07:25:00.000][시간][MOMRV_H_1]|시세수신완료시각|$07:25$@@@ <span class="dim">← 경계값(정책 임계치와 정확히 일치)도 유효한 값 토큰</span></div>
+      </div>
+      <div>
+        <div class="example-label">거부되는 예시</div>
+        <div class="codebox">@@@[..][시간][CHEK_TIME]|처리시각|$487$@@@ <span class="err">← 콜론 없음, 수치 토큰으로 오인되어 거부</span>
+@@@[..][시간][CHEK_TIME]|처리시각|$8:7$@@@ <span class="err">← 자릿수 부족(HH:mm 아님), 거부</span>
+@@@[..][시간][CHEK_TIME]|처리시각|$25:61$@@@ <span class="err">← 시:00~23, 분:00~59 범위 초과, 거부</span></div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <div class="callout-title">경계값은 정책의 연산자에 달렸다</div>
+      로그 값 <code>$07:25$</code> 자체는 파서를 항상 통과합니다. 이 값이 정책 <code>[시간][&lt;=][07:25]</code>에서는 정상, <code>[시간][&lt;][07:25]</code>에서는 에러로 갈리는 것은 파싱이 아니라 analyze의 연산자 판정 문제입니다 — 가이드4(로그 분석 정책 가이드) 참조.
+    </div>
+  </div>
+
+  <!-- 날짜 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-날짜">날짜</span><h4 style="margin:0">DATE — 값 토큰 1개 이상, yyyy/MM/dd 또는 yyyy-MM-dd</h4><span class="fmt">@@@[TS][날짜][LOG_ID]|content|$yyyy/MM/dd$@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>1개 이상, 모두 실재하는 날짜여야 함(예: 2026/02/30 같은 존재하지 않는 날짜는 거부)</td></tr>
+      <tr><th>판정</th><td>analyze 단계에서 오늘 날짜와 문자열 비교(구분자 <code>-</code>는 <code>/</code>로 정규화 후 비교), 임계치 설정 없음</td></tr>
+      <tr><th>용도</th><td>영업일자/배치 기준일자가 오늘 날짜와 일치하는지 확인(예: <code>BDAY</code>, <code>DATE_REPORT</code>)</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시</div>
+        <div class="codebox">@@@[2026/07/16 08:00:00.001][날짜][BDAY]|영업일자|$2026/07/16$@@@
+@@@[2026/07/16 08:00:05.000][날짜][DATE_MULTI]|시작일종료일|$2026/07/16$$2026-07-20$@@@ <span class="dim">← 토큰 2개(1개 이상 허용), 각각 오늘과 비교. 구분자는 토큰마다 <code>/</code> 또는 <code>-</code> 중 하나로 통일하면 둘 다 유효</span></div>
+      </div>
+      <div>
+        <div class="example-label">해석 / 거부</div>
+        <div class="codebox">오늘(수집일) = 2026/07/16 → 일치, 정상
+값이 어제 날짜면 → 불일치, 에러(일자변경 실패 감지)
+
+@@@[..][날짜][BDAY]|영업일자|$2026/02/30$@@@ <span class="err">← 실재하지 않는 날짜, 거부(STRICT)</span>
+@@@[..][날짜][BDAY]|영업일자|$2026/07-16$@@@ <span class="err">← 토큰 하나 안에서 구분자 혼용, 거부</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 존재 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-존재">존재</span><h4 style="margin:0">EXIST — 값 토큰 없음, 존재 자체가 이상 신호</h4><span class="fmt">@@@[TS][존재][LOG_ID]|content|@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>없어야 함(있으면 거부)</td></tr>
+      <tr><th>판정</th><td>analyze가 이 라인이 수집됐다는 사실만으로 <b>항상 에러</b> 처리(정상/경고 없음). "로그가 있으면 곧 문제"인 감시용 타입</td></tr>
+      <tr><th>용도</th><td>비정상 잠금파일 발견, 특정 프로세스/공유메모리 이상 감지 등(예: <code>FILE_LOCK</code>, <code>SHM_CHECK</code>)</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시</div>
+        <div class="codebox">@@@[2026/07/16 09:30:00.100][존재][FILE_LOCK]|잠금파일 발견: order.lock|@@@
+@@@[2026/07/16 09:31:12.400][존재][MEM_MBSOSI]|mbsosi 공유메모리 부존재|@@@</div>
+      </div>
+      <div>
+        <div class="example-label">주의</div>
+        <div class="codebox">평상시에는 이 LOG_ID로 로그 자체를
+남기지 않는 것이 정상. 문제가 감지된
+순간에만 애플리케이션이 이 라인을 출력.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 문구 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-문구">문구</span><h4 style="margin:0">TEXT — 값 토큰 없음, content 문자열로 에러 키워드 매칭</h4><span class="fmt">@@@[TS][문구][LOG_ID]|content|@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>없어야 함</td></tr>
+      <tr><th>판정</th><td>analyze 정책의 에러키워드 목록 중 하나라도 content에 포함되면 에러, 없으면 정상</td></tr>
+      <tr><th>작성 팁</th><td>메시지 안에 실제 상태/결과 문자열을 그대로 남겨야 정책의 키워드 매칭(부분 포함 검사)이 동작함</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시</div>
+        <div class="codebox">@@@[2026/07/16 09:12:03.552][문구][SYS_MSG]|시스템 상태 점검 정상|@@@
+@@@[2026/07/16 09:12:10.001][문구][DB_CONN_STATUS]|DB 접속 실패: timeout|@@@
+@@@[2026/07/16 09:12:15.300][문구][PUSH_STATUS]|PUSH 전송 실패없음|@@@ <span class="dim">← 부분포함 매칭 함정, 아래 참조</span></div>
+      </div>
+      <div>
+        <div class="example-label">해석 (정책: 오류,실패,error,timeout)</div>
+        <div class="codebox">1번째 줄: 키워드 미포함 → 정상
+2번째 줄: "실패","timeout" 포함 → 에러
+3번째 줄: "실패없음"에 "실패"가 부분포함되어 → 에러
+          (의도는 "실패 없음"=정상이었어도 매칭됨)</div>
+      </div>
+    </div>
+    <div class="callout warn" style="margin-top:12px">
+      <div class="callout-title">키워드 매칭은 부분 문자열 포함 검사입니다</div>
+      정규식이 아니라 단순 <code>contains()</code>이므로 "실패없음", "미실패"처럼 부정 표현 안에 에러 키워드가 그대로 들어 있으면 의도와 반대로 에러 처리됩니다. 이런 문구를 출력해야 한다면 애초에 에러 키워드와 겹치지 않는 표현(예: "PUSH 전송 정상 완료")으로 로그 문구 자체를 바꾸는 것이 안전합니다.
+    </div>
+  </div>
+
+  <!-- 정보 -->
+  <div class="type-block">
+    <div class="type-block-head"><span class="type-badge type-정보">정보</span><h4 style="margin:0">INFO — 값 토큰 없음, 분석 없이 DB 저장만(조회용)</h4><span class="fmt">@@@[TS][정보][LOG_ID]|content|@@@</span></div>
+    <table class="rule-table">
+      <tr><th>값 토큰</th><td>없어야 함</td></tr>
+      <tr><th>판정</th><td>정상/경고/에러 판정을 하지 않고 항상 <code>ANALYZE_LEVEL='정보'</code>로만 저장. notify(SMS) 대상에서 제외</td></tr>
+      <tr><th>용도</th><td>일자변경·배치 완료 등 "발생 여부만 기록하면 되는" 이벤트 로그(예: <code>DAYCHG</code>, <code>DAILY_SUMMARY</code>)</td></tr>
+    </table>
+    <div class="example-row">
+      <div>
+        <div class="example-label">작성 예시 (실제 수집 데이터)</div>
+        <div class="codebox">@@@[2026/07/16 08:30:41.849][정보][DAYCHG]|일자변경완료|@@@
+@@@[2026/07/16 08:26:30.677][정보][STOPLOSS_CNT]|스탑로스 계좌수 보고|@@@
+@@@[2026/07/16 08:26:35.000][정보][OCBTCH_RECV]|해외종목 배치수신완료|@@@</div>
+      </div>
+      <div>
+        <div class="example-label">주의</div>
+        <div class="codebox">숫자를 남기고 싶다면 값 토큰 없이
+content 문자열에 그대로 적는다(분석 대상 아님).
+숫자 임계치 비교가 필요하면 "수치"형을 쓴다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 05 실전 종합 예제 -->
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">실전 종합 예제 — 로그 파일 한 조각</h2><span class="sec-en">End-to-End Walkthrough</span></div>
+  <p class="lead" style="margin-bottom:14px">실제 대상 서버가 하루 동안 남길 법한 로그 조각 하나를 놓고, collect가 어떻게 파싱하고 analyze가 어떤 정책으로 판정하는지 처음부터 끝까지 따라가 봅니다.</p>
+
+  <div class="example-label">대상 서버 로그 파일 발췌 (dlprem01-테스트개발)</div>
+  <div class="codebox">@@@[2026/07/16 08:00:00.001][날짜][BDAY]|영업일자|$2026/07/16$@@@
+@@@[2026/07/16 08:19:10.446][수치][DISK_HOME]|home디스크|$92.7$@@@
+@@@[2026/07/16 08:20:00.000][비교][JUCHE_DIFF_8]|수신처리비교|$980$$1000$@@@
+@@@[2026/07/16 08:21:00.000][문구][DB_CONN_STATUS]|DB 접속 실패: timeout|@@@
+@@@[2026/07/16 08:22:00.000][정보][DAYCHG]|일자변경완료|@@@</div>
+
+  <table class="wide-table" style="margin-top:12px">
+    <tr><th>LOG_ID</th><th>적용 정책 (PreCheck_AnalyzePolicy.conf)</th><th>판정 근거</th><th>ANALYZE_LEVEL</th></tr>
+    <tr><td class="mono">BDAY</td><td class="mono">[dlprem01-테스트개발][BDAY][날짜]</td><td>오늘(2026/07/16)과 일치</td><td>정상</td></tr>
+    <tr><td class="mono">DISK_HOME</td><td class="mono">[dlprem01-테스트개발][DISK_HOME][수치][&lt;][90][20]</td><td>92.7 ≥ 90 → 조건 불만족, 완화 구간(72~90) 밖</td><td>에러</td></tr>
+    <tr><td class="mono">JUCHE_DIFF_8</td><td class="mono">[dlprem01-테스트개발][JUCHE_DIFF_8][비교][5]</td><td>|980-1000|=20 ≤ 1000×5%=50</td><td>경고</td></tr>
+    <tr><td class="mono">DB_CONN_STATUS</td><td class="mono">[dlprem01-테스트개발][DB_CONN_STATUS][문구][오류,실패,error,timeout]</td><td>"실패","timeout" 포함</td><td>에러</td></tr>
+    <tr><td class="mono">DAYCHG</td><td class="mono">[dlprem01-테스트개발][DAYCHG][정보]</td><td>정보형은 판정 없음</td><td>정보</td></tr>
+  </table>
+
+  <div class="callout" style="margin-top:14px">
+    <div class="callout-title">동일 JUCHE_DIFF_8을 연산자모드로 등록했다면</div>
+    정책을 <code>[dlprem01-테스트개발][JUCHE_DIFF_8][비교][&gt;=][5]</code>로 바꾸면 로그 포맷( <code>$980$$1000$</code>)은 그대로인데, 컷오프=1000-50=950이고 A=980≥950이라 <b>경고 없이 바로 정상</b>이 됩니다. 같은 수집 로그도 정책 모드에 따라 결과가 달라지므로, 어떤 모드를 쓸지는 analyze 정책 작성 시점에 명확히 정해야 합니다(가이드4 4-6절 참조).
+  </div>
+</section>
+
+<!-- 06 파서 무시 조건 -->
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2 class="sec-title">파서가 라인을 무시하는 조건</h2><span class="sec-en">Lines the Parser Discards</span></div>
+  <p class="lead" style="margin-bottom:12px"><code>LogNormalizeParser</code>는 아래 조건 중 하나라도 걸리면 예외를 던지지 않고 <b>해당 라인만 조용히 무시</b>(WARN 로그만 남김)합니다. 라인 전체를 버리므로 원하는 로그가 수집 안 됐다면 이 표부터 점검합니다.</p>
+
+  <table class="wide-table">
+    <tr><th>단계</th><th>조건</th><th>결과</th></tr>
+    <tr><td class="step">1</td><td>라인에 <code>@@@</code> 자체가 없음</td><td>정규화 로그 아님으로 조용히 통과(WARN 없음)</td></tr>
+    <tr><td class="step">2</td><td>시작 <code>@@@</code>는 있으나 종료 <code>@@@</code> 없음</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">3</td><td>한 라인에 <code>@@@</code>가 3개 이상(로그 2건 이상 혼입)</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">4</td><td>헤더 정규식(<code>@@@[timestamp][type][id]</code>) 불일치</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">5</td><td>파이프(<code>|</code>) 누락 또는 3개 이상</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">6</td><td>tail 영역(두 번째 파이프 뒤)에 값 토큰이 아닌 문자 존재</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">7</td><td>LOG_TYPE이 7종 목록에 없음</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">8</td><td>LOG_ID가 <code>[A-Za-z0-9_]{1,30}</code> 불일치</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">9</td><td>timestamp 파싱 실패</td><td>무시 + WARN</td></tr>
+    <tr><td class="step">10</td><td>타입별 값 토큰 개수/형식 불일치(위 04번 표 참조)</td><td>무시 + WARN</td></tr>
+  </table>
+</section>
+
+<!-- 07 체크리스트 -->
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2 class="sec-title">작성 체크리스트 · 주의사항</h2><span class="sec-en">Checklist & Common Mistakes</span></div>
+
+  <ul class="checklist" style="margin-bottom:20px">
+    <li>파일 인코딩은 UTF-8. 한글 LOG_CONTENT가 깨지면 collect가 다른 인코딩으로 읽고 있는 것</li>
+    <li>LOG_ID는 영문/숫자/언더스코어만, 최대 30자 — 새 항목 추가 시 반드시 정규식으로 먼저 검증</li>
+    <li>한 줄에 로그 1건만 — 여러 값을 남기려면 LOG_ID를 나눠 여러 줄로 출력</li>
+    <li>수치값은 부동소수점 오차가 없는 형태로 출력(내부적으로 BigDecimal 파싱, 지수표기 <code>1e10</code> 등은 피할 것)</li>
+    <li>같은 LOG_ID라도 서버(serverId)별로 값의 의미가 다를 수 있으므로 analyze 정책은 <code>서버구분+LOG_ID</code> 조합으로 따로 등록(가이드4 참조)</li>
+    <li>새 LOG_ID를 추가했다면 analyze의 <code>PreCheck_AnalyzePolicy.conf</code>에도 등록해야 판정됨 — 미등록 시 <code>ANALYZE_LEVEL='미분석'</code>으로만 저장되고 SMS 통보 대상에서 제외</li>
+  </ul>
+
+  <div class="mistake-grid">
+    <div class="mistake">
+      <h4>수치형에 콜론이 섞인 값</h4>
+      <p><code>$08:30$</code>처럼 콜론이 들어가면 무조건 시간 토큰으로 판별되어 수치형 검증에서 거부됩니다. 시각을 남기려면 반드시 "시간"형을 사용하세요.</p>
+    </div>
+    <div class="mistake">
+      <h4>content에 파이프(|) 포함</h4>
+      <p>content 문자열 안에 <code>|</code>가 들어가면 구분자 개수가 어긋나 라인 전체가 무시됩니다. 파이프 대신 다른 구분 문자를 쓰세요.</p>
+    </div>
+    <div class="mistake">
+      <h4>존재형에 값 토큰을 추가</h4>
+      <p>존재형은 "발생 자체가 에러"인 타입이라 값 토큰이 있으면 안 됩니다. 수치를 남기고 싶다면 수치형이나 정보형을 사용하세요.</p>
+    </div>
+    <div class="mistake">
+      <h4>timestamp 형식 임의 변경</h4>
+      <p><code>yyyy-MM-dd</code>나 밀리초 생략 등 포맷을 조금이라도 바꾸면 파싱이 실패해 라인 전체가 사라집니다. 로거 설정에서 포맷을 고정하세요.</p>
+    </div>
+  </div>
+</section>
+
+
+
+
+</div>
+</div>
+</body>
+</html>

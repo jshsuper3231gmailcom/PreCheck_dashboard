@@ -27,6 +27,14 @@ public class InfoDataConfig {
     private List<InfoDataItem> infoData = new ArrayList<>();
 
     /**
+     * Download 화면에서 탐색·다운로드를 허용할 루트 디렉터리다.
+     *
+     * 설계 이유:
+     * - 상대경로 기본값을 사용해 JVM 실행 위치(user.dir) 기준으로 자동 해석되게 한다.
+     */
+    private String downloadDir = "download";
+
+    /**
      * 점검현황 상세(에러/경고, 정상/정보/미분석 탭)와 상단 요약 카운트에서
      * 완전히 제외할 LOG_ID 목록이다.
      *

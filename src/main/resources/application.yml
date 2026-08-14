@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8010
   servlet:
     encoding:
       charset: UTF-8
@@ -36,6 +36,7 @@ logging:
 
 precheck:
   refresh-interval-seconds: 60
+  download-dir: download
   collect-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\collect\schedule_sample\PreCheck_CollectLogs_Schedule.conf
   analyze-schedule-path: C:\Users\20200161\Desktop\PreCheck_work\Precheck_project\Precheck_SKSCh1\precheck_collect\analyze\schedule_sample\PreCheck_AnalyzeLogs_Schedule.conf
   history-days: 60
